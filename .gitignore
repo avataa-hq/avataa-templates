@@ -1,0 +1,13 @@
+.env
+__pycache__/
+tests/output.json
+tests/.coverage
+tests/coverage.xml
+htmlcov/
+.pytest_cache/
+env/
+venv/
+.idea/
+
+# docker
+*compose*.*ml
