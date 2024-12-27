@@ -39,7 +39,10 @@ class TemplateObject(Base):
     )
     parent_object_id = Column(
         Integer,
-        ForeignKey("template_object.id"),
+        ForeignKey(
+            column="template_object.id",
+            ondelete="CASCADE"
+        ),
         nullable=True
     )
     object_type_id = Column(Integer, nullable=False)
@@ -58,11 +61,11 @@ class TemplateObject(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint(
-            "template_id",
-            "object_type_id",
-            name="uq_template_object"
-        ),
+        # UniqueConstraint(
+        #     "template_id",
+        #     "object_type_id",
+        #     name="uq_template_object"
+        # ),
         CheckConstraint(
             "id != parent_object_id",
             name="check_parent_object"

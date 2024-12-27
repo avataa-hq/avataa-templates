@@ -1,0 +1,80 @@
+from __future__ import annotations
+from pydantic import BaseModel, conint
+from typing import List, Optional
+
+
+class TemplateParameterInput(BaseModel):
+    parameter_type_id: conint(gt=0)
+    value: Optional[str] = None
+    constraint: Optional[str] = None
+    required: bool = False
+
+
+class TemplateObjectInput(BaseModel):
+    object_type_id: conint(gt=0)
+    required: bool = True
+    parameters: Optional[List[TemplateParameterInput]] = []
+    children: Optional[List['TemplateObjectInput']] = []
+
+
+class TemplateInput(BaseModel):
+    name: str
+    owner: str
+    object_type_id: conint(gt=0)
+    template_objects: Optional[List[TemplateObjectInput]] = []
+
+
+class TemplateParameterOutput(BaseModel):
+    id: conint(gt=0)
+    parameter_type_id: conint(gt=0)
+    value: Optional[str] = None
+    constraint: Optional[str] = None
+    required: bool = False
+
+
+class TemplateObjectOutput(BaseModel):
+    id: conint(gt=0)
+    object_type_id: conint(gt=0)
+    required: bool = True
+    parameters: Optional[List[TemplateParameterOutput]] = []
+    children: Optional[List['TemplateObjectOutput']] = []
+
+
+class TemplateOutput(BaseModel):
+    id: conint(gt=0)
+    name: str
+    owner: str
+    object_type_id: conint(gt=0)
+    template_objects: Optional[List[TemplateObjectOutput]] = []
+
+
+class TemplateObjectUpdateInput(BaseModel):
+    required: bool
+    parent_object_id: Optional[conint(gt=0)]
+
+
+class TemplateObjectUpdateOutput(BaseModel):
+    id: conint(gt=0)
+    object_type_id: conint(gt=0)
+    parent_object_id: Optional[conint(gt=0)]
+    required: bool
+
+
+class SimpleTemplateOutput(BaseModel):
+    id: conint(gt=0)
+    name: str
+    owner: str
+    object_type_id: conint(gt=0)
+
+
+class TemplateUpdateInput(BaseModel):
+    name: str
+    owner: str
+    object_type_id: conint(gt=0)
+
+
+class TemplateUpdateOutput(BaseModel):
+    id: conint(gt=0)
+    name: str
+    owner: str
+    object_type_id: conint(gt=0)
