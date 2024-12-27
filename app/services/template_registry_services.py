@@ -167,6 +167,7 @@ class TemplateRegistryService:
             owner=db_template.owner,
             object_type_id=db_template.object_type_id,
             template_objects=created_objects,
+            valid=db_template.valid,
         )
 
     async def create_template_objects(
@@ -224,6 +225,7 @@ class TemplateRegistryService:
                     required=db_template_object.required,
                     parameters=parameters,
                     children=children,
+                    valid=db_template_object.valid,
                 )
             )
 
@@ -250,12 +252,17 @@ class TemplateRegistryService:
                 object_type_id=object_type_id,
                 template_parameter=parameter
             )
+
+            inventory_tprm_data = self.object_type_to_parameter[object_type_id]
+            val_type = inventory_tprm_data[parameter.parameter_type_id]["val_type"]
+
             db_parameter = TemplateParameter(
                 parameter_type_id=parameter.parameter_type_id,
                 value=parameter.value,
                 constraint=parameter.constraint,
                 required=parameter.required,
                 template_object_id=template_object_id,
+                val_type=val_type,
             )
             self.db.add(db_parameter)
             await self.db.flush()

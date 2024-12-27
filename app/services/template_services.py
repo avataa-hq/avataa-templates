@@ -35,7 +35,8 @@ class TemplateService:
                 id=template.id,
                 name=template.name,
                 owner=template.owner,
-                object_type_id=template.object_type_id
+                object_type_id=template.object_type_id,
+                valid=template.valid,
             ) for template in templates
         ]
 
@@ -68,6 +69,7 @@ class TemplateService:
             name=template.name,
             owner=template.owner,
             object_type_id=template.object_type_id,
+            valid=template.valid,
         )
 
     async def delete_template(self, template_id: int) -> None:

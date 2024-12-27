@@ -30,6 +30,8 @@ class TemplateParameterOutput(BaseModel):
     value: Optional[str] = None
     constraint: Optional[str] = None
     required: bool = False
+    val_type: str
+    valid: Optional[bool] = True
 
 
 class TemplateObjectOutput(BaseModel):
@@ -38,6 +40,7 @@ class TemplateObjectOutput(BaseModel):
     required: bool = True
     parameters: Optional[List[TemplateParameterOutput]] = []
     children: Optional[List['TemplateObjectOutput']] = []
+    valid: Optional[bool] = True
 
 
 class TemplateOutput(BaseModel):
@@ -46,6 +49,7 @@ class TemplateOutput(BaseModel):
     owner: str
     object_type_id: conint(gt=0)
     template_objects: Optional[List[TemplateObjectOutput]] = []
+    valid: Optional[bool] = True
 
 
 class TemplateObjectUpdateInput(BaseModel):
@@ -58,6 +62,7 @@ class TemplateObjectUpdateOutput(BaseModel):
     object_type_id: conint(gt=0)
     parent_object_id: Optional[conint(gt=0)]
     required: bool
+    valid: Optional[bool] = True
 
 
 class SimpleTemplateOutput(BaseModel):
@@ -65,6 +70,7 @@ class SimpleTemplateOutput(BaseModel):
     name: str
     owner: str
     object_type_id: conint(gt=0)
+    valid: Optional[bool] = True
 
 
 class TemplateUpdateInput(BaseModel):
@@ -78,3 +84,4 @@ class TemplateUpdateOutput(BaseModel):
     name: str
     owner: str
     object_type_id: conint(gt=0)
+    valid: Optional[bool] = True

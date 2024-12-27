@@ -12,7 +12,6 @@ from schemas.template_schemas import (
 from exceptions import (
     TemplateNotFound,
     TemplateObjectNotFound,
-    TMOIdNotFoundInInventory,
 )
 from .template_services import TemplateRegistryService
 
@@ -59,11 +58,11 @@ class TemplateObjectService:
         result = await self.db.execute(query)
         template_objects = result.scalars().all()
 
-        objects = []
+        objects = list()
 
         for obj in template_objects:
             # Include parameters if flag is True
-            parameters = []
+            parameters = list()
             if include_parameters:
                 parameters = [
                     TemplateParameterOutput(
@@ -72,6 +71,8 @@ class TemplateObjectService:
                         value=param.value,
                         constraint=param.constraint,
                         required=param.required,
+                        val_type=param.val_type,
+                        valid=param.valid,
                     )
                     for param in obj.parameters
                 ]
@@ -91,6 +92,7 @@ class TemplateObjectService:
                     required=obj.required,
                     parameters=parameters,
                     children=children,
+                    valid=obj.valid,
                 )
             )
 
@@ -145,6 +147,7 @@ class TemplateObjectService:
             object_type_id=object.object_type_id,
             parent_id=object.parent_object_id,
             required=object.required,
+            valid=object.valid,
         )
 
     async def delete_template_object(self, object_id: int) -> None:
