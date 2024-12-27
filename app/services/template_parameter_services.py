@@ -42,6 +42,8 @@ class TemplateParameterService:
                 value=param.value,
                 constraint=param.constraint,
                 required=param.required,
+                val_type=param.val_type,
+                valid=param.valid,
             ) for param in parameters
         ]
 
@@ -82,6 +84,8 @@ class TemplateParameterService:
             value=parameter.value,
             constraint=parameter.constraint,
             required=parameter.required,
+            val_type=parameter.val_type,
+            valid=parameter.valid,
         )
 
     async def delete_template_parameter(self, parameter_id: int) -> None:
