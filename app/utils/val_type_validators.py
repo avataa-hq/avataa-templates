@@ -33,7 +33,7 @@ def date_validation(value: str) -> bool:
     try:
         datetime.strptime(value, "%Y-%m-%d")
         return True
-    except:
+    except Exception:
         return False
 
 
@@ -41,7 +41,7 @@ def datetime_validation(value: str) -> bool:
     try:
         datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%fZ")
         return True
-    except:
+    except Exception:
         return False
 
 
@@ -52,12 +52,6 @@ def mo_link_validation(value: str) -> bool:
 
 
 def prm_link_validation(value: str) -> bool:
-    if not value.isdigit():
-        return False
-    return True
-
-
-def mo_link_validation(value: str) -> bool:
     if not value.isdigit():
         return False
     return True

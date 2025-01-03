@@ -1,5 +1,6 @@
-from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from create_fastapi_app import create_app
 from routers import (
     template_registry_router,
     template_parameter_router,
@@ -11,12 +12,7 @@ prefix = "/api/template"
 app_title = "Template API"
 app_version = "1"
 
-
-app = FastAPI(
-    root_path=prefix,
-    title=app_title,
-    version=app_version,
-)
+app = create_app(root_path=prefix, title=app_title, version=app_version)
 
 app.add_middleware(
     CORSMiddleware,
@@ -25,11 +21,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+v1_options = {'root_path': f'{prefix}/v{app_version}', 'title': app_title, "version": app_version}
+v1_app = create_app(**v1_options)
 
-v1_app = FastAPI(
-    title=f"{app_title} v{app_version}",
-    version=app_version,
-)
 v1_app.include_router(template_registry_router.router)
 v1_app.include_router(template_parameter_router.router)
 v1_app.include_router(template_object_router.router)

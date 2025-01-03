@@ -11,7 +11,7 @@ from schemas.template_schemas import (
 )
 from grpc_clients.inventory.getters.getters_with_channel import (
     get_all_tmo_data_from_inventory_channel_in,
-    get_all_tprms_for_special_tmo_id_channel_in,   
+    get_all_tprms_for_special_tmo_id_channel_in,
 )
 from utils.val_type_validators import validate_by_val_type
 from utils.constraint_validators import validate_by_constraint
