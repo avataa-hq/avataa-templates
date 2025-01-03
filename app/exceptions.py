@@ -30,26 +30,22 @@ class TPRMNotFoundInInventory(Exception):
 
 class InvalidHierarchy(Exception):
     def __init__(
-            self,
-            object_type_id: int,
-            expected_parent_id: Optional[int],
-            actual_parent_id: Optional[int]
-        ) -> None:
+        self,
+        object_type_id: int,
+        expected_parent_id: Optional[int],
+        actual_parent_id: Optional[int],
+    ) -> None:
         self.object_type_id = object_type_id
         self.expected_parent_id = expected_parent_id
         self.actual_parent_id = actual_parent_id
         super().__init__(
-            f"Hierarchy error: object_type_id {object_type_id} "\
+            f"Hierarchy error: object_type_id {object_type_id} "
             f"expected parent {expected_parent_id}, got {actual_parent_id}."
         )
 
 
 class RequiredMismatchException(Exception):
-    def __init__(
-        self,
-        parameter_type_id: int,
-        object_type_id: int
-    ) -> None:
+    def __init__(self, parameter_type_id: int, object_type_id: int) -> None:
         self.parameter_type_id = parameter_type_id
         self.object_type_id = object_type_id
         super().__init__(
@@ -93,11 +89,10 @@ class ValueConstraintException(Exception):
             f"constraint=`{constraint}`) in object type (ID={object_type_id})"
         )
 
+
 class IncorrectConstraintException(Exception):
     def __init__(
         self,
         constraint: str,
     ) -> None:
-        super().__init__(
-            f"Constraint was defined incorrectly: `{constraint}`"
-        )
+        super().__init__(f"Constraint was defined incorrectly: `{constraint}`")

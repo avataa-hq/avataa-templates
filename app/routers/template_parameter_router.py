@@ -14,7 +14,6 @@ from schemas.template_schemas import (
 )
 from services.template_parameter_services import TemplateParameterService
 from exceptions import (
-    TemplateObjectNotFound,
     TemplateParameterNotFound,
     TemplateObjectNotFound,
     TPRMNotFoundInInventory,

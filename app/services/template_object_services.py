@@ -50,7 +50,7 @@ class TemplateObjectService:
 
             query = query.filter(TemplateObject.parent_object_id == parent_id)
         else:
-            query = query.filter(TemplateObject.parent_object_id == None)
+            query = query.filter(TemplateObject.parent_object_id is None)
 
         if include_parameters:
             query = query.options(selectinload(TemplateObject.parameters))
@@ -112,7 +112,7 @@ class TemplateObjectService:
             raise TemplateObjectNotFound
 
         if (
-            object_data.parent_object_id and\
+            object_data.parent_object_id and
             object_data.parent_object_id != object.parent_object_id
         ):
             # if hierarchy is changing
