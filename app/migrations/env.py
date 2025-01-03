@@ -60,6 +60,8 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
+    connection.execute(text(f"SET search_path TO {setup_config().db.DB_SCHEMA};"))
+    connection.commit()
     context.configure(connection=connection,
                       target_metadata=target_metadata,
                       version_table_schema=setup_config().db.DB_SCHEMA,

@@ -45,7 +45,7 @@ convention = {
 
 
 class Base(DeclarativeBase, MappedAsDataclass):
-    metadata = MetaData(naming_convention=convention, schema=setup_config().db.DB_SCHEMA)
+    metadata = MetaData(naming_convention=convention)
 
 
 async_session = sessionmaker(
