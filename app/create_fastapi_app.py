@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import FastAPI
 from fastapi.openapi.docs import (
     get_redoc_html,
@@ -12,7 +14,10 @@ from config import setup_config
 
 def register_static_docs_routes(app: FastAPI):
     root_path = app.root_path.rstrip("/")
-    openapi_url = root_path + app.openapi_url
+    if app.openapi_url is None:
+        openapi_url = ""
+    else:
+        openapi_url = root_path + app.openapi_url
     oauth2_redirect_url = app.swagger_ui_oauth2_redirect_url
     conf = setup_config().app
     if oauth2_redirect_url:
@@ -54,7 +59,7 @@ def register_static_docs_routes(app: FastAPI):
 
 
 def create_app(
-    documentation_enabled: bool = setup_config().app.DOCS_ENABLED, **kwargs
+    documentation_enabled: bool, **kwargs: Any
 ) -> FastAPI:
     conf = setup_config().app
     options = kwargs
