@@ -3,7 +3,10 @@ from typing import Callable
 from confluent_kafka import cimpl
 from typing_extensions import Any
 
-from services.inventory_services.db_services import TemplateObjectService, TemplateParameterService
+from services.inventory_services.db_services import (
+    TemplateObjectService,
+    TemplateParameterService,
+)
 from services.inventory_services.kafka.consumer.config import KafkaConfig
 from services.inventory_services.kafka.consumer.deserializer import (
     INVENTORY_CHANGES_PROTOBUF_DESERIALIZERS,
@@ -49,6 +52,11 @@ class InventoryChangesHandler(object):
             self.msg_instance_event = msg_event
 
     def __from_bytes_to_python_proto_model_msg(self) -> cimpl.Message:
+        if not self.msg_instance_class_name:
+            raise NotImplementedError(
+                f"Proto model deserializer does not implemented"
+                f"for msg_class_name = '{self.msg_instance_class_name}'"
+            )
         deserializer_model: Any = INVENTORY_CHANGES_PROTOBUF_DESERIALIZERS.get(
             self.msg_instance_class_name, None
         )
@@ -73,6 +81,12 @@ class InventoryChangesHandler(object):
         )
 
     def __get_event_handler(self) -> Callable:
+        if not self.msg_instance_class_name:
+            raise NotImplementedError(
+                f"Does not implemented kafka msg handlers "
+                f"for the {KafkaConfig().inventory_changes_topic} topic "
+                f"with msg_class_name = '{self.msg_instance_class_name}'"
+            )
         handlers_by_class_name = INVENTORY_CHANGES_HANDLER_BY_MSG_CLASS_NAME.get(
             self.msg_instance_class_name
         )
@@ -99,7 +113,6 @@ class InventoryChangesHandler(object):
         template_object_service: TemplateObjectService,
         template_parameter_service: TemplateParameterService,
     ):
-
         self.clear_msg_data()
         if self.msg_instance_class_name:
             deserialized_msg = self.__from_bytes_to_python_proto_model_msg()

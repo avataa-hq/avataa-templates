@@ -1,4 +1,7 @@
-from services.inventory_services.db_services import TemplateObjectService, TemplateParameterService
+from services.inventory_services.db_services import (
+    TemplateObjectService,
+    TemplateParameterService,
+)
 
 
 async def on_delete_tprm(

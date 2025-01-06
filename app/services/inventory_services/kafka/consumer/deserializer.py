@@ -6,6 +6,7 @@ from confluent_kafka import cimpl
 from services.inventory_services.kafka.consumer.protobuf import obj_pb2
 from services.inventory_services.kafka.consumer.custom_deserializer import (
     PROTO_TYPES_SERIALIZERS,
+    SerializerType,
 )
 from services.inventory_services.kafka.events.tmo_msg import (
     on_update_tmo,
@@ -46,9 +47,9 @@ INVENTORY_CHANGES_HANDLER_BY_MSG_CLASS_NAME = {
 }
 
 
-def __msg_f_serializer(value: Any):
+def __msg_f_serializer(value: Any) -> Any:
     """Returns serialized proto msg field value into python type"""
-    serializer = PROTO_TYPES_SERIALIZERS.get(type(value).__name__)
+    serializer: SerializerType | None = PROTO_TYPES_SERIALIZERS.get(type(value).__name__)
     if serializer:
         return serializer(value)
     else:

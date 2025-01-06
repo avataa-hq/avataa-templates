@@ -5,7 +5,10 @@ from confluent_kafka import Consumer
 
 from database import session_factory
 from services.common.uow import SQLAlchemyUoW
-from services.inventory_services.db_services import TemplateObjectService, TemplateParameterService
+from services.inventory_services.db_services import (
+    TemplateObjectService,
+    TemplateParameterService,
+)
 from services.inventory_services.kafka.consumer.config import KafkaConfig
 from services.inventory_services.kafka.consumer.utils import InventoryChangesHandler
 
