@@ -22,7 +22,7 @@ class TemplateObjectRepo(object):
             update(TemplateObject)
             .where(
                 TemplateObject.id.in_(
-                    [template.template_id for template in template_objects]
+                    [template.id for template in template_objects]
                 )
             )
             .values(valid=False)
