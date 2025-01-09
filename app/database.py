@@ -32,6 +32,9 @@ if DATABASE_URL:
     session_factory = async_sessionmaker(
         bind=engine, autoflush=False, expire_on_commit=False
     )
+else:
+    engine = None
+    async_session = None
 
 # SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

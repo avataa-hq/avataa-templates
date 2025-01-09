@@ -13,9 +13,7 @@ from models import Base
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-
 config.set_main_option("sqlalchemy.url", setup_config().db.DATABASE_URL.unicode_string())
-
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
@@ -27,8 +25,6 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 # target_metadata = None
 target_metadata = Base.metadata
-
-
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
@@ -60,11 +56,9 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    connection.execute(text(f"SET search_path TO {setup_config().db.DB_SCHEMA};"))
-    connection.commit()
     context.configure(connection=connection,
                       target_metadata=target_metadata,
-                      version_table_schema=setup_config().db.DB_SCHEMA,
+                      # version_table_schema=setup_config().db.DB_SCHEMA, drop alembic_version in migration
                       echo=False,
                       include_schemas=True,
                       )
@@ -86,6 +80,9 @@ async def run_async_migrations() -> None:
     )
 
     async with connectable.connect() as connection:
+        await connection.execute(text(f"SET search_path TO {setup_config().db.DB_SCHEMA};"))
+        await connection.commit()
+        connection.dialect.default_schema_name = setup_config().db.DB_SCHEMA
         await connection.run_sync(do_run_migrations)
 
     await connectable.dispose()

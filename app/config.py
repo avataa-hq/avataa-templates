@@ -16,7 +16,8 @@ class ApplicationSettings(BaseSettings):
 
 class DatabaseSettings(BaseSettings):
     DB_SCHEMA: str = Field(default="public")
-    DATABASE_URL: PostgresDsn = Field(alias="SQLALCHEMY_DATABASE_URL")
+    DATABASE_URL: PostgresDsn = Field(alias="SQLALCHEMY_DATABASE_URL",
+                                      default=PostgresDsn("postgresql://postgres:postgres@localhost:5432/postgres"))
 
 
 class Config(object):
