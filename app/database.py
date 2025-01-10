@@ -1,5 +1,3 @@
-import os
-from dotenv import load_dotenv
 from typing import AsyncGenerator
 
 from sqlalchemy import MetaData
@@ -12,29 +10,19 @@ from sqlalchemy.ext.asyncio import (
 
 from config import setup_config
 
-load_dotenv()
-
-DATABASE_URL = os.getenv("SQLALCHEMY_DATABASE_URL")
-
-
-if DATABASE_URL:
-    engine = create_async_engine(
-        url=DATABASE_URL,
-        echo=True,
-        max_overflow=15,
-        pool_size=15,
-        pool_pre_ping=True,
-        connect_args={
-            "server_settings": {"application_name": "Object Template MS"},
-            "options": f"-csearch_path={setup_config().db.DB_SCHEMA}",
-        },
-    )
-    session_factory = async_sessionmaker(
-        bind=engine, autoflush=False, expire_on_commit=False
-    )
-else:
-    engine = None
-    async_session = None
+engine = create_async_engine(
+    url=setup_config().DATABASE_URL.unicode_string(),
+    echo=True,
+    max_overflow=15,
+    pool_size=15,
+    pool_pre_ping=True,
+    connect_args={
+        "server_settings": {"application_name": "Object Template MS", "search_path": setup_config().db.schema_name},
+    },
+)
+session_factory = async_sessionmaker(
+    bind=engine, autoflush=False, expire_on_commit=False
+)
 
 # SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
