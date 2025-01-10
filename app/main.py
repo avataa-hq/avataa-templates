@@ -14,7 +14,7 @@ app_title = "Template API"
 app_version = "1"
 
 app = create_app(
-    documentation_enabled=setup_config().app.DOCS_ENABLED,
+    documentation_enabled=setup_config().app.docs_enabled,
     root_path=prefix,
     title=app_title,
     version=app_version,
@@ -28,7 +28,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 v1_options = {'root_path': f'{prefix}/v{app_version}', 'title': app_title, "version": app_version}
-v1_app = create_app(**v1_options)
+v1_app = create_app(documentation_enabled=setup_config().app.docs_enabled, **v1_options)
 
 v1_app.include_router(template_registry_router.router)
 v1_app.include_router(template_parameter_router.router)

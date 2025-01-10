@@ -28,11 +28,11 @@ def register_static_docs_routes(app: FastAPI):
             openapi_url=openapi_url,
             title=app.title + " - Swagger UI",
             oauth2_redirect_url=oauth2_redirect_url,
-            swagger_js_url=conf.SWAGGER_JS_URL,
-            swagger_css_url=conf.SWAGGER_CSS_URL,
+            swagger_js_url=conf.swagger_js_url,
+            swagger_css_url=conf.swagger_css_url,
         )
     docs_url = app.docs_url or '/docs'
-    if conf.SWAGGER_JS_URL and conf.SWAGGER_CSS_URL:
+    if conf.swagger_js_url and conf.swagger_css_url:
         app.add_route(docs_url, custom_swagger_ui_html, include_in_schema=False)
     # else:
     #     warnings.warn(
@@ -48,11 +48,11 @@ def register_static_docs_routes(app: FastAPI):
         return get_redoc_html(
             openapi_url=openapi_url,
             title=app.title + " - ReDoc",
-            redoc_js_url=conf.REDOC_JS_URL,
+            redoc_js_url=conf.redoc_js_url,
         )
 
     redoc_url = app.redoc_url or '/redoc'
-    if conf.REDOC_JS_URL:
+    if conf.redoc_js_url:
         app.add_route(redoc_url, redoc_html, include_in_schema=False)
     # else:
     #     warnings.warn(f'Endpoint "{redoc_url}" disabled. Environment variable "REDOC_JS_URL" is not set')
@@ -65,12 +65,12 @@ def create_app(
     options = kwargs
     if not documentation_enabled:
         options['openapi_url'] = None
-    elif conf.DOCS_CUSTOM_ENABLED:
-        if conf.SWAGGER_JS_URL and conf.SWAGGER_CSS_URL:
+    elif conf.custom_enabled:
+        if conf.swagger_js_url and conf.swagger_css_url:
             options['docs_url'] = None
-        if conf.REDOC_JS_URL:
+        if conf.redoc_js_url:
             options['redoc_url'] = None
     app = FastAPI(**options)
-    if documentation_enabled and conf.DOCS_CUSTOM_ENABLED:
+    if documentation_enabled and conf.custom_enabled:
         register_static_docs_routes(app)
     return app

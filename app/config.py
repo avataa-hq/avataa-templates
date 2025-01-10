@@ -3,26 +3,36 @@ from dotenv import load_dotenv
 from functools import lru_cache
 
 from pydantic import Field, PostgresDsn
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class ApplicationSettings(BaseSettings):
-    DOCS_ENABLED: bool = Field(default=True)
-    DOCS_CUSTOM_ENABLED: bool = Field(default=False)
-    REDOC_JS_URL: str = Field(default="")
-    SWAGGER_JS_URL: str = Field(default="")
-    SWAGGER_CSS_URL: str = Field(default="")
+    docs_enabled: bool = Field(default=True, alias="docs_enabled")
+    custom_enabled: bool = Field(default=False)
+    redoc_js_url: str = Field(default="")
+    swagger_js_url: str = Field(default="")
+    swagger_css_url: str = Field(default="")
+
+    model_config = SettingsConfigDict(env_prefix="docs_")
 
 
 class DatabaseSettings(BaseSettings):
-    DB_SCHEMA: str = Field(default="public")
-    DATABASE_URL: PostgresDsn = Field(alias="SQLALCHEMY_DATABASE_URL",
-                                      default=PostgresDsn("postgresql://postgres:postgres@localhost:5432/postgres"))
+    schema_name: str = Field(default="public")
+    db_type: str = Field(default="postgresql", alias="db_type")
+    user: str = Field(default="templates_admin")
+    db_pass: str = Field(default="password", alias="db_pass")
+    host: str = Field(default="localhost")
+    port: int = Field(default=5432)
+    name: str = Field(default="templates")
+    model_config = SettingsConfigDict(env_prefix="db_")
 
 
 class Config(object):
     app: ApplicationSettings = ApplicationSettings()
     db: DatabaseSettings = DatabaseSettings()
+    DATABASE_URL: PostgresDsn = PostgresDsn(
+        f"{db.db_type}+asyncpg://{db.user}:{db.db_pass}@{db.host}:{db.port}/{db.name}",
+    )
 
 
 load_dotenv()
