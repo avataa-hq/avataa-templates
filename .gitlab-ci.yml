@@ -1,0 +1,373 @@
+stages:
+  - test
+  - build
+  - security
+  - deploy
+
+
+variables:
+  DOCKER_AUTH_CONFIG: ${CI_DOCKER_AUTH_CONFIG}
+  # TERM: xterm-256color
+  # TERM: xterm-color
+  # TERM: ansi
+  # COLORTERM: truecolor
+  # COLORTERM: 24bit
+  # CLICOLOR: 1
+  CLICOLOR_FORCE: 1
+
+
+pre:
+  stage: .pre
+  script:
+    - docker login -u ${REGISTRY_PULL_USER} -p ${REGISTRY_PULL_PASSWORD} ${REGISTRY_URL}
+  rules:
+    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop  
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
+          $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
+          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
+    # if event = push && target = develop          
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+    # if event = push && target = main          
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $MAIN_BRANCH
+  tags:
+    - main
+  interruptible: true
+
+
+lint:
+  stage: test
+  image: ${REGISTRY_URL}/${PYTHON_IMAGE}:${PYTHON_IMAGE_VERSION}
+  script:
+    - uv sync --only-group ${UV_GROUP_LINT}
+    - source .venv/bin/activate
+    - ruff check ${APP_DIR} || ruff check --statistics ${APP_DIR}
+    - ruff format --diff ${APP_DIR} || ruff format --check ${APP_DIR}
+    - if [ -d "${TESTS_DIR}" ]; then ruff check ${TESTS_DIR} || ruff check --statistics ${TESTS_DIR}; fi 
+    - if [ -d "${TESTS_DIR}" ]; then ruff format --diff ${TESTS_DIR} || ruff format --check ${TESTS_DIR}; fi 
+  rules:
+    # works (!) - if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
+          $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
+          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
+    # works (!) - if event = push && target = /^feature\/A[DV]-\d+$/
+    # - if: $CI_PIPELINE_SOURCE == 'push' &&
+    #       $CI_COMMIT_BRANCH =~ $FEATURE_BRANCH_REGEX
+    # works (!) - if event = push && target = develop
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+    # works (!) - if event = push && target = main
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $MAIN_BRANCH
+    # $CI_DEFAULT_BRANCH = develop
+    # $CI_COMMIT_REF_NAME == 'main'
+  tags:
+    - main-docker
+  interruptible: true
+
+# TODO complete -> remove dot
+.unit_test:
+  variables:
+    # postgresql env vars
+    TESTS_RUN_CONTAINER_POSTGRES_LOCAL: False
+    TESTS_DB_TYPE: ${TESTS_DB_TYPE}
+    TESTS_DB_USER: ${TESTS_POSTGRES_USER}
+    TESTS_DB_PASS: ${TESTS_POSTGRES_PASSWORD}
+    TESTS_DB_HOST: ${TESTS_DB_HOST}
+    TESTS_DB_PORT: ${TESTS_DB_PORT}
+    TESTS_DB_NAME: ${TESTS_POSTGRES_DB}
+    # postgresql container as service
+    POSTGRES_DB: ${TESTS_POSTGRES_DB}
+    POSTGRES_USER: ${TESTS_POSTGRES_USER}
+    POSTGRES_PASSWORD: ${TESTS_POSTGRES_PASSWORD}
+    # minio env vars
+    TESTS_MINIO_SECURE: false
+    TESTS_MINIO_BUCKET: ${TESTS_MINIO_BUCKET}
+    TESTS_MINIO_PASSWORD: ${TESTS_MINIO_ROOT_PASSWORD}
+    TESTS_MINIO_URL: ${TESTS_MINIO_URL}
+    TESTS_MINIO_USER: ${TESTS_MINIO_ROOT_USER}
+    # minio container as service
+    MINIO_ROOT_USER: ${TESTS_MINIO_ROOT_USER}
+    MINIO_ROOT_PASSWORD: ${TESTS_MINIO_ROOT_PASSWORD}
+    MINIO_DEFAULT_BUCKETS: ${TESTS_MINIO_BUCKET}
+  stage: test
+  image: ${REGISTRY_URL}/${PYTHON_IMAGE}:${PYTHON_IMAGE_VERSION}
+  services:
+    - name: postgres:${POSTGRES_VERSION}
+      alias: postgres
+    - name: bitnami/minio:${MINIO_VERSION}
+      alias: minio
+  script:
+    - uv sync --group ${UV_GROUP_TESTS}
+    - source .venv/bin/activate
+    - pytest
+  rules:
+    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop  
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
+          $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
+          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
+    # if event = push && target = develop          
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+    # if event = push && target = main          
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $MAIN_BRANCH
+  tags:
+    - main-docker
+  interruptible: true
+
+migrations_test:
+  stage: test
+  variables:
+    DB_TYPE: ${TESTS_DB_TYPE}
+    DB_USER: ${TESTS_POSTGRES_USER}
+    DB_PASS: ${TESTS_POSTGRES_PASSWORD}
+    DB_HOST: ${TESTS_DB_HOST}
+    DB_PORT: ${TESTS_DB_PORT}
+    DB_NAME: ${TESTS_POSTGRES_DB}
+    # postgresql container as service
+    POSTGRES_DB: ${TESTS_POSTGRES_DB}
+    POSTGRES_USER: ${TESTS_POSTGRES_USER}
+    POSTGRES_PASSWORD: ${TESTS_POSTGRES_PASSWORD}
+  image: ${REGISTRY_URL}/${PYTHON_IMAGE}:${PYTHON_IMAGE_VERSION}
+  services:
+    - name: postgres:${POSTGRES_VERSION}
+      alias: postgres
+  script:
+    - uv sync --only-group ${UV_GROUP_MIGRATIONS}
+    - source .venv/bin/activate
+    - cd ${APP_DIR}
+    - ${MIGRATIONS_COMMAND}
+  rules:
+    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop  
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
+          $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
+          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
+    # if event = push && target = develop          
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+    # if event = push && target = main          
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $MAIN_BRANCH
+  tags:
+    - main-docker
+  interruptible: true
+
+package_vulns_test:
+  stage: test
+  variables:
+    TRIVY_NO_PROGRESS: "true"
+    TRIVY_DISABLE_VEX_NOTICE: "true"
+    TRIVY_REPORT_FILENAME: ${TRIVY_REPORT_FILENAME}
+  image: ${REGISTRY_URL}/${PYTHON_IMAGE}:${PYTHON_IMAGE_VERSION}
+  script:
+    - uv sync --all-groups
+    - uv --color never pip freeze > ${REQUIREMENTS_FILENAME}
+    - source .venv/bin/activate
+    # WARN force true
+    - pip-audit --aliases -r ${REQUIREMENTS_FILENAME} || true
+    - trivy fs --pkg-types=library --format table --scanners vuln --exit-code 1 ${REQUIREMENTS_FILENAME}
+      --output ${TRIVY_REPORT_FILENAME} || cat ${TRIVY_REPORT_FILENAME}
+  rules:
+    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop  
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
+          $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
+          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
+    # if event = push && target = develop          
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+    # if event = push && target = main          
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $MAIN_BRANCH
+  tags:
+    - main-docker
+  # allow_failure: true
+  interruptible: true
+  artifacts:
+    when: always
+    paths:
+      # - ${TRIVY_REPORT_FILENAME}
+      - trivy_report.txt
+
+analyse_code_dev:
+  stage: test
+  image:
+    name: ${REGISTRY_URL}/${SONAR_SCANNER_CLI_IMAGE}:${SONAR_SCANNER_CLI_VERSION}
+    entrypoint: [""]
+  script:
+    - cd ${APP_DIR}
+    - /usr/bin/entrypoint.sh sonar-scanner
+        -Dsonar.host.url=${SONARQUBE_URL}
+        -Dsonar.sources=.
+        -Dsonar.python.version=${PYTHON_VERSION}
+        -Dsonar.projectKey=${SONARQUBE_PROJECT_KEY_DEV}
+        -Dsonar.projectName="${SONARQUBE_PROJECT_NAME_DEV}"
+        -Dsonar.token=${SONARQUBE_PROJECT_TOKEN_DEV}
+  rules:
+    # if event = push && target = develop          
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+  tags:
+    - main-docker
+  # allow_failure: true
+  interruptible: true
+
+analyse_code_main:
+  stage: test
+  image:
+    name: ${REGISTRY_URL}/${SONAR_SCANNER_CLI_IMAGE}:${SONAR_SCANNER_CLI_VERSION}
+    entrypoint: [""]
+  script:
+    - cd ${APP_DIR}
+    - /usr/bin/entrypoint.sh sonar-scanner
+        -Dsonar.host.url=${SONARQUBE_URL}
+        -Dsonar.sources=.
+        -Dsonar.python.version=${PYTHON_VERSION}
+        -Dsonar.projectKey=${SONARQUBE_PROJECT_KEY}
+        -Dsonar.projectName="${SONARQUBE_PROJECT_NAME}"
+        -Dsonar.token=${SONARQUBE_PROJECT_TOKEN}
+  rules:
+    # if event = push && target = main          
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $MAIN_BRANCH
+  tags:
+    - main-docker
+  # allow_failure: true
+  interruptible: true
+
+
+build_dev:
+  stage: build
+  variables:
+    DOCKER_HOST: ${DOCKER_HOST}
+  image: docker:${DOCKER_DIND_VERSION}
+  services:
+    - docker:${DOCKER_DIND_VERSION}
+  script:
+    - docker login -u ${REGISTRY_PUSH_USER} -p ${REGISTRY_PUSH_PASSWORD} ${REGISTRY_URL}
+    - docker buildx create --name ${DOCKER_BUILDER_NAME} --driver=docker-container
+    - docker buildx build
+        --platform ${BUILD_ARCHS}
+        --tag ${REGISTRY_URL}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}:${DEVELOP_TAG}
+        --builder ${DOCKER_BUILDER_NAME}
+        --provenance false
+        --sbom false
+        --push .
+    # get image digest to sign image with cosign
+    - IMAGE_DIGEST=$(docker buildx imagetools inspect --format "{{json .Manifest.Digest}}"
+        ${REGISTRY_URL}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}:${DEVELOP_TAG} | tr -d '"')
+    - echo ${IMAGE_DIGEST} > ${BUILDS_CI_PATH}/${IMAGE_DIGEST_FILENAME}
+  rules:
+    # if event = push && target = develop          
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+  tags:
+    - main-docker
+
+build_main:
+  stage: build
+  variables:
+    DOCKER_HOST: ${DOCKER_HOST}
+  image: docker:${DOCKER_DIND_VERSION}
+  services:
+    - docker:${DOCKER_DIND_VERSION}
+  script:
+    - docker login -u ${REGISTRY_PUSH_USER} -p ${REGISTRY_PUSH_PASSWORD} ${REGISTRY_URL}
+    - docker buildx create --name ${DOCKER_BUILDER_NAME} --driver=docker-container
+    - docker buildx build
+        --platform ${BUILD_ARCHS}
+        --tag ${REGISTRY_URL}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}:${LATEST_TAG}
+        --builder ${DOCKER_BUILDER_NAME}
+        --provenance false
+        --sbom false
+        --push .
+    # get image digest to sign image with cosign
+    - IMAGE_DIGEST=$(docker buildx imagetools inspect --format "{{json .Manifest.Digest}}"
+        ${REGISTRY_URL}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}:${LATEST_TAG} | tr -d '"')
+    - echo ${IMAGE_DIGEST} > ${BUILDS_CI_PATH}/${IMAGE_DIGEST_FILENAME}
+  rules:
+    # if event = push && target = main          
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $MAIN_BRANCH
+  tags:
+    - main-docker
+
+
+sign_dev:
+  stage: build
+  variables:
+    COSIGN_PASSWORD: ${COSIGN_PASSWORD}
+    COSIGN_PRIVATE_KEY: ${COSIGN_PRIVATE_KEY}
+  image:
+    name: bitnami/cosign:${COSIGN_VERSION}
+    entrypoint: [""]
+  script:
+    - IMAGE_DIGEST=$(cat ${BUILDS_CI_PATH}/${IMAGE_DIGEST_FILENAME})
+    - cosign sign --yes --recursive --key env://COSIGN_PRIVATE_KEY
+        --registry-username ${REGISTRY_PUSH_USER}
+        --registry-password ${REGISTRY_PUSH_PASSWORD}
+        ${REGISTRY_URL}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}@${IMAGE_DIGEST}
+  rules:
+    # if event = push && target = develop          
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+  needs: ["build_dev"]
+  tags:
+    - main-docker
+  interruptible: true
+
+sign_main:
+  stage: build
+  variables:
+    COSIGN_PASSWORD: ${COSIGN_PASSWORD}
+    COSIGN_PRIVATE_KEY: ${COSIGN_PRIVATE_KEY}
+  image:
+    name: bitnami/cosign:${COSIGN_VERSION}
+    entrypoint: [""]
+  script:
+    - IMAGE_DIGEST=$(cat ${BUILDS_CI_PATH}/${IMAGE_DIGEST_FILENAME})
+    - cosign sign --yes --recursive --key env://COSIGN_PRIVATE_KEY
+        --registry-username ${REGISTRY_PUSH_USER}
+        --registry-password ${REGISTRY_PUSH_PASSWORD}
+        ${REGISTRY_URL}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}@${IMAGE_DIGEST}
+  rules:
+    # if event = push && target = main          
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $MAIN_BRANCH
+  needs: ["build_main"]
+  tags:
+    - main-docker
+  interruptible: true
+
+
+deploy_dev:
+  stage: deploy
+  script:
+    - ssh ${EC2_USER}@${EC2_HOST} "
+        docker login -u ${REGISTRY_PULL_USER} -p ${REGISTRY_PULL_PASSWORD} ${REGISTRY_URL} &&
+        docker pull ${REGISTRY_URL}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}:${DEVELOP_TAG} &&
+        docker compose -f ${COMPOSE_PATH} up -d"
+  rules:
+    # if event = push && target = develop          
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+  tags:
+    - main
+
+
+cleanup:
+  stage: .post
+  script:
+    - ssh ${EC2_USER}@${EC2_HOST} "
+        docker system prune --force"
+    - docker system prune --force
+  rules:
+    # if event = push && target = develop          
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+    # if event = push && target = main          
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $MAIN_BRANCH
+  tags:
+    - main
