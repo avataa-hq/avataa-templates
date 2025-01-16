@@ -18,7 +18,7 @@ FROM python:3.11.9-slim-bookworm AS runner-image
 # envs
 ENV PYTHONUNBUFFERED=1
 
-RUN apt-get update && apt-get install --no-install-recommends -y libpq-dev && \
+RUN apt-get update && apt-get install --no-install-recommends -y libpq-dev supervisor && \
 	apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # add worker user
@@ -30,6 +30,9 @@ ENV PATH="/home/worker/.venv/bin:${PATH}"
 
 # copy project
 COPY --chown=worker:worker app /home/worker/app
+
+# copy supervisor config
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # login as worker user
 USER worker
