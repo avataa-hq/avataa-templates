@@ -1,0 +1,125 @@
+import asyncio
+from typing import AsyncIterator
+
+import pytest
+import pytest_asyncio
+
+from sqlalchemy.ext.asyncio import (
+    create_async_engine,
+    AsyncSession,
+    async_sessionmaker,
+    AsyncEngine,
+)
+from sqlalchemy.pool import NullPool
+from testcontainers.postgres import (
+    PostgresContainer,
+)
+
+from models import Base
+from config import setup_config
+
+if setup_config().tests.run_container_postgres_local:
+
+    class DBContainer(PostgresContainer):
+        @property
+        def connection_url(self, host=None):
+            if not host:
+                host = setup_config().tests.docker_db_host
+            return super().get_connection_url(
+                host=host
+            )
+
+    @pytest_asyncio.fixture(scope="session")
+    async def postgres_container():
+        postgres_container = DBContainer(
+            username=setup_config().tests.user,
+            password=setup_config().tests.db_pass,
+            dbname="test_db",
+            driver="asyncpg",
+        )
+        with postgres_container as container:
+            yield container
+            container.volumes.clear()
+
+    @pytest_asyncio.fixture(scope="session")
+    async def test_engine(
+        postgres_container,
+    ) -> AsyncIterator[AsyncEngine]:
+        engine = create_async_engine(
+            url=postgres_container.connection_url,
+            poolclass=NullPool,
+            echo=False,
+        )
+        async with engine.begin() as conn:
+            await conn.run_sync(
+                Base.metadata.drop_all
+            )
+            await conn.run_sync(
+                Base.metadata.create_all
+            )
+
+        yield engine
+
+        async with engine.begin() as conn:
+            await conn.run_sync(
+                Base.metadata.drop_all
+            )
+        await engine.dispose()
+else:
+
+    @pytest_asyncio.fixture(scope="session")
+    async def test_engine() -> AsyncIterator[
+        AsyncEngine
+    ]:
+        engine = create_async_engine(
+            url=setup_config().test_database_url.unicode_string(),
+            poolclass=NullPool,
+            echo=False,
+        )
+
+        async with engine.begin() as conn:
+            await conn.run_sync(
+                Base.metadata.drop_all
+            )
+            await conn.run_sync(
+                Base.metadata.create_all
+            )
+
+        yield engine
+
+        async with engine.begin() as conn:
+            await conn.run_sync(
+                Base.metadata.drop_all
+            )
+        await engine.dispose()
+
+
+@pytest_asyncio.fixture(scope="function")
+async def test_session(test_engine):
+    """Create test database session"""
+    async_session = async_sessionmaker(
+        bind=test_engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+
+    async with async_session() as session:
+        yield session
+        try:
+            await session.rollback()
+        finally:
+            await session.close()
+
+
+@pytest.fixture(scope="session")
+def event_loop():
+    """Function that creates new event loop if it is not exist
+    .. note::/
+        It is needed for async tests
+    """
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+    yield loop
+    loop.close()
