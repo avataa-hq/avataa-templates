@@ -1,18 +1,11 @@
 stages:
   - test
   - build
-  - security
   - deploy
 
 
 variables:
   DOCKER_AUTH_CONFIG: ${CI_DOCKER_AUTH_CONFIG}
-  # TERM: xterm-256color
-  # TERM: xterm-color
-  # TERM: ansi
-  # COLORTERM: truecolor
-  # COLORTERM: 24bit
-  # CLICOLOR: 1
   CLICOLOR_FORCE: 1
 
 
@@ -66,8 +59,7 @@ lint:
     - main-docker
   interruptible: true
 
-# TODO complete -> remove dot
-.unit_test:
+unit_test:
   variables:
     # postgresql env vars
     TESTS_RUN_CONTAINER_POSTGRES_LOCAL: False
@@ -81,23 +73,11 @@ lint:
     POSTGRES_DB: ${TESTS_POSTGRES_DB}
     POSTGRES_USER: ${TESTS_POSTGRES_USER}
     POSTGRES_PASSWORD: ${TESTS_POSTGRES_PASSWORD}
-    # minio env vars
-    TESTS_MINIO_SECURE: false
-    TESTS_MINIO_BUCKET: ${TESTS_MINIO_BUCKET}
-    TESTS_MINIO_PASSWORD: ${TESTS_MINIO_ROOT_PASSWORD}
-    TESTS_MINIO_URL: ${TESTS_MINIO_URL}
-    TESTS_MINIO_USER: ${TESTS_MINIO_ROOT_USER}
-    # minio container as service
-    MINIO_ROOT_USER: ${TESTS_MINIO_ROOT_USER}
-    MINIO_ROOT_PASSWORD: ${TESTS_MINIO_ROOT_PASSWORD}
-    MINIO_DEFAULT_BUCKETS: ${TESTS_MINIO_BUCKET}
   stage: test
   image: ${REGISTRY_URL}/${PYTHON_IMAGE}:${PYTHON_IMAGE_VERSION}
   services:
     - name: postgres:${POSTGRES_VERSION}
       alias: postgres
-    - name: bitnami/minio:${MINIO_VERSION}
-      alias: minio
   script:
     - uv sync --group ${UV_GROUP_TESTS}
     - source .venv/bin/activate
