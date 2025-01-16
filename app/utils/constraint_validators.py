@@ -1,23 +1,33 @@
 import ast
 import re
 from typing import Any, Optional, Callable
-from .type_casting_functions import param_type_casting_router
-from exceptions import IncorrectConstraintException
+from .type_casting_functions import (
+    param_type_casting_router,
+)
+from exceptions import (
+    IncorrectConstraintException,
+)
 
 
-def str_value_constraint_validation(value: str, constraint: str) -> bool:
-    pattern = re.compile(fr"{constraint}")
+def str_value_constraint_validation(
+    value: str, constraint: str
+) -> bool:
+    pattern = re.compile(rf"{constraint}")
     if pattern.match(value):
         return True
     return False
 
 
-def non_value_constraint_validation(value: Any, constraint: Any) -> bool:
+def non_value_constraint_validation(
+    value: Any, constraint: Any
+) -> bool:
     """Always correct"""
     return True
 
 
-def float_value_constraint_validation(value: float, constraint: str) -> bool:
+def float_value_constraint_validation(
+    value: float, constraint: str
+) -> bool:
     bottom, top = constraint.split(":")
     top = float(top)
     bottom = float(bottom)
@@ -25,7 +35,9 @@ def float_value_constraint_validation(value: float, constraint: str) -> bool:
     return bottom < value < top
 
 
-def int_value_constraint_validation(value: int, constraint: str) -> bool:
+def int_value_constraint_validation(
+    value: int, constraint: str
+) -> bool:
     bottom, top = constraint.split(":")
     top = int(top)
     bottom = int(bottom)
@@ -52,7 +64,7 @@ def validate_by_constraint(
     val_type: str,
     value: Optional[str],
     constraint: Optional[str],
-    is_multiple: bool = False
+    is_multiple: bool = False,
 ) -> bool:
     """
     Validates a single or multiple values based on the val_type and constraint.
@@ -68,23 +80,44 @@ def validate_by_constraint(
 
     I suppose that `value` correctly correlates with `value_type`.
     """
-    cast_function: Optional[Callable] = param_type_casting_router.get(val_type)
-    validator_function: Optional[Callable] = param_value_constraint_validation_router.get(val_type)
+    cast_function: Optional[Callable] = (
+        param_type_casting_router.get(val_type)
+    )
+    validator_function: Optional[Callable] = (
+        param_value_constraint_validation_router.get(
+            val_type
+        )
+    )
 
-    if validator_function == non_value_constraint_validation:
+    if (
+        validator_function
+        == non_value_constraint_validation
+    ):
         return True
 
-    if not cast_function or not validator_function or not value or not constraint:
+    if (
+        not cast_function
+        or not validator_function
+        or not value
+        or not constraint
+    ):
         return True
 
     try:
         if is_multiple:
             value_list = ast.literal_eval(value)
             return all(
-                validator_function(cast_function(item), constraint)
+                validator_function(
+                    cast_function(item),
+                    constraint,
+                )
                 for item in value_list
             )
 
-        return validator_function(cast_function(value), constraint)
+        return validator_function(
+            cast_function(value), constraint
+        )
     except ValueError:
-        raise IncorrectConstraintException(constraint)
+        raise IncorrectConstraintException(
+            constraint
+        )

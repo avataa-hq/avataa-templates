@@ -13,7 +13,9 @@ class TemplateObjectDTO(object):
     valid: bool
 
     @classmethod
-    def from_db(cls, template_object: TemplateObject):
+    def from_db(
+        cls, template_object: TemplateObject
+    ):
         return cls(
             id=template_object.id,
             template_id=template_object.template_id,

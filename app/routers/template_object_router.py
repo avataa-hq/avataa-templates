@@ -19,7 +19,9 @@ from schemas.template_schemas import (
     TemplateObjectUpdateInput,
     TemplateObjectUpdateOutput,
 )
-from services.template_object_services import TemplateObjectService
+from services.template_object_services import (
+    TemplateObjectService,
+)
 from exceptions import (
     TemplateNotFound,
     InvalidHierarchy,
@@ -33,9 +35,19 @@ router = APIRouter(tags=["template-object"])
 @router.get("/objects")
 async def get_template_objects(
     template_id: int,
-    parent_id: Optional[int] = Query(None, description="Parent object ID (optional)"),
-    depth: int = Query(1, ge=1, description="Depth of children to retrieve (1 by default)"),
-    include_parameters: bool = Query(False, description="Include parameters in the response (default: False)"),
+    parent_id: Optional[int] = Query(
+        None,
+        description="Parent object ID (optional)",
+    ),
+    depth: int = Query(
+        1,
+        ge=1,
+        description="Depth of children to retrieve (1 by default)",
+    ),
+    include_parameters: bool = Query(
+        False,
+        description="Include parameters in the response (default: False)",
+    ),
     db: AsyncSession = Depends(get_session),
 ) -> List[TemplateObjectOutput]:
     service = TemplateObjectService(db)
@@ -50,12 +62,12 @@ async def get_template_objects(
     except TemplateNotFound:
         raise HTTPException(
             status_code=404,
-            detail='Template not found'
+            detail="Template not found",
         )
     except TemplateObjectNotFound:
         raise HTTPException(
             status_code=404,
-            detail="Parent template object not found"
+            detail="Parent template object not found",
         )
 
 
@@ -69,32 +81,35 @@ async def update_template_object(
                 "required": True,
                 "parent_object_id": 1,
             }
-        )
+        ),
     ],
     db: AsyncSession = Depends(get_session),
 ) -> TemplateObjectUpdateOutput:
     service = TemplateObjectService(db)
 
     try:
-        object = await service.update_template_object(
-            object_data=object_data,
-            object_id=object_id,
+        object = (
+            await service.update_template_object(
+                object_data=object_data,
+                object_id=object_id,
+            )
         )
     except TemplateObjectNotFound as e:
         raise HTTPException(
-            status_code=404,
-            detail=str(e)
+            status_code=404, detail=str(e)
         )
     except InvalidHierarchy as e:
         raise HTTPException(
-            status_code=422,
-            detail=str(e)
+            status_code=422, detail=str(e)
         )
     await service.commit_changes()
     return object
 
 
-@router.delete("/objects/{object_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/objects/{object_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
 async def delete_template_object(
     object_id: int,
     db: AsyncSession = Depends(get_session),
@@ -102,12 +117,16 @@ async def delete_template_object(
     service = TemplateObjectService(db)
 
     try:
-        await service.delete_template_object(object_id)
+        await service.delete_template_object(
+            object_id
+        )
     except TemplateObjectNotFound:
         raise HTTPException(
             status_code=404,
-            detail="Template object not found"
+            detail="Template object not found",
         )
 
     await service.commit_changes()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return Response(
+        status_code=status.HTTP_204_NO_CONTENT
+    )

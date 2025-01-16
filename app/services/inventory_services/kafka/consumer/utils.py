@@ -7,22 +7,34 @@ from services.inventory_services.db_services import (
     TemplateObjectService,
     TemplateParameterService,
 )
-from services.inventory_services.kafka.consumer.config import KafkaConfig
+from services.inventory_services.kafka.consumer.config import (
+    KafkaConfig,
+)
 from services.inventory_services.kafka.consumer.deserializer import (
     INVENTORY_CHANGES_PROTOBUF_DESERIALIZERS,
     protobuf_kafka_msg_to_dict,
     INVENTORY_CHANGES_HANDLER_BY_MSG_CLASS_NAME,
 )
-from services.inventory_services.kafka.consumer.msg_protocol import KafkaMSGProtocol
+from services.inventory_services.kafka.consumer.msg_protocol import (
+    KafkaMSGProtocol,
+)
 
 
 class InventoryChangesHandler(object):
-    def __init__(self, kafka_msg: KafkaMSGProtocol):
+    def __init__(
+        self, kafka_msg: KafkaMSGProtocol
+    ):
         self.msg = kafka_msg
         self.msg_instance_class_name = None
         self.msg_instance_event = None
-        self.allowed_msg_class_name = ["TMO", "TPRM"]
-        self.allowed_msg_event = ["deleted", "updated"]
+        self.allowed_msg_class_name = [
+            "TMO",
+            "TPRM",
+        ]
+        self.allowed_msg_event = [
+            "deleted",
+            "updated",
+        ]
 
     def clear_msg_data(self):
         """Clears the message data, if successful, change self.msg_instance_class_name and self.msg_instance_event,
@@ -41,17 +53,25 @@ class InventoryChangesHandler(object):
         if msg_key.find(":") == -1:
             return
 
-        msg_class_name, msg_event = msg_key.split(":")
+        msg_class_name, msg_event = msg_key.split(
+            ":"
+        )
         if (
             msg_class_name
             and msg_event
-            and msg_class_name in self.allowed_msg_class_name
-            and msg_event in self.allowed_msg_event
+            and msg_class_name
+            in self.allowed_msg_class_name
+            and msg_event
+            in self.allowed_msg_event
         ):
-            self.msg_instance_class_name = msg_class_name
+            self.msg_instance_class_name = (
+                msg_class_name
+            )
             self.msg_instance_event = msg_event
 
-    def __from_bytes_to_python_proto_model_msg(self) -> cimpl.Message:
+    def __from_bytes_to_python_proto_model_msg(
+        self,
+    ) -> cimpl.Message:
         if not self.msg_instance_class_name:
             raise NotImplementedError(
                 f"Proto model deserializer does not implemented"
@@ -61,8 +81,12 @@ class InventoryChangesHandler(object):
             self.msg_instance_class_name, None
         )
         if deserializer_model:
-            deserializer_instance = deserializer_model()
-            deserializer_instance.ParseFromString(self.msg.value())
+            deserializer_instance = (
+                deserializer_model()
+            )
+            deserializer_instance.ParseFromString(
+                self.msg.value()
+            )
             return deserializer_instance
         else:
             raise NotImplementedError(
@@ -97,7 +121,11 @@ class InventoryChangesHandler(object):
                 f"with msg_class_name = '{self.msg_instance_class_name}'"
             )
 
-        event_handler = handlers_by_class_name.get(self.msg_instance_event)
+        event_handler = (
+            handlers_by_class_name.get(
+                self.msg_instance_event
+            )
+        )
         if event_handler:
             return event_handler
         else:

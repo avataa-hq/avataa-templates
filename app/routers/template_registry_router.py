@@ -16,7 +16,9 @@ from schemas.template_schemas import (
     TemplateObjectInput,
     TemplateObjectOutput,
 )
-from services.template_registry_services import TemplateRegistryService
+from services.template_registry_services import (
+    TemplateRegistryService,
+)
 from exceptions import (
     TemplateObjectNotFound,
     TemplateNotFound,
@@ -41,49 +43,53 @@ async def create_template(
                 "name": "Template Name",
                 "owner": "Admin",
                 "object_type_id": 1,
-                "template_objects": [{
-                    "object_type_id": 46181,
-                    "required": True,
-                    "parameters": [
-                        {
-                            "parameter_type_id": 135296,
-                            "value": "Value 1",
-                            "constraint": "Value 1",
-                            "required": True
-                        },
-                        {
-                            "parameter_type_id": 135297,
-                            "value": "[1, 2]",
-                            "required": False
-                        },
-                        {
-                            "parameter_type_id": 135298,
-                            "value": "1234567",
-                            "constraint": None,
-                            "required": False
-                        },
-                    ],
-                    # "children": [
-                    #     {
-                    #         "object_type_id": 3,
-                    #         "required": False,
-                    #         "parameters": [],
-                    #         "children": []
-                    #     }
-                    # ]
-                }]
+                "template_objects": [
+                    {
+                        "object_type_id": 46181,
+                        "required": True,
+                        "parameters": [
+                            {
+                                "parameter_type_id": 135296,
+                                "value": "Value 1",
+                                "constraint": "Value 1",
+                                "required": True,
+                            },
+                            {
+                                "parameter_type_id": 135297,
+                                "value": "[1, 2]",
+                                "required": False,
+                            },
+                            {
+                                "parameter_type_id": 135298,
+                                "value": "1234567",
+                                "constraint": None,
+                                "required": False,
+                            },
+                        ],
+                        # "children": [
+                        #     {
+                        #         "object_type_id": 3,
+                        #         "required": False,
+                        #         "parameters": [],
+                        #         "children": []
+                        #     }
+                        # ]
+                    }
+                ],
             }
-        )
+        ),
     ],
-    db: AsyncSession = Depends(get_session)
+    db: AsyncSession = Depends(get_session),
 ) -> TemplateOutput:
     service = TemplateRegistryService(db)
     try:
-        template = await service.create_template(template_data)
+        template = await service.create_template(
+            template_data
+        )
     except TMOIdNotFoundInInventory as e:
         raise HTTPException(
             status_code=404,
-            detail=f"TMO with id {e.object_type_id} not found in Inventory."
+            detail=f"TMO with id {e.object_type_id} not found in Inventory.",
         )
     except InvalidHierarchy as e:
         raise HTTPException(
@@ -91,7 +97,7 @@ async def create_template(
             detail=(
                 f"Invalid hierarchy: object_type_id {e.object_type_id} "
                 f"expected parent {e.expected_parent_id}, got {e.actual_parent_id}."
-            )
+            ),
         )
     except TPRMNotFoundInInventory as e:
         raise HTTPException(
@@ -99,7 +105,7 @@ async def create_template(
             detail=(
                 f"TPRM with id {e.parameter_type_id} not "
                 f"found for TMO {e.object_type_id} in Inventory."
-            )
+            ),
         )
     except RequiredMismatchException as e:
         raise HTTPException(
@@ -108,13 +114,11 @@ async def create_template(
         )
     except InvalidParameterValue as e:
         raise HTTPException(
-            status_code=422,
-            detail=str(e)
+            status_code=422, detail=str(e)
         )
     except ValueConstraintException as e:
         raise HTTPException(
-            status_code=422,
-            detail=str(e)
+            status_code=422, detail=str(e)
         )
     await service.commit_changes()
     return template
@@ -135,7 +139,7 @@ async def add_objects(
                             "parameter_type_id": 135296,
                             "value": "Value 1",
                             "constraint": "Value 1",
-                            "required": True
+                            "required": True,
                         },
                     ],
                 },
@@ -144,9 +148,9 @@ async def add_objects(
                     "required": False,
                     "parameters": [],
                     "children": [],
-                }
+                },
             ]
-        )
+        ),
     ],
     parent_id: Optional[int] = None,
     db: AsyncSession = Depends(get_session),
@@ -154,38 +158,47 @@ async def add_objects(
     service = TemplateRegistryService(db)
 
     try:
-        await service.get_template_or_raise(template_id)
+        await service.get_template_or_raise(
+            template_id
+        )
     except TemplateNotFound:
         raise HTTPException(
             status_code=404,
-            detail="Template not found"
+            detail="Template not found",
         )
 
     if parent_id:
         try:
-            parent_object = await service.get_template_object_or_raise(parent_id)
+            parent_object = await service.get_template_object_or_raise(
+                parent_id
+            )
         except TemplateObjectNotFound:
             raise HTTPException(
                 status_code=404,
-                detail="Parent template object not found"
+                detail="Parent template object not found",
             )
 
-        if parent_object.template_id != template_id:
+        if (
+            parent_object.template_id
+            != template_id
+        ):
             raise HTTPException(
                 status_code=400,
-                detail="Parent template object isn't related to the template"
+                detail="Parent template object isn't related to the template",
             )
 
     try:
-        objects = await service.create_template_objects(
-            objects_data,
-            template_id,
-            parent_id
+        objects = (
+            await service.create_template_objects(
+                objects_data,
+                template_id,
+                parent_id,
+            )
         )
     except TMOIdNotFoundInInventory as e:
         raise HTTPException(
             status_code=404,
-            detail=f"TMO with id {e.object_type_id} not found in Inventory."
+            detail=f"TMO with id {e.object_type_id} not found in Inventory.",
         )
     except InvalidHierarchy as e:
         raise HTTPException(
@@ -193,7 +206,7 @@ async def add_objects(
             detail=(
                 f"Invalid hierarchy: object_type_id {e.object_type_id} "
                 f"expected parent {e.expected_parent_id}, got {e.actual_parent_id}."
-            )
+            ),
         )
     except TPRMNotFoundInInventory as e:
         raise HTTPException(
@@ -201,7 +214,7 @@ async def add_objects(
             detail=(
                 f"TPRM with id {e.parameter_type_id} not "
                 f"found for TMO {e.object_type_id} in Inventory."
-            )
+            ),
         )
     except RequiredMismatchException as e:
         raise HTTPException(
@@ -210,19 +223,19 @@ async def add_objects(
         )
     except InvalidParameterValue as e:
         raise HTTPException(
-            status_code=422,
-            detail=str(e)
+            status_code=422, detail=str(e)
         )
     except ValueConstraintException as e:
         raise HTTPException(
-            status_code=422,
-            detail=str(e)
+            status_code=422, detail=str(e)
         )
     await service.commit_changes()
     return objects
 
 
-@router.post("/add-parameters/{template_object_id}/")
+@router.post(
+    "/add-parameters/{template_object_id}/"
+)
 async def add_parameters(
     template_object_id: int,
     parameters_data: Annotated[
@@ -249,22 +262,26 @@ async def add_parameters(
     service = TemplateRegistryService(db)
 
     try:
-        service.get_template_object_or_raise(template_object_id)
+        service.get_template_object_or_raise(
+            template_object_id
+        )
     except TemplateObjectNotFound:
         raise HTTPException(
             status_code=404,
-            detail="Template object not found"
+            detail="Template object not found",
         )
 
     try:
-        parameters = await service.create_template_parameters(parameters_data, template_object_id)
+        parameters = await service.create_template_parameters(
+            parameters_data, template_object_id
+        )
     except TPRMNotFoundInInventory as e:
         raise HTTPException(
             status_code=404,
             detail=(
                 f"TPRM with id {e.parameter_type_id} not "
                 f"found for TMO {e.object_type_id} in Inventory."
-            )
+            ),
         )
     except RequiredMismatchException as e:
         raise HTTPException(
@@ -273,13 +290,11 @@ async def add_parameters(
         )
     except InvalidParameterValue as e:
         raise HTTPException(
-            status_code=422,
-            detail=str(e)
+            status_code=422, detail=str(e)
         )
     except ValueConstraintException as e:
         raise HTTPException(
-            status_code=422,
-            detail=str(e)
+            status_code=422, detail=str(e)
         )
     await service.commit_changes()
     return parameters

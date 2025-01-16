@@ -11,11 +11,13 @@ def cast_to_float(value: str) -> float:
 
 
 def cast_to_bool(value: str) -> bool:
-    if value.lower() in ('true', '1'):
+    if value.lower() in ("true", "1"):
         return True
-    elif value.lower() in ('false', '0'):
+    elif value.lower() in ("false", "0"):
         return False
-    raise ValueError(f"Cannot cast '{value}' to a boolean.")
+    raise ValueError(
+        f"Cannot cast '{value}' to a boolean."
+    )
 
 
 param_type_casting_router = {

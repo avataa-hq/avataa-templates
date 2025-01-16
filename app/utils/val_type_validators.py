@@ -24,7 +24,12 @@ def float_validation(value: str) -> bool:
 
 
 def bool_validation(value: str) -> bool:
-    if value.lower() in ('true', '1', 'false', '0'):
+    if value.lower() in (
+        "true",
+        "1",
+        "false",
+        "0",
+    ):
         return True
     return False
 
@@ -39,7 +44,9 @@ def date_validation(value: str) -> bool:
 
 def datetime_validation(value: str) -> bool:
     try:
-        datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%fZ")
+        datetime.strptime(
+            value, "%Y-%m-%dT%H:%M:%S.%fZ"
+        )
         return True
     except Exception:
         return False
@@ -74,11 +81,15 @@ param_validation_by_val_type_router = {
     "datetime": datetime_validation,
     "mo_link": mo_link_validation,
     "prm_link": prm_link_validation,
-    "sequence": sequence_validation
+    "sequence": sequence_validation,
 }
 
 
-def validate_by_val_type(val_type: str, value: Optional[str], is_multiple: bool = False) -> bool:
+def validate_by_val_type(
+    val_type: str,
+    value: Optional[str],
+    is_multiple: bool = False,
+) -> bool:
     """
     Validates a single or multiple values based on the val_type.
 
@@ -90,7 +101,11 @@ def validate_by_val_type(val_type: str, value: Optional[str], is_multiple: bool 
     Returns:
         bool: True if the value(s) are valid; False otherwise.
     """
-    validator_function: Optional[Callable] = param_validation_by_val_type_router.get(val_type)
+    validator_function: Optional[Callable] = (
+        param_validation_by_val_type_router.get(
+            val_type
+        )
+    )
 
     if not validator_function or not value:
         return True
@@ -103,6 +118,9 @@ def validate_by_val_type(val_type: str, value: Optional[str], is_multiple: bool 
         except (ValueError, SyntaxError):
             return False
 
-        return all(validator_function(str(item)) for item in value_list)
+        return all(
+            validator_function(str(item))
+            for item in value_list
+        )
 
     return validator_function(value)

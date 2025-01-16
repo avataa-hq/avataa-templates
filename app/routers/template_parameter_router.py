@@ -12,7 +12,9 @@ from schemas.template_schemas import (
     TemplateParameterInput,
     TemplateParameterOutput,
 )
-from services.template_parameter_services import TemplateParameterService
+from services.template_parameter_services import (
+    TemplateParameterService,
+)
 from exceptions import (
     TemplateParameterNotFound,
     TemplateObjectNotFound,
@@ -35,11 +37,13 @@ async def get_template_object_parameters(
     service = TemplateParameterService(db)
 
     try:
-        return await service.get_all_by_template_object(template_object_id)
+        return await service.get_all_by_template_object(
+            template_object_id
+        )
     except TemplateObjectNotFound:
         raise HTTPException(
             status_code=404,
-            detail="Template object not found"
+            detail="Template object not found",
         )
 
 
@@ -54,17 +58,20 @@ async def update_template_parameter(
     try:
         parameter = await service.update_template_parameter(
             parameter_data=parameter_data,
-            parameter_id=parameter_id
+            parameter_id=parameter_id,
         )
     except TemplateParameterNotFound:
-        raise HTTPException(status_code=404, detail="Template parameter not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Template parameter not found",
+        )
     except TPRMNotFoundInInventory as e:
         raise HTTPException(
             status_code=404,
             detail=(
                 f"TPRM with id {e.parameter_type_id} not "
                 f"found for TMO {e.object_type_id} in Inventory."
-            )
+            ),
         )
     except RequiredMismatchException as e:
         raise HTTPException(
@@ -73,24 +80,24 @@ async def update_template_parameter(
         )
     except InvalidParameterValue as e:
         raise HTTPException(
-            status_code=422,
-            detail=str(e)
+            status_code=422, detail=str(e)
         )
     except ValueConstraintException as e:
         raise HTTPException(
-            status_code=422,
-            detail=str(e)
+            status_code=422, detail=str(e)
         )
     except IncorrectConstraintException as e:
         raise HTTPException(
-            status_code=422,
-            detail=str(e)
+            status_code=422, detail=str(e)
         )
     await service.commit_changes()
     return parameter
 
 
-@router.delete("/parameters/{parameter_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/parameters/{parameter_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
 async def delete_template_parameter(
     parameter_id: int,
     db: AsyncSession = Depends(get_session),
@@ -98,9 +105,16 @@ async def delete_template_parameter(
     service = TemplateParameterService(db)
 
     try:
-        await service.delete_template_parameter(parameter_id)
+        await service.delete_template_parameter(
+            parameter_id
+        )
     except TemplateParameterNotFound:
-        raise HTTPException(status_code=404, detail="Template parameter not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Template parameter not found",
+        )
 
     await service.commit_changes()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return Response(
+        status_code=status.HTTP_204_NO_CONTENT
+    )

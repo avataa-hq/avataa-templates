@@ -7,15 +7,23 @@ from schemas.template_schemas import (
     TemplateObjectInput,
     TemplateObjectOutput,
     TemplateParameterInput,
-    TemplateParameterOutput
+    TemplateParameterOutput,
 )
 from grpc_clients.inventory.getters.getters_with_channel import (
     get_all_tmo_data_from_inventory_channel_in,
     get_all_tprms_for_special_tmo_id_channel_in,
 )
-from utils.val_type_validators import validate_by_val_type
-from utils.constraint_validators import validate_by_constraint
-from models import Template, TemplateObject, TemplateParameter
+from utils.val_type_validators import (
+    validate_by_val_type,
+)
+from utils.constraint_validators import (
+    validate_by_constraint,
+)
+from models import (
+    Template,
+    TemplateObject,
+    TemplateParameter,
+)
 from exceptions import (
     TemplateNotFound,
     TemplateObjectNotFound,
@@ -31,10 +39,16 @@ from exceptions import (
 class TemplateRegistryService:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
-        self.object_type_to_parent: Dict[int, Optional[int]] = dict()
-        self.object_type_to_parameter: Dict[int, Dict] = dict()
+        self.object_type_to_parent: Dict[
+            int, Optional[int]
+        ] = dict()
+        self.object_type_to_parameter: Dict[
+            int, Dict
+        ] = dict()
 
-    async def initialize_hierarchy_map(self) -> None:
+    async def initialize_hierarchy_map(
+        self,
+    ) -> None:
         all_tmo_data = await get_all_tmo_data_from_inventory_channel_in()
         self.object_type_to_parent = {
             item["id"]: item["p_id"]
@@ -42,35 +56,62 @@ class TemplateRegistryService:
             if "id" in item and "p_id" in item
         }
 
-    async def initialize_parameters_map(self, tmo_id: int) -> None:
-        if tmo_id not in self.object_type_to_parameter:
-            all_tprms = await get_all_tprms_for_special_tmo_id_channel_in(tmo_id)
+    async def initialize_parameters_map(
+        self, tmo_id: int
+    ) -> None:
+        if (
+            tmo_id
+            not in self.object_type_to_parameter
+        ):
+            all_tprms = await get_all_tprms_for_special_tmo_id_channel_in(
+                tmo_id
+            )
 
-            self.object_type_to_parameter[tmo_id] = dict()
+            self.object_type_to_parameter[
+                tmo_id
+            ] = dict()
             for param in all_tprms:
                 param_dict = {
                     "val_type": param["val_type"],
-                    "constraint": param["constraint"],
+                    "constraint": param[
+                        "constraint"
+                    ],
                     "required": param["required"],
                     "multiple": param["multiple"],
                 }
-                self.object_type_to_parameter[tmo_id][param["id"]] = param_dict
+                self.object_type_to_parameter[
+                    tmo_id
+                ][param["id"]] = param_dict
 
     def validate_object_type(
         self,
         object_type_id: int,
-        parent_object_type_id: Optional[int] = None
+        parent_object_type_id: Optional[
+            int
+        ] = None,
     ) -> None:
-        if object_type_id not in self.object_type_to_parent:
-            raise TMOIdNotFoundInInventory(object_type_id)
+        if (
+            object_type_id
+            not in self.object_type_to_parent
+        ):
+            raise TMOIdNotFoundInInventory(
+                object_type_id
+            )
 
         if parent_object_type_id is not None:
-            expected_parent_id = self.object_type_to_parent.get(object_type_id)
-            if expected_parent_id != parent_object_type_id:
+            expected_parent_id = (
+                self.object_type_to_parent.get(
+                    object_type_id
+                )
+            )
+            if (
+                expected_parent_id
+                != parent_object_type_id
+            ):
                 raise InvalidHierarchy(
                     object_type_id=object_type_id,
                     expected_parent_id=expected_parent_id,
-                    actual_parent_id=parent_object_type_id
+                    actual_parent_id=parent_object_type_id,
                 )
 
     def validate_template_parameter(
@@ -78,30 +119,54 @@ class TemplateRegistryService:
         object_type_id: int,
         template_parameter: TemplateParameterInput,
     ) -> None:
-        parameter_type_id: int = template_parameter.parameter_type_id
-        inventory_tmo_data = self.object_type_to_parameter[object_type_id]
+        parameter_type_id: int = (
+            template_parameter.parameter_type_id
+        )
+        inventory_tmo_data = (
+            self.object_type_to_parameter[
+                object_type_id
+            ]
+        )
 
-        if parameter_type_id not in inventory_tmo_data:
-            raise TPRMNotFoundInInventory(parameter_type_id, object_type_id)
+        if (
+            parameter_type_id
+            not in inventory_tmo_data
+        ):
+            raise TPRMNotFoundInInventory(
+                parameter_type_id, object_type_id
+            )
 
-        inventory_tprm_data = inventory_tmo_data[parameter_type_id]
-        inventory_val_type = inventory_tprm_data["val_type"]
-        inventory_is_multiple = inventory_tprm_data["multiple"]
-        inventory_constraint = inventory_tprm_data["constraint"]
+        inventory_tprm_data = inventory_tmo_data[
+            parameter_type_id
+        ]
+        inventory_val_type = inventory_tprm_data[
+            "val_type"
+        ]
+        inventory_is_multiple = (
+            inventory_tprm_data["multiple"]
+        )
+        inventory_constraint = (
+            inventory_tprm_data["constraint"]
+        )
 
-        if not template_parameter.required and inventory_tprm_data["required"]:
+        if (
+            not template_parameter.required
+            and inventory_tprm_data["required"]
+        ):
             raise RequiredMismatchException(
                 parameter_type_id,
                 object_type_id,
             )
 
         template_value = template_parameter.value
-        template_constraint = template_parameter.constraint
+        template_constraint = (
+            template_parameter.constraint
+        )
 
         if not validate_by_val_type(
             inventory_val_type,
             template_value,
-            inventory_is_multiple
+            inventory_is_multiple,
         ):
             raise InvalidParameterValue(
                 parameter_type_id=parameter_type_id,
@@ -123,7 +188,7 @@ class TemplateRegistryService:
                 tprm_val_type=inventory_val_type,
                 tprm_is_multiple=inventory_is_multiple,
                 value=template_value,
-                constraint=template_constraint
+                constraint=template_constraint,
             )
 
         if not validate_by_constraint(
@@ -141,11 +206,15 @@ class TemplateRegistryService:
                 constraint=inventory_constraint,
             )
 
-    async def create_template(self, template_data: TemplateInput) -> TemplateOutput:
+    async def create_template(
+        self, template_data: TemplateInput
+    ) -> TemplateOutput:
         if not self.object_type_to_parent:
             await self.initialize_hierarchy_map()
 
-        self.validate_object_type(template_data.object_type_id)
+        self.validate_object_type(
+            template_data.object_type_id
+        )
 
         db_template = Template(
             name=template_data.name,
@@ -156,9 +225,11 @@ class TemplateRegistryService:
         await self.db.flush()
         await self.db.refresh(db_template)
 
-        created_objects = await self.create_template_objects(
-            template_data.template_objects,
-            template_id=db_template.id
+        created_objects = (
+            await self.create_template_objects(
+                template_data.template_objects,
+                template_id=db_template.id,
+            )
         )
 
         return TemplateOutput(
@@ -172,16 +243,25 @@ class TemplateRegistryService:
 
     async def create_template_objects(
         self,
-        template_objects_data: Optional[List[TemplateObjectInput]],
+        template_objects_data: Optional[
+            List[TemplateObjectInput]
+        ],
         template_id: int,
         parent_id: Optional[int] = None,
-        parent_object_type_id: Optional[int] = None,
+        parent_object_type_id: Optional[
+            int
+        ] = None,
     ) -> List[TemplateObjectOutput]:
         if not template_objects_data:
             return []
 
-        if parent_id and not parent_object_type_id:
-            parent_template_object = await self.get_template_object_or_raise(parent_id)
+        if (
+            parent_id
+            and not parent_object_type_id
+        ):
+            parent_template_object = await self.get_template_object_or_raise(
+                parent_id
+            )
             parent_object_type_id = parent_template_object.object_type_id
 
         if not self.object_type_to_parent:
@@ -189,10 +269,12 @@ class TemplateRegistryService:
 
         created_objects = list()
 
-        for template_object_data in template_objects_data:
+        for (
+            template_object_data
+        ) in template_objects_data:
             self.validate_object_type(
                 object_type_id=template_object_data.object_type_id,
-                parent_object_type_id=parent_object_type_id
+                parent_object_type_id=parent_object_type_id,
             )
 
             db_template_object = TemplateObject(
@@ -203,7 +285,9 @@ class TemplateRegistryService:
             )
             self.db.add(db_template_object)
             await self.db.flush()
-            await self.db.refresh(db_template_object)
+            await self.db.refresh(
+                db_template_object
+            )
 
             parameters = await self.create_template_parameters(
                 template_object_data.parameters,
@@ -233,15 +317,23 @@ class TemplateRegistryService:
 
     async def create_template_parameters(
         self,
-        parameters_data: Optional[List[TemplateParameterInput]],
+        parameters_data: Optional[
+            List[TemplateParameterInput]
+        ],
         template_object_id: int,
         object_type_id: Optional[int] = None,
     ) -> List[TemplateParameterOutput]:
         if not object_type_id:
-            template_object = await self.get_template_object_or_raise(template_object_id)
-            object_type_id = template_object.object_type_id
+            template_object = await self.get_template_object_or_raise(
+                template_object_id
+            )
+            object_type_id = (
+                template_object.object_type_id
+            )
 
-        await self.initialize_parameters_map(object_type_id)
+        await self.initialize_parameters_map(
+            object_type_id
+        )
 
         if not parameters_data:
             return []
@@ -250,11 +342,17 @@ class TemplateRegistryService:
         for parameter in parameters_data:
             self.validate_template_parameter(
                 object_type_id=object_type_id,
-                template_parameter=parameter
+                template_parameter=parameter,
             )
 
-            inventory_tprm_data = self.object_type_to_parameter[object_type_id]
-            val_type = inventory_tprm_data[parameter.parameter_type_id]["val_type"]
+            inventory_tprm_data = (
+                self.object_type_to_parameter[
+                    object_type_id
+                ]
+            )
+            val_type = inventory_tprm_data[
+                parameter.parameter_type_id
+            ]["val_type"]
 
             db_parameter = TemplateParameter(
                 parameter_type_id=parameter.parameter_type_id,
@@ -275,20 +373,30 @@ class TemplateRegistryService:
             )
         return parameters
 
-    async def get_template_or_raise(self, template_id: int) -> Template:
+    async def get_template_or_raise(
+        self, template_id: int
+    ) -> Template:
         result = await self.db.execute(
-            select(Template).filter_by(id=template_id)
+            select(Template).filter_by(
+                id=template_id
+            )
         )
         template = result.scalar_one_or_none()
         if not template:
             raise TemplateNotFound
         return template
 
-    async def get_template_object_or_raise(self, template_object_id: int) -> TemplateObject:
+    async def get_template_object_or_raise(
+        self, template_object_id: int
+    ) -> TemplateObject:
         result = await self.db.execute(
-            select(TemplateObject).filter_by(id=template_object_id)
+            select(TemplateObject).filter_by(
+                id=template_object_id
+            )
         )
-        template_object = result.scalar_one_or_none()
+        template_object = (
+            result.scalar_one_or_none()
+        )
         if not template_object:
             raise TemplateObjectNotFound
         return template_object
