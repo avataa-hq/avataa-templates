@@ -3,7 +3,9 @@ from typing import Any
 
 from confluent_kafka import cimpl
 
-from services.inventory_services.kafka.consumer.protobuf import obj_pb2
+from services.inventory_services.kafka.consumer.protobuf import (
+    obj_pb2,
+)
 from services.inventory_services.kafka.consumer.custom_deserializer import (
     PROTO_TYPES_SERIALIZERS,
     SerializerType,
@@ -49,7 +51,11 @@ INVENTORY_CHANGES_HANDLER_BY_MSG_CLASS_NAME = {
 
 def __msg_f_serializer(value: Any) -> Any:
     """Returns serialized proto msg field value into python type"""
-    serializer: SerializerType | None = PROTO_TYPES_SERIALIZERS.get(type(value).__name__)
+    serializer: SerializerType | None = (
+        PROTO_TYPES_SERIALIZERS.get(
+            type(value).__name__
+        )
+    )
     if serializer:
         return serializer(value)
     else:
@@ -57,7 +63,8 @@ def __msg_f_serializer(value: Any) -> Any:
 
 
 def protobuf_kafka_msg_to_dict(
-    msg: cimpl.Message, including_default_value_fields: bool
+    msg: cimpl.Message,
+    including_default_value_fields: bool,
 ) -> dict:
     """Serialises protobuf.message.Message into python dict and returns it"""
 
@@ -65,7 +72,9 @@ def protobuf_kafka_msg_to_dict(
     if including_default_value_fields is False:
         message_as_dict["objects"] = [
             {
-                field.name: __msg_f_serializer(value)
+                field.name: __msg_f_serializer(
+                    value
+                )
                 for field, value in item.ListFields()
             }
             for item in msg.objects
@@ -73,7 +82,9 @@ def protobuf_kafka_msg_to_dict(
     else:
         message_as_dict["objects"] = [
             {
-                field: __msg_f_serializer(getattr(item, field))
+                field: __msg_f_serializer(
+                    getattr(item, field)
+                )
                 for field in item.DESCRIPTOR.fields_by_name.keys()
             }
             for item in msg.objects

@@ -10,7 +10,9 @@ async def on_delete_tprm(
     template_parameter_service: TemplateParameterService,
 ):
     # print(msg, "on delete tprm")
-    tprm_ids = {tprm["id"] for tprm in msg["objects"]}
+    tprm_ids = {
+        tprm["id"] for tprm in msg["objects"]
+    }
     await template_parameter_service.set_template_parameter_invalid(
         tprm_ids=list(tprm_ids)
     )
@@ -22,7 +24,9 @@ async def on_update_tprm(
     template_parameter_service: TemplateParameterService,
 ):
     # print(msg, "on update tprm")
-    tprm_ids = {tprm["id"] for tprm in msg["objects"]}
+    tprm_ids = {
+        tprm["id"] for tprm in msg["objects"]
+    }
     await template_parameter_service.set_template_parameter_invalid(
         tprm_ids=list(tprm_ids)
     )

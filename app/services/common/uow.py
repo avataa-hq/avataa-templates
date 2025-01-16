@@ -18,7 +18,12 @@ class UoW(ABC):
 
 
 class SQLAlchemyUoW(UoW):
-    def __init__(self, session_factory: Callable[[], AsyncSession]):
+    def __init__(
+        self,
+        session_factory: Callable[
+            [], AsyncSession
+        ],
+    ):
         self.session_factory = session_factory
         self.session: AsyncSession | None = None
 
@@ -26,7 +31,9 @@ class SQLAlchemyUoW(UoW):
         self.session = self.session_factory()
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self, exc_type, exc_val, exc_tb
+    ):
         if exc_type:
             await self.rollback()
         else:

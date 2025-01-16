@@ -29,12 +29,23 @@ router = APIRouter(tags=["template"])
 
 @router.get("/templates")
 async def get_templates(
-    limit: Optional[int] = Query(None, ge=1, le=100, description="Number of templates to return"),
-    offset: Optional[int] = Query(None, ge=0, description="Number of templates to skip"),
-    db: AsyncSession = Depends(get_session)
+    limit: Optional[int] = Query(
+        None,
+        ge=1,
+        le=100,
+        description="Number of templates to return",
+    ),
+    offset: Optional[int] = Query(
+        None,
+        ge=0,
+        description="Number of templates to skip",
+    ),
+    db: AsyncSession = Depends(get_session),
 ) -> List[SimpleTemplateOutput]:
     service = TemplateService(db)
-    result = await service.get_templates(limit=limit, offset=offset)
+    result = await service.get_templates(
+        limit=limit, offset=offset
+    )
     return result
 
 
@@ -49,9 +60,9 @@ async def update_template(
                 "owner": "Updated Owner",
                 "object_type_id": 1,
             }
-        )
+        ),
     ],
-    db: AsyncSession = Depends(get_session)
+    db: AsyncSession = Depends(get_session),
 ) -> TemplateUpdateOutput:
     service = TemplateService(db)
 
@@ -62,19 +73,20 @@ async def update_template(
         )
     except TemplateNotFound as e:
         raise HTTPException(
-            status_code=404,
-            detail=str(e)
+            status_code=404, detail=str(e)
         )
     except TMOIdNotFoundInInventory as e:
         raise HTTPException(
-            status_code=404,
-            detail=str(e)
+            status_code=404, detail=str(e)
         )
     await service.commit_changes()
     return template
 
 
-@router.delete("/templates/{template_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/templates/{template_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
 async def delete_template(
     template_id: int,
     db: AsyncSession = Depends(get_session),
@@ -86,8 +98,10 @@ async def delete_template(
     except TemplateNotFound:
         raise HTTPException(
             status_code=404,
-            detail="Template not found"
+            detail="Template not found",
         )
 
     await service.commit_changes()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return Response(
+        status_code=status.HTTP_204_NO_CONTENT
+    )

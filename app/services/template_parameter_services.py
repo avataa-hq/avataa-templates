@@ -5,25 +5,34 @@ from schemas.template_schemas import (
     TemplateParameterInput,
     TemplateParameterOutput,
 )
-from models import TemplateObject, TemplateParameter
+from models import (
+    TemplateObject,
+    TemplateParameter,
+)
 from exceptions import (
     TemplateObjectNotFound,
     TemplateParameterNotFound,
 )
-from .template_services import TemplateRegistryService
+from .template_services import (
+    TemplateRegistryService,
+)
 
 
 class TemplateParameterService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get_all_by_template_object(self, template_object_id: int) -> List[TemplateParameterOutput]:
+    async def get_all_by_template_object(
+        self, template_object_id: int
+    ) -> List[TemplateParameterOutput]:
         result = await self.db.execute(
             select(TemplateObject).filter_by(
                 id=template_object_id
             )
         )
-        template_object = result.scalar_one_or_none()
+        template_object = (
+            result.scalar_one_or_none()
+        )
 
         if not template_object:
             raise TemplateObjectNotFound
@@ -44,16 +53,19 @@ class TemplateParameterService:
                 required=param.required,
                 val_type=param.val_type,
                 valid=param.valid,
-            ) for param in parameters
+            )
+            for param in parameters
         ]
 
     async def update_template_parameter(
         self,
         parameter_id: int,
-        parameter_data: TemplateParameterInput
+        parameter_data: TemplateParameterInput,
     ) -> TemplateParameterOutput:
         result = await self.db.execute(
-            select(TemplateParameter).filter_by(id=parameter_id)
+            select(TemplateParameter).filter_by(
+                id=parameter_id
+            )
         )
         parameter = result.scalar_one_or_none()
 
@@ -61,20 +73,34 @@ class TemplateParameterService:
             raise TemplateParameterNotFound
 
         result = await self.db.execute(
-            select(TemplateObject).filter_by(id=parameter.template_object_id)
+            select(TemplateObject).filter_by(
+                id=parameter.template_object_id
+            )
         )
         object = result.scalar_one()
         object_type_id = object.object_type_id
 
-        template_registry_service = TemplateRegistryService(self.db)
-        await template_registry_service.initialize_parameters_map(object_type_id)
+        template_registry_service = (
+            TemplateRegistryService(self.db)
+        )
+        await template_registry_service.initialize_parameters_map(
+            object_type_id
+        )
 
-        template_registry_service.validate_template_parameter(object_type_id, parameter_data)
+        template_registry_service.validate_template_parameter(
+            object_type_id, parameter_data
+        )
 
-        parameter.parameter_type_id = parameter_data.parameter_type_id
+        parameter.parameter_type_id = (
+            parameter_data.parameter_type_id
+        )
         parameter.value = parameter_data.value
-        parameter.constraint = parameter_data.constraint
-        parameter.required = parameter_data.required
+        parameter.constraint = (
+            parameter_data.constraint
+        )
+        parameter.required = (
+            parameter_data.required
+        )
 
         await self.db.flush()
 
@@ -88,9 +114,13 @@ class TemplateParameterService:
             valid=parameter.valid,
         )
 
-    async def delete_template_parameter(self, parameter_id: int) -> None:
+    async def delete_template_parameter(
+        self, parameter_id: int
+    ) -> None:
         result = await self.db.execute(
-            select(TemplateParameter).filter_by(id=parameter_id)
+            select(TemplateParameter).filter_by(
+                id=parameter_id
+            )
         )
         parameter = result.scalar_one_or_none()
 

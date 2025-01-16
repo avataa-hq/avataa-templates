@@ -10,7 +10,9 @@ from models import Template
 from exceptions import (
     TemplateNotFound,
 )
-from .template_registry_services import TemplateRegistryService
+from .template_registry_services import (
+    TemplateRegistryService,
+)
 
 
 class TemplateService:
@@ -18,7 +20,9 @@ class TemplateService:
         self.db = db
 
     async def get_templates(
-        self, limit: int = None, offset: int = None
+        self,
+        limit: int = None,
+        offset: int = None,
     ) -> List[SimpleTemplateOutput]:
         query = select(Template)
 
@@ -37,28 +41,40 @@ class TemplateService:
                 owner=template.owner,
                 object_type_id=template.object_type_id,
                 valid=template.valid,
-            ) for template in templates
+            )
+            for template in templates
         ]
 
     async def update_template(
         self,
         template_id: int,
-        template_data: TemplateUpdateInput
+        template_data: TemplateUpdateInput,
     ) -> TemplateUpdateOutput:
         result = await self.db.execute(
-            select(Template).filter_by(id=template_id)
+            select(Template).filter_by(
+                id=template_id
+            )
         )
         template = result.scalar_one_or_none()
 
         if not template:
             raise TemplateNotFound
 
-        if template_data.object_type_id != template.object_type_id:
-            registry_service = TemplateRegistryService(self.db)
+        if (
+            template_data.object_type_id
+            != template.object_type_id
+        ):
+            registry_service = (
+                TemplateRegistryService(self.db)
+            )
             await registry_service.initialize_hierarchy_map()
-            registry_service.validate_object_type(template_data.object_type_id)
+            registry_service.validate_object_type(
+                template_data.object_type_id
+            )
 
-        template.object_type_id = template_data.object_type_id
+        template.object_type_id = (
+            template_data.object_type_id
+        )
         template.name = template_data.name
         template.owner = template_data.owner
 
@@ -72,9 +88,13 @@ class TemplateService:
             valid=template.valid,
         )
 
-    async def delete_template(self, template_id: int) -> None:
+    async def delete_template(
+        self, template_id: int
+    ) -> None:
         result = await self.db.execute(
-            select(Template).filter_by(id=template_id)
+            select(Template).filter_by(
+                id=template_id
+            )
         )
         template = result.scalar_one_or_none()
 
