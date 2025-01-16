@@ -28,7 +28,8 @@ class ApplicationSettings(BaseSettings):
 class DatabaseSettings(BaseSettings):
     schema_name: str = Field(default="public")
     db_type: str = Field(
-        default="postgresql", alias="db_type"
+        default="postgresql+asyncpg",
+        alias="db_type",
     )
     user: str = Field(default="templates_admin")
     db_pass: str = Field(
@@ -60,6 +61,32 @@ class InventorySettings(BaseSettings):
     )
 
 
+class TestsConfig(BaseSettings):
+    run_container_postgres_local: bool = Field(
+        default=True,
+        alias="tests_run_container_postgres_local",
+    )
+    db_type: str = Field(
+        default="postgresql+asyncpg",
+        alias="tests_db_type",
+    )
+    user: str = Field(default="test_user")
+    db_pass: str = Field(
+        default="password", alias="tests_db_pass"
+    )
+    host: str = Field(default="localhost")
+    port: int = Field(default=5432)
+    name: str = Field(default="templates")
+    docker_db_host: str = Field(
+        default="localhost",
+        alias="test_docker_db_host",
+    )
+
+    model_config = SettingsConfigDict(
+        env_prefix="tests_db_"
+    )
+
+
 class Config(object):
     app: ApplicationSettings = (
         ApplicationSettings()
@@ -68,8 +95,12 @@ class Config(object):
     inventory: InventorySettings = (
         InventorySettings()
     )
+    tests: TestsConfig = TestsConfig()
     DATABASE_URL: PostgresDsn = PostgresDsn(
         f"{db.db_type}://{db.user}:{db.db_pass}@{db.host}:{db.port}/{db.name}",
+    )
+    test_database_url: PostgresDsn = PostgresDsn(
+        f"{tests.db_type}://{tests.user}:{tests.db_pass}@{tests.host}:{tests.port}/{tests.name}",
     )
 
 
