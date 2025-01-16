@@ -9,7 +9,7 @@ from routers import (
     template_router,
 )
 
-prefix = "/api/template"
+prefix = "/api/object_templates"
 app_title = "Template API"
 app_version = "1"
 
