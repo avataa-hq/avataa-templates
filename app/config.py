@@ -50,10 +50,10 @@ class InventorySettings(BaseSettings):
     )
     grpc_port: int = Field(default=50051, ge=0)
 
-    @computed_field
     @property
+    @computed_field
     def grpc_url(self) -> str:
-        _url = f"{self.host}:{self.port}"
+        _url = f"{self.host}:{self.grpc_port}"
         return _url
 
     model_config = SettingsConfigDict(

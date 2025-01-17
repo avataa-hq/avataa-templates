@@ -12,7 +12,9 @@ from starlette.responses import HTMLResponse
 from config import setup_config
 
 
-def register_static_docs_routes(app: FastAPI):
+def register_static_docs_routes(
+    app: FastAPI,
+) -> None:
     root_path = app.root_path.rstrip("/")
     if app.openapi_url is None:
         openapi_url = ""

@@ -1,7 +1,5 @@
-import asyncio
 from typing import AsyncIterator
 
-import pytest
 import pytest_asyncio
 
 from sqlalchemy.ext.asyncio import (
@@ -22,15 +20,23 @@ if setup_config().tests.run_container_postgres_local:
 
     class DBContainer(PostgresContainer):
         @property
-        def connection_url(self, host=None):
+        def connection_url(
+            self, host: str | None = None
+        ) -> str:
             if not host:
                 host = setup_config().tests.docker_db_host
-            return super().get_connection_url(
-                host=host
+            return str(
+                super().get_connection_url(
+                    host=host
+                )
             )
 
-    @pytest_asyncio.fixture(scope="session")
-    async def postgres_container():
+    @pytest_asyncio.fixture(
+        scope="session", loop_scope="session"
+    )
+    async def postgres_container() -> (
+        AsyncIterator[DBContainer]
+    ):
         postgres_container = DBContainer(
             username=setup_config().tests.user,
             password=setup_config().tests.db_pass,
@@ -41,9 +47,11 @@ if setup_config().tests.run_container_postgres_local:
             yield container
             container.volumes.clear()
 
-    @pytest_asyncio.fixture(scope="session")
+    @pytest_asyncio.fixture(
+        scope="session", loop_scope="session"
+    )
     async def test_engine(
-        postgres_container,
+        postgres_container: DBContainer,
     ) -> AsyncIterator[AsyncEngine]:
         engine = create_async_engine(
             url=postgres_container.connection_url,
@@ -67,7 +75,9 @@ if setup_config().tests.run_container_postgres_local:
         await engine.dispose()
 else:
 
-    @pytest_asyncio.fixture(scope="session")
+    @pytest_asyncio.fixture(
+        scope="session", loop_scope="session"
+    )
     async def test_engine() -> AsyncIterator[
         AsyncEngine
     ]:
@@ -94,8 +104,12 @@ else:
         await engine.dispose()
 
 
-@pytest_asyncio.fixture(scope="function")
-async def test_session(test_engine):
+@pytest_asyncio.fixture(
+    scope="function", loop_scope="function"
+)
+async def test_session(
+    test_engine: AsyncEngine,
+) -> AsyncIterator[AsyncSession]:
     """Create test database session"""
     async_session = async_sessionmaker(
         bind=test_engine,
@@ -111,15 +125,16 @@ async def test_session(test_engine):
             await session.close()
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Function that creates new event loop if it is not exist
-    .. note::/
-        It is needed for async tests
-    """
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
+# only for pytest-asyncio 0.21/0.23
+# @pytest.fixture(scope="session")
+# def event_loop():
+#     """Function that creates new event loop if it is not exist
+#     .. note::/
+#         It is needed for async tests
+#     """
+#     try:
+#         loop = asyncio.get_running_loop()
+#     except RuntimeError:
+#         loop = asyncio.new_event_loop()
+#     yield loop
+#     loop.close()

@@ -49,10 +49,3 @@ v1_app.include_router(
 v1_app.include_router(template_router.router)
 
 app.mount(f"/v{app_version}", v1_app)
-
-
-@app.get("/")
-def read_root():
-    return {
-        "message": "Welcome to the FastAPI example"
-    }

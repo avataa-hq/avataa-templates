@@ -1,5 +1,5 @@
 from functools import wraps
-from typing import Callable
+from typing import Callable, ParamSpec, TypeVar
 from logging import getLogger
 
 from sqlalchemy.exc import (
@@ -8,10 +8,15 @@ from sqlalchemy.exc import (
     TimeoutError,
 )
 
+T = TypeVar("T")
+P = ParamSpec("P")
 
-def handle_db_exceptions(func: Callable):
+
+def handle_db_exceptions(
+    func: Callable[P, T],
+) -> Callable[P, T]:
     @wraps(func)
-    async def wrapper(*args, **kwargs):
+    async def wrapper(*args, **kwargs) -> None:
         logger = getLogger(func.__module__)
         try:
             return await func(*args, **kwargs)

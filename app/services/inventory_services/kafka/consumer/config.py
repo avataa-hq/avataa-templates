@@ -97,7 +97,14 @@ class KafkaConfig(BaseSettings):
 
     @property
     @computed_field
-    def oauth_cb(self) -> None | Callable:
+    def oauth_cb(
+        self,
+    ) -> (
+        None
+        | Callable[
+            [KeycloakConfig], tuple[str, float]
+        ]
+    ):
         if not self.sasl_mechanism:
             return None
         keycloak_config = KeycloakConfig()
@@ -108,7 +115,7 @@ class KafkaConfig(BaseSettings):
 
     @staticmethod
     def _get_token_for_kafka_producer(
-        conf, keycloak_config: KeycloakConfig
+        keycloak_config: KeycloakConfig,
     ) -> tuple[str, float]:
         keycloak_openid = KeycloakOpenID(
             server_url=keycloak_config.url,
@@ -117,6 +124,8 @@ class KafkaConfig(BaseSettings):
             client_secret_key=keycloak_config.client_secret,
         )
         attempt = 5
+        token = ""
+        expires_in = 1.0
         while attempt > 0:
             try:
                 tkn = keycloak_openid.token(

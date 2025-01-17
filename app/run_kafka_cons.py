@@ -17,7 +17,7 @@ from services.inventory_services.kafka.consumer.utils import (
 )
 
 
-async def run_kafka_cons_inv():
+async def run_kafka_cons_inv() -> None:
     kafka_config = KafkaConfig()
     async_session = SQLAlchemyUoW(
         session_factory=session_factory

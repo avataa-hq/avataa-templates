@@ -65,7 +65,7 @@ def __msg_f_serializer(value: Any) -> Any:
 def protobuf_kafka_msg_to_dict(
     msg: cimpl.Message,
     including_default_value_fields: bool,
-) -> dict:
+) -> dict[str, list[dict[str, str]]]:
     """Serialises protobuf.message.Message into python dict and returns it"""
 
     message_as_dict = dict()
