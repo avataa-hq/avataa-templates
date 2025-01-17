@@ -2,6 +2,8 @@ import pytest
 
 from datetime import datetime
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from models import TemplateObject, Template
 from services.inventory_services.protocols import (
     TemplateObjectRepo,
@@ -10,8 +12,8 @@ from services.inventory_services.protocols import (
 
 @pytest.mark.asyncio
 async def test_template_objects_invalid(
-    test_session,
-):
+    test_session: AsyncSession,
+) -> None:
     # Arrange
     repo = TemplateObjectRepo(
         session=test_session
@@ -70,8 +72,8 @@ async def test_template_objects_invalid(
 
 @pytest.mark.asyncio
 async def test_template_objects_invalid_id(
-    test_session,
-):
+    test_session: AsyncSession,
+) -> None:
     # Arrange
     repo = TemplateObjectRepo(
         session=test_session

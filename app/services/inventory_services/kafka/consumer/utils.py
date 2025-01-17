@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Self
 
 from confluent_kafka import cimpl
 from typing_extensions import Any
@@ -36,7 +36,7 @@ class InventoryChangesHandler(object):
             "updated",
         ]
 
-    def clear_msg_data(self):
+    def clear_msg_data(self: Self) -> None:
         """Clears the message data, if successful, change self.msg_instance_class_name and self.msg_instance_event,
         otherwise self.msg_instance_class_name and self.msg_instance_event will be None
         """
@@ -98,7 +98,7 @@ class InventoryChangesHandler(object):
     def __deserialize_to_dict(
         deserializer_instance: cimpl.Message,
         including_default_value_fields: bool = True,
-    ):
+    ) -> dict[str, list[dict[str, str]]]:
         return protobuf_kafka_msg_to_dict(
             msg=deserializer_instance,
             including_default_value_fields=including_default_value_fields,

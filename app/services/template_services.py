@@ -21,8 +21,8 @@ class TemplateService:
 
     async def get_templates(
         self,
-        limit: int = None,
-        offset: int = None,
+        limit: int | None = None,
+        offset: int | None = None,
     ) -> List[SimpleTemplateOutput]:
         query = select(Template)
 
