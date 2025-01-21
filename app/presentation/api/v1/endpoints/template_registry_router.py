@@ -5,9 +5,9 @@ from fastapi import (
     APIRouter,
     HTTPException,
 )
-from sqlalchemy.orm import Session
-from sqlalchemy.ext.asyncio import AsyncSession
-from database import get_session
+
+from application.common.uow import UoW
+from presentation.api.depends_stub import Stub
 from schemas.template_schemas import (
     TemplateInput,
     TemplateOutput,
@@ -34,7 +34,7 @@ from exceptions import (
 router = APIRouter(tags=["template-registry"])
 
 
-@router.post("/registry-template/")
+@router.post("/registry-template")
 async def create_template(
     template_data: Annotated[
         TemplateInput,
@@ -79,7 +79,7 @@ async def create_template(
             }
         ),
     ],
-    db: AsyncSession = Depends(get_session),
+    db: Annotated[UoW, Depends(Stub(UoW))],
 ) -> TemplateOutput:
     service = TemplateRegistryService(db)
     try:
@@ -152,8 +152,8 @@ async def add_objects(
             ]
         ),
     ],
+    db: Annotated[UoW, Depends(Stub(UoW))],
     parent_id: Optional[int] = None,
-    db: AsyncSession = Depends(get_session),
 ) -> List[TemplateObjectOutput]:
     service = TemplateRegistryService(db)
 
@@ -257,7 +257,7 @@ async def add_parameters(
             ]
         ),
     ],
-    db: Session = Depends(get_session),
+    db: Annotated[UoW, Depends(Stub(UoW))],
 ) -> List[TemplateParameterOutput]:
     service = TemplateRegistryService(db)
 

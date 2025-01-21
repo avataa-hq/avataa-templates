@@ -65,6 +65,3 @@ class TemplateParameterService(object):
             self.logger.error(
                 msg=f"Data rollback. {ex}."
             )
-            raise Exception(
-                f"Error: {type(ex)}: {ex}"
-            )

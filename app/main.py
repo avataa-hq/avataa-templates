@@ -2,11 +2,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config import setup_config
 from create_fastapi_app import create_app
-from routers import (
+from di import init_dependencies
+from presentation.api.v1.endpoints import (
     template_registry_router,
-    template_parameter_router,
     template_object_router,
     template_router,
+    template_parameter_router,
 )
 
 prefix = "/api/object_templates"
@@ -49,3 +50,4 @@ v1_app.include_router(
 v1_app.include_router(template_router.router)
 
 app.mount(f"/v{app_version}", v1_app)
+init_dependencies(v1_app)

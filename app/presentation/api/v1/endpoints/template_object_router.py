@@ -12,8 +12,9 @@ from fastapi import (
     APIRouter,
     HTTPException,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
-from database import get_session
+
+from application.common.uow import UoW
+from presentation.api.depends_stub import Stub
 from schemas.template_schemas import (
     TemplateObjectOutput,
     TemplateObjectUpdateInput,
@@ -28,13 +29,13 @@ from exceptions import (
     TemplateObjectNotFound,
 )
 
-
 router = APIRouter(tags=["template-object"])
 
 
 @router.get("/objects")
 async def get_template_objects(
     template_id: int,
+    db: Annotated[UoW, Depends(Stub(UoW))],
     parent_id: Optional[int] = Query(
         None,
         description="Parent object ID (optional)",
@@ -48,7 +49,6 @@ async def get_template_objects(
         False,
         description="Include parameters in the response (default: False)",
     ),
-    db: AsyncSession = Depends(get_session),
 ) -> List[TemplateObjectOutput]:
     service = TemplateObjectService(db)
 
@@ -83,12 +83,12 @@ async def update_template_object(
             }
         ),
     ],
-    db: AsyncSession = Depends(get_session),
+    db: Annotated[UoW, Depends(Stub(UoW))],
 ) -> TemplateObjectUpdateOutput:
     service = TemplateObjectService(db)
 
     try:
-        object = (
+        obj = (
             await service.update_template_object(
                 object_data=object_data,
                 object_id=object_id,
@@ -103,7 +103,7 @@ async def update_template_object(
             status_code=422, detail=str(e)
         )
     await service.commit_changes()
-    return object
+    return obj
 
 
 @router.delete(
@@ -112,7 +112,7 @@ async def update_template_object(
 )
 async def delete_template_object(
     object_id: int,
-    db: AsyncSession = Depends(get_session),
+    db: Annotated[UoW, Depends(Stub(UoW))],
 ):
     service = TemplateObjectService(db)
 

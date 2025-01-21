@@ -8,8 +8,10 @@ from fastapi import (
     APIRouter,
     HTTPException,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
-from database import get_session
+
+from application.common.uow import UoW
+from presentation.api.depends_stub import Stub
+
 from schemas.template_schemas import (
     SimpleTemplateOutput,
     TemplateUpdateInput,
@@ -29,6 +31,7 @@ router = APIRouter(tags=["template"])
 
 @router.get("/templates")
 async def get_templates(
+    db: Annotated[UoW, Depends(Stub(UoW))],
     limit: Optional[int] = Query(
         None,
         ge=1,
@@ -40,7 +43,6 @@ async def get_templates(
         ge=0,
         description="Number of templates to skip",
     ),
-    db: AsyncSession = Depends(get_session),
 ) -> List[SimpleTemplateOutput]:
     service = TemplateService(db)
     result = await service.get_templates(
@@ -62,7 +64,7 @@ async def update_template(
             }
         ),
     ],
-    db: AsyncSession = Depends(get_session),
+    db: Annotated[UoW, Depends(Stub(UoW))],
 ) -> TemplateUpdateOutput:
     service = TemplateService(db)
 
@@ -89,7 +91,7 @@ async def update_template(
 )
 async def delete_template(
     template_id: int,
-    db: AsyncSession = Depends(get_session),
+    db: Annotated[UoW, Depends(Stub(UoW))],
 ):
     service = TemplateService(db)
 
