@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Annotated
 from fastapi import (
     APIRouter,
     Depends,
@@ -6,8 +6,9 @@ from fastapi import (
     Response,
     status,
 )
-from sqlalchemy.ext.asyncio import AsyncSession
-from database import get_session
+
+from application.common.uow import UoW
+from presentation.api.depends_stub import Stub
 from schemas.template_schemas import (
     TemplateParameterInput,
     TemplateParameterOutput,
@@ -32,7 +33,7 @@ router = APIRouter(tags=["template-parameter"])
 @router.get("/parameters")
 async def get_template_object_parameters(
     template_object_id: int,
-    db: AsyncSession = Depends(get_session),
+    db: Annotated[UoW, Depends(Stub(UoW))],
 ) -> List[TemplateParameterOutput]:
     service = TemplateParameterService(db)
 
@@ -51,7 +52,7 @@ async def get_template_object_parameters(
 async def update_template_parameter(
     parameter_id: int,
     parameter_data: TemplateParameterInput,
-    db: AsyncSession = Depends(get_session),
+    db: Annotated[UoW, Depends(Stub(UoW))],
 ) -> TemplateParameterOutput:
     service = TemplateParameterService(db)
 
@@ -100,7 +101,7 @@ async def update_template_parameter(
 )
 async def delete_template_parameter(
     parameter_id: int,
-    db: AsyncSession = Depends(get_session),
+    db: Annotated[UoW, Depends(Stub(UoW))],
 ):
     service = TemplateParameterService(db)
 

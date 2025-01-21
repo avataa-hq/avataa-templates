@@ -1,6 +1,10 @@
 from typing import AsyncIterator
+from unittest.mock import patch
 
 import pytest_asyncio
+from fastapi import FastAPI
+from httpx import AsyncClient, ASGITransport
+
 
 from sqlalchemy.ext.asyncio import (
     create_async_engine,
@@ -13,6 +17,8 @@ from testcontainers.postgres import (
     PostgresContainer,
 )
 
+from main import app as real_app
+from mocks.grpc_client import MockGrpcClient
 from models import Base
 from config import setup_config
 
@@ -138,3 +144,42 @@ async def test_session(
 #         loop = asyncio.new_event_loop()
 #     yield loop
 #     loop.close()
+
+
+@pytest_asyncio.fixture(
+    scope="session", loop_scope="session"
+)
+async def mock_grpc_client():
+    return MockGrpcClient()
+
+
+@pytest_asyncio.fixture(
+    scope="session", loop_scope="session"
+)
+async def app(mock_grpc_client):
+    with (
+        patch(
+            "grpc_clients.inventory.getters.getters_with_channel.get_all_tmo_data_from_inventory_channel_in",
+            new=mock_grpc_client.get_all_tmo_data,
+        ),
+        patch(
+            "grpc_clients.inventory.getters.getters_with_channel.get_all_tprms_for_special_tmo_id_channel_in",
+            new=mock_grpc_client.get_all_tprms_for_tmo,
+        ),
+    ):
+        # app = real_app
+        # app.dependency_overrides[UoW] = test_session
+        return real_app
+
+
+@pytest_asyncio.fixture(
+    scope="session", loop_scope="session"
+)
+async def async_client(
+    app: FastAPI,
+) -> AsyncIterator[AsyncClient]:
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+    ) as client:
+        yield client

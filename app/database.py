@@ -1,39 +1,8 @@
-from typing import AsyncGenerator
-
 from sqlalchemy import MetaData
 from sqlalchemy.orm import (
-    sessionmaker,
     DeclarativeBase,
     MappedAsDataclass,
 )
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
-
-from config import setup_config
-
-engine = create_async_engine(
-    url=setup_config().DATABASE_URL.unicode_string(),
-    echo=True,
-    max_overflow=15,
-    pool_size=15,
-    pool_pre_ping=True,
-    connect_args={
-        "server_settings": {
-            "application_name": "Object Template MS",
-            "search_path": setup_config().db.schema_name,
-        },
-    },
-)
-session_factory = async_sessionmaker(
-    bind=engine,
-    autoflush=False,
-    expire_on_commit=False,
-)
-
-# SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 convention = {
     "ix": "ix_%(column_0_label)s",  # INDEX
@@ -48,17 +17,3 @@ class Base(DeclarativeBase, MappedAsDataclass):
     metadata = MetaData(
         naming_convention=convention
     )
-
-
-async_session = sessionmaker(
-    bind=engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-)
-
-
-async def get_session() -> AsyncGenerator[
-    AsyncSession, None
-]:
-    async with async_session() as session:
-        yield session
