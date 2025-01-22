@@ -8,7 +8,7 @@ exclude = [
 ]
 
 # The formatter wraps lines at a length of 50, default 88.
-line-length = 50
+line-length = 80
 indent-width = 4
 
 # Group violations by containing file.

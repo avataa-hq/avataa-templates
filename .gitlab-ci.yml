@@ -12,7 +12,20 @@ variables:
 pre:
   stage: .pre
   script:
-    - docker login -u ${REGISTRY_PULL_USER} -p ${REGISTRY_PULL_PASSWORD} ${REGISTRY_URL}
+    # docker login for pull
+    - docker login -u ${REGISTRY_PULL_USER} -p ${REGISTRY_PULL_PASSWORD} ${REGISTRY_URL};
+    # download jq
+    - | 
+      target_arch=$(arch);
+      case ${target_arch} in
+        "x86_64")  target_arch_alt=amd64   ;;
+        "aarch64")  target_arch_alt=arm64  ;;
+      esac;
+      mkdir -p $HOME/.local/bin;
+      curl -s -S -L -X 'GET' --max-time 10 \
+        "https://github.com/jqlang/jq/releases/download/jq-${JQ_VERSION}/jq-linux-${target_arch_alt}" \
+        -o $HOME/.local/bin/jq
+      chmod +x $HOME/.local/bin/jq;
   rules:
     # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop  
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
@@ -31,7 +44,7 @@ pre:
 
 lint:
   stage: test
-  image: ${REGISTRY_URL}/${PYTHON_IMAGE}:${PYTHON_IMAGE_VERSION}
+  image: ${REGISTRY_URL}/${PROJECT_NAME}/${PYTHON_IMAGE}:${PYTHON_IMAGE_VERSION}
   script:
     - uv sync --only-group ${UV_GROUP_LINT}
     - source .venv/bin/activate
@@ -110,7 +123,7 @@ migrations_test:
     POSTGRES_DB: ${TESTS_POSTGRES_DB}
     POSTGRES_USER: ${TESTS_POSTGRES_USER}
     POSTGRES_PASSWORD: ${TESTS_POSTGRES_PASSWORD}
-  image: ${REGISTRY_URL}/${PYTHON_IMAGE}:${PYTHON_IMAGE_VERSION}
+  image: ${REGISTRY_URL}/${PROJECT_NAME}/${PYTHON_IMAGE}:${PYTHON_IMAGE_VERSION}
   services:
     - name: postgres:${POSTGRES_VERSION}
       alias: postgres
@@ -140,7 +153,7 @@ package_vulns_test:
     TRIVY_NO_PROGRESS: "true"
     TRIVY_DISABLE_VEX_NOTICE: "true"
     TRIVY_REPORT_FILENAME: ${TRIVY_REPORT_FILENAME}
-  image: ${REGISTRY_URL}/${PYTHON_IMAGE}:${PYTHON_IMAGE_VERSION}
+  image: ${REGISTRY_URL}/${PROJECT_NAME}/${PYTHON_IMAGE}:${PYTHON_IMAGE_VERSION}
   script:
     - uv sync --all-groups
     - uv --color never pip freeze > ${REQUIREMENTS_FILENAME}
@@ -173,7 +186,7 @@ package_vulns_test:
 analyse_code_dev:
   stage: test
   image:
-    name: ${REGISTRY_URL}/${SONAR_SCANNER_CLI_IMAGE}:${SONAR_SCANNER_CLI_VERSION}
+    name: ${REGISTRY_URL}/${PROJECT_NAME}/${SONAR_SCANNER_CLI_IMAGE}:${SONAR_SCANNER_CLI_VERSION}
     entrypoint: [""]
   script:
     - cd ${APP_DIR}
@@ -196,7 +209,7 @@ analyse_code_dev:
 analyse_code_main:
   stage: test
   image:
-    name: ${REGISTRY_URL}/${SONAR_SCANNER_CLI_IMAGE}:${SONAR_SCANNER_CLI_VERSION}
+    name: ${REGISTRY_URL}/${PROJECT_NAME}/${SONAR_SCANNER_CLI_IMAGE}:${SONAR_SCANNER_CLI_VERSION}
     entrypoint: [""]
   script:
     - cd ${APP_DIR}
@@ -229,14 +242,14 @@ build_dev:
     - docker buildx create --name ${DOCKER_BUILDER_NAME} --driver=docker-container
     - docker buildx build
         --platform ${BUILD_ARCHS}
-        --tag ${REGISTRY_URL}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}:${DEVELOP_TAG}
+        --tag ${REGISTRY_URL}/${PROJECT_NAME}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}:${DEVELOP_TAG}
         --builder ${DOCKER_BUILDER_NAME}
         --provenance false
         --sbom false
         --push .
     # get image digest to sign image with cosign
     - IMAGE_DIGEST=$(docker buildx imagetools inspect --format "{{json .Manifest.Digest}}"
-        ${REGISTRY_URL}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}:${DEVELOP_TAG} | tr -d '"')
+        ${REGISTRY_URL}/${PROJECT_NAME}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}:${DEVELOP_TAG} | tr -d '"')
     - echo ${IMAGE_DIGEST} > ${BUILDS_CI_PATH}/${IMAGE_DIGEST_FILENAME}
   rules:
     # if event = push && target = develop          
@@ -257,14 +270,14 @@ build_main:
     - docker buildx create --name ${DOCKER_BUILDER_NAME} --driver=docker-container
     - docker buildx build
         --platform ${BUILD_ARCHS}
-        --tag ${REGISTRY_URL}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}:${LATEST_TAG}
+        --tag ${REGISTRY_URL}/${PROJECT_NAME}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}:${LATEST_TAG}
         --builder ${DOCKER_BUILDER_NAME}
         --provenance false
         --sbom false
         --push .
     # get image digest to sign image with cosign
     - IMAGE_DIGEST=$(docker buildx imagetools inspect --format "{{json .Manifest.Digest}}"
-        ${REGISTRY_URL}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}:${LATEST_TAG} | tr -d '"')
+        ${REGISTRY_URL}/${PROJECT_NAME}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}:${LATEST_TAG} | tr -d '"')
     - echo ${IMAGE_DIGEST} > ${BUILDS_CI_PATH}/${IMAGE_DIGEST_FILENAME}
   rules:
     # if event = push && target = main          
@@ -287,7 +300,7 @@ sign_dev:
     - cosign sign --yes --recursive --key env://COSIGN_PRIVATE_KEY
         --registry-username ${REGISTRY_PUSH_USER}
         --registry-password ${REGISTRY_PUSH_PASSWORD}
-        ${REGISTRY_URL}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}@${IMAGE_DIGEST}
+        ${REGISTRY_URL}/${PROJECT_NAME}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}@${IMAGE_DIGEST}
   rules:
     # if event = push && target = develop          
     - if: $CI_PIPELINE_SOURCE == 'push' &&
@@ -310,7 +323,7 @@ sign_main:
     - cosign sign --yes --recursive --key env://COSIGN_PRIVATE_KEY
         --registry-username ${REGISTRY_PUSH_USER}
         --registry-password ${REGISTRY_PUSH_PASSWORD}
-        ${REGISTRY_URL}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}@${IMAGE_DIGEST}
+        ${REGISTRY_URL}/${PROJECT_NAME}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}@${IMAGE_DIGEST}
   rules:
     # if event = push && target = main          
     - if: $CI_PIPELINE_SOURCE == 'push' &&
@@ -326,7 +339,7 @@ deploy_dev:
   script:
     - ssh ${EC2_USER}@${EC2_HOST} "
         docker login -u ${REGISTRY_PULL_USER} -p ${REGISTRY_PULL_PASSWORD} ${REGISTRY_URL} &&
-        docker pull ${REGISTRY_URL}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}:${DEVELOP_TAG} &&
+        docker pull ${REGISTRY_URL}/${PROJECT_NAME}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}:${DEVELOP_TAG} &&
         docker compose -f ${COMPOSE_PATH} up -d"
   rules:
     # if event = push && target = develop          
@@ -339,9 +352,34 @@ deploy_dev:
 cleanup:
   stage: .post
   script:
-    - ssh ${EC2_USER}@${EC2_HOST} "
-        docker system prune --force"
+    - if [ "${CI_COMMIT_BRANCH}" = "${DEVELOP_BRANCH}" ]; then ssh ${EC2_USER}@${EC2_HOST} "docker system prune --force"; fi 
     - docker system prune --force
+    # get digests without tag "develop" and remove them
+    - source <(echo 'export PATH="$HOME/.local/bin:$PATH"');
+    - |
+      echo -e "Grab all images from registry for project \"${PROJECT_NAME}\"";
+      images=$(curl -s -S -X 'GET' --max-time 7 \
+        -u ${REGISTRY_USERNAME}:${REGISTRY_PASSWORD} \
+        -H 'accept: application/json' \
+        "${REGISTRY_PROTOCOL}://${REGISTRY_URL}/api/v2.0/projects/${PROJECT_NAME}/repositories/${REGISTRY_MS_PATH}%252F${CI_PROJECT_NAME}/artifacts?page=1&page_size=50&with_tag=true");
+    - |
+      if echo "${images}" | jq -e 'length == 0' >/dev/null ; then 
+          echo -e "No images for project \"${PROJECT_NAME}\"!";
+          exit 0
+      fi;
+      digests_to_remove=$(echo "${images}" | jq -cr '.[] | select( .tags == null ) | .digest');
+      if  [ -z "${digests_to_remove}" ] ; then 
+          echo -e "No images to remove!";
+          exit 0
+      else
+          while IFS= read -r digest_to_remove; do
+              echo -e "Remove image digest ${digest_to_remove}\n";
+              curl -s -S -X 'DELETE' --max-time 7 \
+                -u ${REGISTRY_USERNAME}:${REGISTRY_PASSWORD} \
+                -H 'accept: application/json' \
+                "${REGISTRY_PROTOCOL}://${REGISTRY_URL}/api/v2.0/projects/${PROJECT_NAME}/repositories/${REGISTRY_MS_PATH}%252F${CI_PROJECT_NAME}/artifacts/${digest_to_remove}" 
+          done < <(printf '%s\n' "${digests_to_remove}");
+      fi;
   rules:
     # if event = push && target = develop          
     - if: $CI_PIPELINE_SOURCE == 'push' &&
