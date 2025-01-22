@@ -87,7 +87,7 @@ unit_test:
     POSTGRES_USER: ${TESTS_POSTGRES_USER}
     POSTGRES_PASSWORD: ${TESTS_POSTGRES_PASSWORD}
   stage: test
-  image: ${REGISTRY_URL}/${PYTHON_IMAGE}:${PYTHON_IMAGE_VERSION}
+  image: ${REGISTRY_URL}/${PROJECT_NAME}/${PYTHON_IMAGE}:${PYTHON_IMAGE_VERSION}
   services:
     - name: postgres:${POSTGRES_VERSION}
       alias: postgres
