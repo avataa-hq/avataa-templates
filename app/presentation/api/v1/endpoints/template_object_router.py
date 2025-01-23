@@ -88,20 +88,14 @@ async def update_template_object(
     service = TemplateObjectService(db)
 
     try:
-        obj = (
-            await service.update_template_object(
-                object_data=object_data,
-                object_id=object_id,
-            )
+        obj = await service.update_template_object(
+            object_data=object_data,
+            object_id=object_id,
         )
     except TemplateObjectNotFound as e:
-        raise HTTPException(
-            status_code=404, detail=str(e)
-        )
+        raise HTTPException(status_code=404, detail=str(e))
     except InvalidHierarchy as e:
-        raise HTTPException(
-            status_code=422, detail=str(e)
-        )
+        raise HTTPException(status_code=422, detail=str(e))
     await service.commit_changes()
     return obj
 
@@ -117,9 +111,7 @@ async def delete_template_object(
     service = TemplateObjectService(db)
 
     try:
-        await service.delete_template_object(
-            object_id
-        )
+        await service.delete_template_object(object_id)
     except TemplateObjectNotFound:
         raise HTTPException(
             status_code=404,
@@ -127,6 +119,4 @@ async def delete_template_object(
         )
 
     await service.commit_changes()
-    return Response(
-        status_code=status.HTTP_204_NO_CONTENT
-    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

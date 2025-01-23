@@ -20,14 +20,10 @@ def register_static_docs_routes(
         openapi_url = ""
     else:
         openapi_url = root_path + app.openapi_url
-    oauth2_redirect_url = (
-        app.swagger_ui_oauth2_redirect_url
-    )
+    oauth2_redirect_url = app.swagger_ui_oauth2_redirect_url
     conf = setup_config().app
     if oauth2_redirect_url:
-        oauth2_redirect_url = (
-            root_path + oauth2_redirect_url
-        )
+        oauth2_redirect_url = root_path + oauth2_redirect_url
 
     async def custom_swagger_ui_html(
         req: Request,
@@ -41,10 +37,7 @@ def register_static_docs_routes(
         )
 
     docs_url = app.docs_url or "/docs"
-    if (
-        conf.swagger_js_url
-        and conf.swagger_css_url
-    ):
+    if conf.swagger_js_url and conf.swagger_css_url:
         app.add_route(
             docs_url,
             custom_swagger_ui_html,
@@ -57,13 +50,10 @@ def register_static_docs_routes(
     async def swagger_ui_redirect(
         req: Request,
     ) -> HTMLResponse:
-        return (
-            get_swagger_ui_oauth2_redirect_html()
-        )
+        return get_swagger_ui_oauth2_redirect_html()
 
     swagger_ui_oauth2_redirect_url = (
-        app.swagger_ui_oauth2_redirect_url
-        or "/docs/oauth2-redirect"
+        app.swagger_ui_oauth2_redirect_url or "/docs/oauth2-redirect"
     )
     app.add_route(
         swagger_ui_oauth2_redirect_url,
@@ -91,25 +81,17 @@ def register_static_docs_routes(
     #     warnings.warn(f'Endpoint "{redoc_url}" disabled. Environment variable "REDOC_JS_URL" is not set')
 
 
-def create_app(
-    documentation_enabled: bool, **kwargs: Any
-) -> FastAPI:
+def create_app(documentation_enabled: bool, **kwargs: Any) -> FastAPI:
     conf = setup_config().app
     options = kwargs
     if not documentation_enabled:
         options["openapi_url"] = None
     elif conf.custom_enabled:
-        if (
-            conf.swagger_js_url
-            and conf.swagger_css_url
-        ):
+        if conf.swagger_js_url and conf.swagger_css_url:
             options["docs_url"] = None
         if conf.redoc_js_url:
             options["redoc_url"] = None
     app = FastAPI(**options)
-    if (
-        documentation_enabled
-        and conf.custom_enabled
-    ):
+    if documentation_enabled and conf.custom_enabled:
         register_static_docs_routes(app)
     return app

@@ -38,9 +38,7 @@ async def get_template_object_parameters(
     service = TemplateParameterService(db)
 
     try:
-        return await service.get_all_by_template_object(
-            template_object_id
-        )
+        return await service.get_all_by_template_object(template_object_id)
     except TemplateObjectNotFound:
         raise HTTPException(
             status_code=404,
@@ -80,17 +78,11 @@ async def update_template_parameter(
             detail=str(e),
         )
     except InvalidParameterValue as e:
-        raise HTTPException(
-            status_code=422, detail=str(e)
-        )
+        raise HTTPException(status_code=422, detail=str(e))
     except ValueConstraintException as e:
-        raise HTTPException(
-            status_code=422, detail=str(e)
-        )
+        raise HTTPException(status_code=422, detail=str(e))
     except IncorrectConstraintException as e:
-        raise HTTPException(
-            status_code=422, detail=str(e)
-        )
+        raise HTTPException(status_code=422, detail=str(e))
     await service.commit_changes()
     return parameter
 
@@ -106,9 +98,7 @@ async def delete_template_parameter(
     service = TemplateParameterService(db)
 
     try:
-        await service.delete_template_parameter(
-            parameter_id
-        )
+        await service.delete_template_parameter(parameter_id)
     except TemplateParameterNotFound:
         raise HTTPException(
             status_code=404,
@@ -116,6 +106,4 @@ async def delete_template_parameter(
         )
 
     await service.commit_changes()
-    return Response(
-        status_code=status.HTTP_204_NO_CONTENT
-    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

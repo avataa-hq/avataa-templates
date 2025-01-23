@@ -10,23 +10,13 @@ from services.inventory_services.protocols import (
 
 class TemplateParameterService(object):
     def __init__(self, uow: SQLAlchemyUoW):
-        self.template_repo = TemplateRepo(
-            session=uow
-        )
-        self.template_object_repo = (
-            TemplateObjectRepo(session=uow)
-        )
-        self.template_parameter_repo = (
-            TemplateParameterRepo(session=uow)
-        )
+        self.template_repo = TemplateRepo(session=uow)
+        self.template_object_repo = TemplateObjectRepo(session=uow)
+        self.template_parameter_repo = TemplateParameterRepo(session=uow)
         self.uow = uow
-        self.logger = getLogger(
-            "Template Parameter Service"
-        )
+        self.logger = getLogger("Template Parameter Service")
 
-    async def set_template_parameter_invalid(
-        self, tprm_ids: list[int]
-    ) -> None:
+    async def set_template_parameter_invalid(self, tprm_ids: list[int]) -> None:
         try:
             async with self.uow:
                 # Invalidate parameters
@@ -37,8 +27,7 @@ class TemplateParameterService(object):
                     parameters=template_parameters
                 )
                 tmo_ids = [
-                    templ.template_object_id
-                    for templ in template_parameters
+                    templ.template_object_id for templ in template_parameters
                 ]
                 # Invalidate objects
                 template_objects = await self.template_object_repo.get_template_objects_by_object_type_id(
@@ -62,6 +51,4 @@ class TemplateParameterService(object):
             raise ValueError(msg)
         except Exception as ex:
             await self.uow.rollback()
-            self.logger.error(
-                msg=f"Data rollback. {ex}."
-            )
+            self.logger.error(msg=f"Data rollback. {ex}.")

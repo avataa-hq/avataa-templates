@@ -9,25 +9,19 @@ from exceptions import (
 )
 
 
-def str_value_constraint_validation(
-    value: str, constraint: str
-) -> bool:
+def str_value_constraint_validation(value: str, constraint: str) -> bool:
     pattern = re.compile(rf"{constraint}")
     if pattern.match(value):
         return True
     return False
 
 
-def non_value_constraint_validation(
-    value: Any, constraint: Any
-) -> bool:
+def non_value_constraint_validation(value: Any, constraint: Any) -> bool:
     """Always correct"""
     return True
 
 
-def float_value_constraint_validation(
-    value: float, constraint: str
-) -> bool:
+def float_value_constraint_validation(value: float, constraint: str) -> bool:
     bottom, top = constraint.split(":")
     top = float(top)
     bottom = float(bottom)
@@ -35,9 +29,7 @@ def float_value_constraint_validation(
     return bottom < value < top
 
 
-def int_value_constraint_validation(
-    value: int, constraint: str
-) -> bool:
+def int_value_constraint_validation(value: int, constraint: str) -> bool:
     bottom, top = constraint.split(":")
     top = int(top)
     bottom = int(bottom)
@@ -80,19 +72,12 @@ def validate_by_constraint(
 
     I suppose that `value` correctly correlates with `value_type`.
     """
-    cast_function: Optional[Callable] = (
-        param_type_casting_router.get(val_type)
-    )
+    cast_function: Optional[Callable] = param_type_casting_router.get(val_type)
     validator_function: Optional[Callable] = (
-        param_value_constraint_validation_router.get(
-            val_type
-        )
+        param_value_constraint_validation_router.get(val_type)
     )
 
-    if (
-        validator_function
-        == non_value_constraint_validation
-    ):
+    if validator_function == non_value_constraint_validation:
         return True
 
     if (
@@ -114,10 +99,6 @@ def validate_by_constraint(
                 for item in value_list
             )
 
-        return validator_function(
-            cast_function(value), constraint
-        )
+        return validator_function(cast_function(value), constraint)
     except ValueError:
-        raise IncorrectConstraintException(
-            constraint
-        )
+        raise IncorrectConstraintException(constraint)

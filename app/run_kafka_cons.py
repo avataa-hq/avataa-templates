@@ -19,17 +19,9 @@ from services.inventory_services.kafka.consumer.utils import (
 
 async def run_kafka_cons_inv() -> None:
     kafka_config = KafkaConfig()
-    async_session = SQLAlchemyUoW(
-        session_factory=session_factory
-    )
-    template_object_service = (
-        TemplateObjectService(uow=async_session)
-    )
-    template_parameter_service = (
-        TemplateParameterService(
-            uow=async_session
-        )
-    )
+    async_session = SQLAlchemyUoW(session_factory=session_factory)
+    template_object_service = TemplateObjectService(uow=async_session)
+    template_parameter_service = TemplateParameterService(uow=async_session)
     if kafka_config.turn_on:
         print("Kafka turn on")
         loop = asyncio.get_running_loop()
@@ -43,30 +35,20 @@ async def run_kafka_cons_inv() -> None:
         )
         if not kafka_config.with_keycloak:
             consumer_config.pop("sasl.mechanisms")
-        kafka_inventory_changes_consumer = (
-            Consumer(consumer_config)
-        )
+        kafka_inventory_changes_consumer = Consumer(consumer_config)
         try:
             kafka_inventory_changes_consumer.subscribe(
-                [
-                    kafka_config.inventory_changes_topic
-                ]
+                [kafka_config.inventory_changes_topic]
             )
             while True:
                 poll = functools.partial(
                     kafka_inventory_changes_consumer.poll,
                     3.0,
                 )
-                msg = await loop.run_in_executor(
-                    None, poll
-                )
+                msg = await loop.run_in_executor(None, poll)
                 if msg is None:
                     continue
-                handler_inst = (
-                    InventoryChangesHandler(
-                        kafka_msg=msg
-                    )
-                )
+                handler_inst = InventoryChangesHandler(kafka_msg=msg)
                 await handler_inst.process_the_message(
                     template_object_service=template_object_service,
                     template_parameter_service=template_parameter_service,

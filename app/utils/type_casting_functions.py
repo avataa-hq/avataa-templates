@@ -15,9 +15,7 @@ def cast_to_bool(value: str) -> bool:
         return True
     elif value.lower() in ("false", "0"):
         return False
-    raise ValueError(
-        f"Cannot cast '{value}' to a boolean."
-    )
+    raise ValueError(f"Cannot cast '{value}' to a boolean.")
 
 
 param_type_casting_router = {

@@ -38,15 +38,9 @@ v1_app = create_app(
     **v1_options,
 )
 
-v1_app.include_router(
-    template_registry_router.router
-)
-v1_app.include_router(
-    template_parameter_router.router
-)
-v1_app.include_router(
-    template_object_router.router
-)
+v1_app.include_router(template_registry_router.router)
+v1_app.include_router(template_parameter_router.router)
+v1_app.include_router(template_object_router.router)
 v1_app.include_router(template_router.router)
 
 app.mount(f"/v{app_version}", v1_app)

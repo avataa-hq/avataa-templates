@@ -51,30 +51,19 @@ class TemplateService:
         template_data: TemplateUpdateInput,
     ) -> TemplateUpdateOutput:
         result = await self.db.execute(
-            select(Template).filter_by(
-                id=template_id
-            )
+            select(Template).filter_by(id=template_id)
         )
         template = result.scalar_one_or_none()
 
         if not template:
             raise TemplateNotFound
 
-        if (
-            template_data.object_type_id
-            != template.object_type_id
-        ):
-            registry_service = (
-                TemplateRegistryService(self.db)
-            )
+        if template_data.object_type_id != template.object_type_id:
+            registry_service = TemplateRegistryService(self.db)
             await registry_service.initialize_hierarchy_map()
-            registry_service.validate_object_type(
-                template_data.object_type_id
-            )
+            registry_service.validate_object_type(template_data.object_type_id)
 
-        template.object_type_id = (
-            template_data.object_type_id
-        )
+        template.object_type_id = template_data.object_type_id
         template.name = template_data.name
         template.owner = template_data.owner
 
@@ -88,13 +77,9 @@ class TemplateService:
             valid=template.valid,
         )
 
-    async def delete_template(
-        self, template_id: int
-    ) -> None:
+    async def delete_template(self, template_id: int) -> None:
         result = await self.db.execute(
-            select(Template).filter_by(
-                id=template_id
-            )
+            select(Template).filter_by(id=template_id)
         )
         template = result.scalar_one_or_none()
 

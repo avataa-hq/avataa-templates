@@ -14,13 +14,9 @@ class TemplateParameterNotFound(Exception):
 
 
 class TMOIdNotFoundInInventory(Exception):
-    def __init__(
-        self, object_type_id: int
-    ) -> None:
+    def __init__(self, object_type_id: int) -> None:
         self.object_type_id = object_type_id
-        super().__init__(
-            f"TMO id {object_type_id} not found in inventory."
-        )
+        super().__init__(f"TMO id {object_type_id} not found in inventory.")
 
 
 class TPRMNotFoundInInventory(Exception):
@@ -44,9 +40,7 @@ class InvalidHierarchy(Exception):
         actual_parent_id: Optional[int],
     ) -> None:
         self.object_type_id = object_type_id
-        self.expected_parent_id = (
-            expected_parent_id
-        )
+        self.expected_parent_id = expected_parent_id
         self.actual_parent_id = actual_parent_id
         super().__init__(
             f"Hierarchy error: object_type_id {object_type_id} "
@@ -109,6 +103,4 @@ class IncorrectConstraintException(Exception):
         self,
         constraint: str,
     ) -> None:
-        super().__init__(
-            f"Constraint was defined incorrectly: `{constraint}`"
-        )
+        super().__init__(f"Constraint was defined incorrectly: `{constraint}`")

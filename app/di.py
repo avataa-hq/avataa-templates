@@ -19,9 +19,7 @@ logger = getLogger(__name__)
 
 
 def new_uow(
-    session: AsyncSession = Depends(
-        Stub(AsyncSession)
-    ),
+    session: AsyncSession = Depends(Stub(AsyncSession)),
 ):
     return session
 
@@ -61,9 +59,7 @@ async def new_session(
 
 
 async def build_session(
-    session_factory: async_sessionmaker[
-        AsyncSession
-    ],
+    session_factory: async_sessionmaker[AsyncSession],
 ) -> AsyncGenerator[AsyncSession, None]:
     async with session_factory() as session:
         logger.info(msg="Create DB session.")
@@ -73,11 +69,9 @@ async def build_session(
 
 def init_dependencies(app: FastAPI):
     db_engine = create_engine()
-    session_factory = build_session_factory(
-        engine=db_engine
-    )
+    session_factory = build_session_factory(engine=db_engine)
 
-    app.dependency_overrides[AsyncSession] = (
-        partial(build_session, session_factory)
+    app.dependency_overrides[AsyncSession] = partial(
+        build_session, session_factory
     )
     app.dependency_overrides[UoW] = new_uow
