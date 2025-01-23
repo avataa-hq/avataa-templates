@@ -16,9 +16,7 @@ class Stub:
 
     """
 
-    def __init__(
-        self, dependency: Callable, **kwargs
-    ):
+    def __init__(self, dependency: Callable, **kwargs):
         self._dependency = dependency
         self._kwargs = kwargs
 
@@ -29,8 +27,7 @@ class Stub:
     def __eq__(self, other) -> bool:
         if isinstance(other, Stub):
             return (
-                self._dependency
-                == other._dependency
+                self._dependency == other._dependency
                 and self._kwargs == other._kwargs
             )
         else:

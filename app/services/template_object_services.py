@@ -33,50 +33,33 @@ class TemplateObjectService:
             return []
 
         result = await self.db.execute(
-            select(Template).filter_by(
-                id=template_id
-            )
+            select(Template).filter_by(id=template_id)
         )
         template = result.scalar_one_or_none()
         if not template:
             raise TemplateNotFound
 
         query = select(TemplateObject).filter(
-            TemplateObject.template_id
-            == template_id
+            TemplateObject.template_id == template_id
         )
 
         if parent_id:
             result = await self.db.execute(
                 select(TemplateObject).filter(
-                    TemplateObject.id
-                    == parent_id,
-                    TemplateObject.template_id
-                    == template_id,
+                    TemplateObject.id == parent_id,
+                    TemplateObject.template_id == template_id,
                 )
             )
-            parent_template_object = (
-                result.scalar_one_or_none()
-            )
+            parent_template_object = result.scalar_one_or_none()
             if not parent_template_object:
                 raise TemplateObjectNotFound
 
-            query = query.filter(
-                TemplateObject.parent_object_id
-                == parent_id
-            )
+            query = query.filter(TemplateObject.parent_object_id == parent_id)
         else:
-            query = query.filter(
-                TemplateObject.parent_object_id
-                is None
-            )
+            query = query.filter(TemplateObject.parent_object_id is None)
 
         if include_parameters:
-            query = query.options(
-                selectinload(
-                    TemplateObject.parameters
-                )
-            )
+            query = query.options(selectinload(TemplateObject.parameters))
 
         result = await self.db.execute(query)
         template_objects = result.scalars().all()
@@ -127,9 +110,7 @@ class TemplateObjectService:
         object_data: TemplateObjectUpdateInput,
     ) -> TemplateObjectUpdateOutput:
         result = await self.db.execute(
-            select(TemplateObject).filter_by(
-                id=object_id
-            )
+            select(TemplateObject).filter_by(id=object_id)
         )
         object = result.scalar_one_or_none()
 
@@ -138,46 +119,31 @@ class TemplateObjectService:
 
         if (
             object_data.parent_object_id
-            and object_data.parent_object_id
-            != object.parent_object_id
+            and object_data.parent_object_id != object.parent_object_id
         ):
             # if hierarchy is changing
-            registry_service = (
-                TemplateRegistryService(self.db)
-            )
+            registry_service = TemplateRegistryService(self.db)
             await registry_service.initialize_hierarchy_map()
-            parent_id: Optional[int] = (
-                object_data.parent_object_id
-            )
-            parent_object_type_id: Optional[
-                int
-            ] = None
+            parent_id: Optional[int] = object_data.parent_object_id
+            parent_object_type_id: Optional[int] = None
 
             result = await self.db.execute(
-                select(TemplateObject).filter_by(
-                    id=parent_id
-                )
+                select(TemplateObject).filter_by(id=parent_id)
             )
-            parent_object = (
-                result.scalar_one_or_none()
-            )
+            parent_object = result.scalar_one_or_none()
             if not parent_object:
                 raise TemplateObjectNotFound(
                     f"Parent object with id {parent_id} not found"
                 )
 
-            parent_object_type_id = (
-                parent_object.object_type_id
-            )
+            parent_object_type_id = parent_object.object_type_id
 
             registry_service.validate_object_type(
                 object_type_id=object.object_type_id,
                 parent_object_type_id=parent_object_type_id,
             )
 
-        object.parent_object_id = (
-            object_data.parent_object_id
-        )
+        object.parent_object_id = object_data.parent_object_id
         object.required = object_data.required
 
         await self.db.flush()
@@ -190,13 +156,9 @@ class TemplateObjectService:
             valid=object.valid,
         )
 
-    async def delete_template_object(
-        self, object_id: int
-    ) -> None:
+    async def delete_template_object(self, object_id: int) -> None:
         result = await self.db.execute(
-            select(TemplateObject).filter_by(
-                id=object_id
-            )
+            select(TemplateObject).filter_by(id=object_id)
         )
         object = result.scalar_one_or_none()
 

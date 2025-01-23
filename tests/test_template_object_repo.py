@@ -15,9 +15,7 @@ async def test_template_objects_invalid(
     test_session: AsyncSession,
 ) -> None:
     # Arrange
-    repo = TemplateObjectRepo(
-        session=test_session
-    )
+    repo = TemplateObjectRepo(session=test_session)
 
     template = Template(
         name="Test Template",
@@ -54,14 +52,8 @@ async def test_template_objects_invalid(
     await test_session.flush()
 
     # Act
-    objects = await repo.get_template_objects_by_object_type_id(
-        [1]
-    )
-    updated_objects = (
-        await repo.set_template_objects_invalid(
-            objects
-        )
-    )
+    objects = await repo.get_template_objects_by_object_type_id([1])
+    updated_objects = await repo.set_template_objects_invalid(objects)
     await test_session.commit()
 
     # Assert
@@ -75,9 +67,7 @@ async def test_template_objects_invalid_id(
     test_session: AsyncSession,
 ) -> None:
     # Arrange
-    repo = TemplateObjectRepo(
-        session=test_session
-    )
+    repo = TemplateObjectRepo(session=test_session)
 
     template = Template(
         name="Test Template",
@@ -107,9 +97,7 @@ async def test_template_objects_invalid_id(
     await test_session.flush()
 
     # Act
-    objects = await repo.get_template_objects_by_object_type_id(
-        [17]
-    )
+    objects = await repo.get_template_objects_by_object_type_id([17])
 
     # Assert
     assert len(objects) == 0

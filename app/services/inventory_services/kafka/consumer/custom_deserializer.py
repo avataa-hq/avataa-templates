@@ -10,9 +10,7 @@ from google.protobuf.internal.well_known_types import (
 )
 
 T = TypeVar("T")
-SerializerType = Callable[
-    [Any], Union[dict, str, list, Any]
-]
+SerializerType = Callable[[Any], Union[dict, str, list, Any]]
 
 
 def from_struct_to_dict(value: Struct):
@@ -24,9 +22,7 @@ def from_proto_timestamp_to_dict(
     value: Timestamp,
 ):
     """Converts proto Timestamp to python str and returns it"""
-    return json_format.MessageToDict(value).split(
-        "Z"
-    )[0]
+    return json_format.MessageToDict(value).split("Z")[0]
 
 
 def from_repeated_scalar_field_container_to_list(
@@ -36,9 +32,7 @@ def from_repeated_scalar_field_container_to_list(
     return list(value)
 
 
-PROTO_TYPES_SERIALIZERS: dict[
-    str, SerializerType
-] = {
+PROTO_TYPES_SERIALIZERS: dict[str, SerializerType] = {
     "Struct": from_struct_to_dict,
     "Timestamp": from_proto_timestamp_to_dict,
     "RepeatedScalarFieldContainer": from_repeated_scalar_field_container_to_list,

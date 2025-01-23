@@ -13,21 +13,15 @@ class TemplateParameterInput(BaseModel):
 class TemplateObjectInput(BaseModel):
     object_type_id: conint(gt=0)
     required: bool = True
-    parameters: Optional[
-        List[TemplateParameterInput]
-    ] = []
-    children: Optional[
-        List["TemplateObjectInput"]
-    ] = []
+    parameters: Optional[List[TemplateParameterInput]] = []
+    children: Optional[List["TemplateObjectInput"]] = []
 
 
 class TemplateInput(BaseModel):
     name: str
     owner: str
     object_type_id: conint(gt=0)
-    template_objects: Optional[
-        List[TemplateObjectInput]
-    ] = []
+    template_objects: Optional[List[TemplateObjectInput]] = []
 
 
 class TemplateParameterOutput(BaseModel):
@@ -44,12 +38,8 @@ class TemplateObjectOutput(BaseModel):
     id: conint(gt=0)
     object_type_id: conint(gt=0)
     required: bool = True
-    parameters: Optional[
-        List[TemplateParameterOutput]
-    ] = []
-    children: Optional[
-        List["TemplateObjectOutput"]
-    ] = []
+    parameters: Optional[List[TemplateParameterOutput]] = []
+    children: Optional[List["TemplateObjectOutput"]] = []
     valid: Optional[bool] = True
 
 
@@ -58,9 +48,7 @@ class TemplateOutput(BaseModel):
     name: str
     owner: str
     object_type_id: conint(gt=0)
-    template_objects: Optional[
-        List[TemplateObjectOutput]
-    ] = []
+    template_objects: Optional[List[TemplateObjectOutput]] = []
     valid: Optional[bool] = True
 
 

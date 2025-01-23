@@ -18,19 +18,13 @@ class KeycloakConfig(BaseSettings):
         min_length=1,
         serialization_alias="realm_name",
     )
-    client_id: str = Field(
-        default="kafka", min_length=1
-    )
+    client_id: str = Field(default="kafka", min_length=1)
     client_secret: str = Field(
         default="secret",
         serialization_alias="client_secret_key",
     )
-    protocol: Literal["http", "https"] = Field(
-        default="https"
-    )
-    host: str = Field(
-        default="localhost", min_length=1
-    )
+    protocol: Literal["http", "https"] = Field(default="https")
+    host: str = Field(default="localhost", min_length=1)
     port: int = Field(default=443, gt=0, lt=65536)
 
     @property
@@ -48,9 +42,7 @@ class KeycloakConfig(BaseSettings):
         )
         return url
 
-    model_config = SettingsConfigDict(
-        env_prefix="keycloak_"
-    )
+    model_config = SettingsConfigDict(env_prefix="keycloak_")
 
 
 class KafkaConfig(BaseSettings):
@@ -66,9 +58,7 @@ class KafkaConfig(BaseSettings):
         serialization_alias="group.id",
         min_length=1,
     )
-    auto_offset_reset: Literal[
-        "earliest", "latest", "none"
-    ] = Field(
+    auto_offset_reset: Literal["earliest", "latest", "none"] = Field(
         "earliest",
         serialization_alias="auto.offset.reset",
         validation_alias="kafka_consumer_offset",
@@ -77,34 +67,23 @@ class KafkaConfig(BaseSettings):
         False,
         serialization_alias="enable.auto.commit",
     )
-    security_protocol: Literal[
-        "sasl_plaintext", "PLAINTEXT", None
-    ] = Field(
+    security_protocol: Literal["sasl_plaintext", "PLAINTEXT", None] = Field(
         None,
         serialization_alias="security.protocol",
     )
-    sasl_mechanism: Literal[
-        "OAUTHBEARER", None
-    ] = Field(
+    sasl_mechanism: Literal["OAUTHBEARER", None] = Field(
         None,
         serialization_alias="sasl.mechanisms",
     )
 
-    inventory_changes_topic: str = Field(
-        "inventory.changes"
-    )
+    inventory_changes_topic: str = Field("inventory.changes")
     with_keycloak: bool = Field(default=False)
 
     @property
     @computed_field
     def oauth_cb(
         self,
-    ) -> (
-        None
-        | Callable[
-            [KeycloakConfig], tuple[str, float]
-        ]
-    ):
+    ) -> None | Callable[[KeycloakConfig], tuple[str, float]]:
         if not self.sasl_mechanism:
             return None
         keycloak_config = KeycloakConfig()
@@ -128,14 +107,9 @@ class KafkaConfig(BaseSettings):
         expires_in = 1.0
         while attempt > 0:
             try:
-                tkn = keycloak_openid.token(
-                    grant_type="client_credentials"
-                )
+                tkn = keycloak_openid.token(grant_type="client_credentials")
                 token = tkn["access_token"]
-                expires_in = (
-                    float(tkn["expires_in"])
-                    * 0.95
-                )
+                expires_in = float(tkn["expires_in"]) * 0.95
             except Exception as ex:
                 print(ex)
                 time.sleep(1)
@@ -150,6 +124,4 @@ class KafkaConfig(BaseSettings):
         # print(f"KEYCLOAK TOKEN FOR KAFKA: ...{tkn['access_token'][-3:]} EXPIRED_TIME:{expires_in}.")
         return token, time.time() + expires_in
 
-    model_config = SettingsConfigDict(
-        env_prefix="kafka_"
-    )
+    model_config = SettingsConfigDict(env_prefix="kafka_")

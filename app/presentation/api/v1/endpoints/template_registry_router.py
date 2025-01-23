@@ -83,9 +83,7 @@ async def create_template(
 ) -> TemplateOutput:
     service = TemplateRegistryService(db)
     try:
-        template = await service.create_template(
-            template_data
-        )
+        template = await service.create_template(template_data)
     except TMOIdNotFoundInInventory as e:
         raise HTTPException(
             status_code=404,
@@ -113,13 +111,9 @@ async def create_template(
             detail=str(e),
         )
     except InvalidParameterValue as e:
-        raise HTTPException(
-            status_code=422, detail=str(e)
-        )
+        raise HTTPException(status_code=422, detail=str(e))
     except ValueConstraintException as e:
-        raise HTTPException(
-            status_code=422, detail=str(e)
-        )
+        raise HTTPException(status_code=422, detail=str(e))
     await service.commit_changes()
     return template
 
@@ -158,9 +152,7 @@ async def add_objects(
     service = TemplateRegistryService(db)
 
     try:
-        await service.get_template_or_raise(
-            template_id
-        )
+        await service.get_template_or_raise(template_id)
     except TemplateNotFound:
         raise HTTPException(
             status_code=404,
@@ -178,22 +170,17 @@ async def add_objects(
                 detail="Parent template object not found",
             )
 
-        if (
-            parent_object.template_id
-            != template_id
-        ):
+        if parent_object.template_id != template_id:
             raise HTTPException(
                 status_code=400,
                 detail="Parent template object isn't related to the template",
             )
 
     try:
-        objects = (
-            await service.create_template_objects(
-                objects_data,
-                template_id,
-                parent_id,
-            )
+        objects = await service.create_template_objects(
+            objects_data,
+            template_id,
+            parent_id,
         )
     except TMOIdNotFoundInInventory as e:
         raise HTTPException(
@@ -222,20 +209,14 @@ async def add_objects(
             detail=str(e),
         )
     except InvalidParameterValue as e:
-        raise HTTPException(
-            status_code=422, detail=str(e)
-        )
+        raise HTTPException(status_code=422, detail=str(e))
     except ValueConstraintException as e:
-        raise HTTPException(
-            status_code=422, detail=str(e)
-        )
+        raise HTTPException(status_code=422, detail=str(e))
     await service.commit_changes()
     return objects
 
 
-@router.post(
-    "/add-parameters/{template_object_id}/"
-)
+@router.post("/add-parameters/{template_object_id}/")
 async def add_parameters(
     template_object_id: int,
     parameters_data: Annotated[
@@ -262,9 +243,7 @@ async def add_parameters(
     service = TemplateRegistryService(db)
 
     try:
-        service.get_template_object_or_raise(
-            template_object_id
-        )
+        service.get_template_object_or_raise(template_object_id)
     except TemplateObjectNotFound:
         raise HTTPException(
             status_code=404,
@@ -289,12 +268,8 @@ async def add_parameters(
             detail=str(e),
         )
     except InvalidParameterValue as e:
-        raise HTTPException(
-            status_code=422, detail=str(e)
-        )
+        raise HTTPException(status_code=422, detail=str(e))
     except ValueConstraintException as e:
-        raise HTTPException(
-            status_code=422, detail=str(e)
-        )
+        raise HTTPException(status_code=422, detail=str(e))
     await service.commit_changes()
     return parameters

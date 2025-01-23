@@ -21,9 +21,7 @@ from services.inventory_services.kafka.consumer.msg_protocol import (
 
 
 class InventoryChangesHandler(object):
-    def __init__(
-        self, kafka_msg: KafkaMSGProtocol
-    ):
+    def __init__(self, kafka_msg: KafkaMSGProtocol):
         self.msg = kafka_msg
         self.msg_instance_class_name = None
         self.msg_instance_event = None
@@ -53,20 +51,14 @@ class InventoryChangesHandler(object):
         if msg_key.find(":") == -1:
             return
 
-        msg_class_name, msg_event = msg_key.split(
-            ":"
-        )
+        msg_class_name, msg_event = msg_key.split(":")
         if (
             msg_class_name
             and msg_event
-            and msg_class_name
-            in self.allowed_msg_class_name
-            and msg_event
-            in self.allowed_msg_event
+            and msg_class_name in self.allowed_msg_class_name
+            and msg_event in self.allowed_msg_event
         ):
-            self.msg_instance_class_name = (
-                msg_class_name
-            )
+            self.msg_instance_class_name = msg_class_name
             self.msg_instance_event = msg_event
 
     def __from_bytes_to_python_proto_model_msg(
@@ -81,12 +73,8 @@ class InventoryChangesHandler(object):
             self.msg_instance_class_name, None
         )
         if deserializer_model:
-            deserializer_instance = (
-                deserializer_model()
-            )
-            deserializer_instance.ParseFromString(
-                self.msg.value()
-            )
+            deserializer_instance = deserializer_model()
+            deserializer_instance.ParseFromString(self.msg.value())
             return deserializer_instance
         else:
             raise NotImplementedError(
@@ -111,8 +99,10 @@ class InventoryChangesHandler(object):
                 f"for the {KafkaConfig().inventory_changes_topic} topic "
                 f"with msg_class_name = '{self.msg_instance_class_name}'"
             )
-        handlers_by_class_name = INVENTORY_CHANGES_HANDLER_BY_MSG_CLASS_NAME.get(
-            self.msg_instance_class_name
+        handlers_by_class_name = (
+            INVENTORY_CHANGES_HANDLER_BY_MSG_CLASS_NAME.get(
+                self.msg_instance_class_name
+            )
         )
         if not handlers_by_class_name:
             raise NotImplementedError(
@@ -121,11 +111,7 @@ class InventoryChangesHandler(object):
                 f"with msg_class_name = '{self.msg_instance_class_name}'"
             )
 
-        event_handler = (
-            handlers_by_class_name.get(
-                self.msg_instance_event
-            )
-        )
+        event_handler = handlers_by_class_name.get(self.msg_instance_event)
         if event_handler:
             return event_handler
         else:

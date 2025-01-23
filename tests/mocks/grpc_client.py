@@ -8,9 +8,7 @@ class MockGrpcClient:
         self.get_all_tmo_data = AsyncMock()
         self.get_all_tprms_for_tmo = AsyncMock()
 
-        self.get_all_tmo_data.return_value = (
-            self._default_tmo_data()
-        )
+        self.get_all_tmo_data.return_value = self._default_tmo_data()
         self.get_all_tprms_for_tmo.return_value = self._default_tprm_data()
 
     def _default_tmo_data(self) -> list[dict]:
@@ -48,11 +46,7 @@ class MockGrpcClient:
         ]
 
     def set_response(self, method: str, response):
-        getattr(
-            self, method
-        ).return_value = response
+        getattr(self, method).return_value = response
 
-    def set_error(
-        self, method: str, error: grpc.RpcError
-    ):
+    def set_error(self, method: str, error: grpc.RpcError):
         getattr(self, method).side_effect = error

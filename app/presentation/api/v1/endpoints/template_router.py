@@ -45,9 +45,7 @@ async def get_templates(
     ),
 ) -> List[SimpleTemplateOutput]:
     service = TemplateService(db)
-    result = await service.get_templates(
-        limit=limit, offset=offset
-    )
+    result = await service.get_templates(limit=limit, offset=offset)
     return result
 
 
@@ -74,13 +72,9 @@ async def update_template(
             template_data=template_data,
         )
     except TemplateNotFound as e:
-        raise HTTPException(
-            status_code=404, detail=str(e)
-        )
+        raise HTTPException(status_code=404, detail=str(e))
     except TMOIdNotFoundInInventory as e:
-        raise HTTPException(
-            status_code=404, detail=str(e)
-        )
+        raise HTTPException(status_code=404, detail=str(e))
     await service.commit_changes()
     return template
 
@@ -104,6 +98,4 @@ async def delete_template(
         )
 
     await service.commit_changes()
-    return Response(
-        status_code=status.HTTP_204_NO_CONTENT
-    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

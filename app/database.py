@@ -14,6 +14,4 @@ convention = {
 
 
 class Base(DeclarativeBase, MappedAsDataclass):
-    metadata = MetaData(
-        naming_convention=convention
-    )
+    metadata = MetaData(naming_convention=convention)

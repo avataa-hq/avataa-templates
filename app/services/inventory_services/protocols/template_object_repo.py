@@ -16,9 +16,7 @@ from services.inventory_services.protocols.utils import (
 class TemplateObjectRepo(object):
     def __init__(self, session: SQLAlchemyUoW):
         self.session = session
-        self.logger = getLogger(
-            "Template Object Repo"
-        )
+        self.logger = getLogger("Template Object Repo")
 
     @handle_db_exceptions
     async def set_template_objects_invalid(
@@ -29,25 +27,18 @@ class TemplateObjectRepo(object):
             update(TemplateObject)
             .where(
                 TemplateObject.id.in_(
-                    [
-                        template.id
-                        for template in template_objects
-                    ]
+                    [template.id for template in template_objects]
                 )
             )
             .values(valid=False)
             .returning(TemplateObject)
         )
         result: Sequence[TemplateObject] = (
-            await self.session.scalars(
-                statement=stmt
-            )
+            await self.session.scalars(statement=stmt)
         ).all()
         if result:
             return [
-                TemplateObjectDTO.from_db(
-                    template_obj
-                )
+                TemplateObjectDTO.from_db(template_obj)
                 for template_obj in result
             ]
         return []
@@ -57,20 +48,14 @@ class TemplateObjectRepo(object):
         self, object_type_ids: list[int]
     ) -> list[TemplateObjectDTO]:
         stmt = select(TemplateObject).where(
-            TemplateObject.object_type_id.in_(
-                object_type_ids
-            )
+            TemplateObject.object_type_id.in_(object_type_ids)
         )
         result: Sequence[TemplateObject] = (
-            await self.session.scalars(
-                statement=stmt
-            )
+            await self.session.scalars(statement=stmt)
         ).all()
         if result:
             return [
-                TemplateObjectDTO.from_db(
-                    template_obj
-                )
+                TemplateObjectDTO.from_db(template_obj)
                 for template_obj in result
             ]
         return []

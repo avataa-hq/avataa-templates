@@ -8,7 +8,7 @@ dependencies = [
     "alembic==1.14.1",
     "asyncpg==0.30.0",
     "confluent-kafka==2.8.0",
-    "fastapi==0.115.6",
+    "fastapi==0.115.7",
     "grpcio==1.64.1",
     "protobuf==5.29.3",
     "pydantic==2.10.5",
@@ -29,7 +29,7 @@ tests = [
     "httpx==0.28.1",
     "pytest==8.3.4",
     "pytest-asyncio==0.25.2",
-    "testcontainers==4.9.0",
+    "testcontainers==4.9.1",
 ]
 security = [
     "pip-audit==2.7.3",

@@ -44,9 +44,7 @@ def date_validation(value: str) -> bool:
 
 def datetime_validation(value: str) -> bool:
     try:
-        datetime.strptime(
-            value, "%Y-%m-%dT%H:%M:%S.%fZ"
-        )
+        datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%fZ")
         return True
     except Exception:
         return False
@@ -102,9 +100,7 @@ def validate_by_val_type(
         bool: True if the value(s) are valid; False otherwise.
     """
     validator_function: Optional[Callable] = (
-        param_validation_by_val_type_router.get(
-            val_type
-        )
+        param_validation_by_val_type_router.get(val_type)
     )
 
     if not validator_function or not value:
@@ -118,9 +114,6 @@ def validate_by_val_type(
         except (ValueError, SyntaxError):
             return False
 
-        return all(
-            validator_function(str(item))
-            for item in value_list
-        )
+        return all(validator_function(str(item)) for item in value_list)
 
     return validator_function(value)

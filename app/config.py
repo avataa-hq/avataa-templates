@@ -12,17 +12,13 @@ from pydantic_settings import (
 
 
 class ApplicationSettings(BaseSettings):
-    docs_enabled: bool = Field(
-        default=True, alias="docs_enabled"
-    )
+    docs_enabled: bool = Field(default=True, alias="docs_enabled")
     custom_enabled: bool = Field(default=False)
     redoc_js_url: str = Field(default="")
     swagger_js_url: str = Field(default="")
     swagger_css_url: str = Field(default="")
 
-    model_config = SettingsConfigDict(
-        env_prefix="docs_"
-    )
+    model_config = SettingsConfigDict(env_prefix="docs_")
 
 
 class DatabaseSettings(BaseSettings):
@@ -32,22 +28,16 @@ class DatabaseSettings(BaseSettings):
         alias="db_type",
     )
     user: str = Field(default="templates_admin")
-    db_pass: str = Field(
-        default="password", alias="db_pass"
-    )
+    db_pass: str = Field(default="password", alias="db_pass")
     host: str = Field(default="localhost")
     port: int = Field(default=5432)
     name: str = Field(default="templates")
 
-    model_config = SettingsConfigDict(
-        env_prefix="db_"
-    )
+    model_config = SettingsConfigDict(env_prefix="db_")
 
 
 class InventorySettings(BaseSettings):
-    host: str = Field(
-        default="localhost", min_length=1
-    )
+    host: str = Field(default="localhost", min_length=1)
     grpc_port: int = Field(default=50051, ge=0)
 
     @computed_field  # type: ignore[misc]
@@ -56,9 +46,7 @@ class InventorySettings(BaseSettings):
         _url = f"{self.host}:{self.grpc_port}"
         return _url
 
-    model_config = SettingsConfigDict(
-        env_prefix="inventory_"
-    )
+    model_config = SettingsConfigDict(env_prefix="inventory_")
 
 
 class TestsConfig(BaseSettings):
@@ -71,9 +59,7 @@ class TestsConfig(BaseSettings):
         alias="tests_db_type",
     )
     user: str = Field(default="test_user")
-    db_pass: str = Field(
-        default="password", alias="tests_db_pass"
-    )
+    db_pass: str = Field(default="password", alias="tests_db_pass")
     host: str = Field(default="localhost")
     port: int = Field(default=5432)
     name: str = Field(default="templates")
@@ -82,19 +68,13 @@ class TestsConfig(BaseSettings):
         alias="test_docker_db_host",
     )
 
-    model_config = SettingsConfigDict(
-        env_prefix="tests_db_"
-    )
+    model_config = SettingsConfigDict(env_prefix="tests_db_")
 
 
 class Config(object):
-    app: ApplicationSettings = (
-        ApplicationSettings()
-    )
+    app: ApplicationSettings = ApplicationSettings()
     db: DatabaseSettings = DatabaseSettings()
-    inventory: InventorySettings = (
-        InventorySettings()
-    )
+    inventory: InventorySettings = InventorySettings()
     tests: TestsConfig = TestsConfig()
     DATABASE_URL: PostgresDsn = PostgresDsn(
         f"{db.db_type}://{db.user}:{db.db_pass}@{db.host}:{db.port}/{db.name}",

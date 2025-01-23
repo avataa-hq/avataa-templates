@@ -16,9 +16,7 @@ from services.inventory_services.protocols.utils import (
 class TemplateParameterRepo(object):
     def __init__(self, session: SQLAlchemyUoW):
         self.session = session
-        self.logger = getLogger(
-            "Template Parameter Repo"
-        )
+        self.logger = getLogger("Template Parameter Repo")
 
     @handle_db_exceptions
     async def set_template_parameters_invalid(
@@ -29,26 +27,18 @@ class TemplateParameterRepo(object):
             update(TemplateParameter)
             .where(
                 TemplateParameter.id.in_(
-                    [
-                        parameter.id
-                        for parameter in parameters
-                    ]
+                    [parameter.id for parameter in parameters]
                 )
             )
             .values(valid=False)
             .returning(TemplateParameter)
         )
         result: Sequence[TemplateParameter] = (
-            await self.session.scalars(
-                statement=stmt
-            )
+            await self.session.scalars(statement=stmt)
         ).all()
         if result:
             return [
-                TemplateParameterDTO.from_db(
-                    template
-                )
-                for template in result
+                TemplateParameterDTO.from_db(template) for template in result
             ]
         return []
 
@@ -60,20 +50,13 @@ class TemplateParameterRepo(object):
             f"Getting template parameter {parameter_ids} to invalid"
         )
         stmt = select(TemplateParameter).where(
-            TemplateParameter.id.in_(
-                parameter_ids
-            )
+            TemplateParameter.id.in_(parameter_ids)
         )
         result: Sequence[TemplateParameter] = (
-            await self.session.scalars(
-                statement=stmt
-            )
+            await self.session.scalars(statement=stmt)
         ).all()
         if result:
             return [
-                TemplateParameterDTO.from_db(
-                    template
-                )
-                for template in result
+                TemplateParameterDTO.from_db(template) for template in result
             ]
         return []

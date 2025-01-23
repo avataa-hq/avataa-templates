@@ -24,27 +24,15 @@ class TemplateRepo(object):
     ) -> list[TemplateDTO]:
         stmt = (
             update(Template)
-            .where(
-                Template.id.in_(
-                    [
-                        template.id
-                        for template in templates
-                    ]
-                )
-            )
+            .where(Template.id.in_([template.id for template in templates]))
             .values(valid=False)
             .returning(Template)
         )
         result: Sequence[Template] = (
-            await self.session.scalars(
-                statement=stmt
-            )
+            await self.session.scalars(statement=stmt)
         ).all()
         if result:
-            return [
-                TemplateDTO.from_db(template)
-                for template in result
-            ]
+            return [TemplateDTO.from_db(template) for template in result]
         return []
 
     @handle_db_exceptions
@@ -52,18 +40,11 @@ class TemplateRepo(object):
         self, object_type_ids: list[int]
     ) -> list[TemplateDTO]:
         stmt = select(Template).where(
-            Template.object_type_id.in_(
-                object_type_ids
-            )
+            Template.object_type_id.in_(object_type_ids)
         )
         result: Sequence[Template] = (
-            await self.session.scalars(
-                statement=stmt
-            )
+            await self.session.scalars(statement=stmt)
         ).all()
         if result:
-            return [
-                TemplateDTO.from_db(template)
-                for template in result
-            ]
+            return [TemplateDTO.from_db(template) for template in result]
         return []

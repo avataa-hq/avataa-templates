@@ -12,15 +12,10 @@ async def get_all_tmo_data_from_inventory_channel_in():
     async with grpc.aio.insecure_channel(
         setup_config().inventory.grpc_url
     ) as async_channel:
-        stub = mo_info_pb2_grpc.InformerStub(
-            async_channel
-        )
+        stub = mo_info_pb2_grpc.InformerStub(async_channel)
         msg = mo_info_pb2.GetAllTMORequest()
         resp = await stub.GetAllTMO(msg)
-        return [
-            pickle.loads(bytes.fromhex(item))
-            for item in resp.tmo_info
-        ]
+        return [pickle.loads(bytes.fromhex(item)) for item in resp.tmo_info]
 
 
 async def get_all_tprms_for_special_tmo_id_channel_in(
@@ -30,24 +25,14 @@ async def get_all_tprms_for_special_tmo_id_channel_in(
     async with grpc.aio.insecure_channel(
         setup_config().inventory.grpc_url
     ) as async_channel:
-        stub = mo_info_pb2_grpc.InformerStub(
-            async_channel
-        )
-        msg = (
-            mo_info_pb2.RequestGetAllTPRMSByTMOId(
-                tmo_id=tmo_id
-            )
-        )
-        grpc_response = stub.GetAllTPRMSByTMOId(
-            msg
-        )
+        stub = mo_info_pb2_grpc.InformerStub(async_channel)
+        msg = mo_info_pb2.RequestGetAllTPRMSByTMOId(tmo_id=tmo_id)
+        grpc_response = stub.GetAllTPRMSByTMOId(msg)
         result = []
         async for grpc_chunk in grpc_response:
             result.extend(
                 [
-                    pickle.loads(
-                        bytes.fromhex(item)
-                    )
+                    pickle.loads(bytes.fromhex(item))
                     for item in grpc_chunk.tprms_data
                 ]
             )
