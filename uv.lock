@@ -777,7 +777,7 @@ requires-dist = [
     { name = "grpcio", specifier = "==1.64.1" },
     { name = "protobuf", specifier = "==5.29.3" },
     { name = "pydantic", specifier = "==2.10.6" },
-    { name = "pydantic-settings", specifier = "==2.8.1" },
+    { name = "pydantic-settings", specifier = "==2.7.1" },
     { name = "python-keycloak", specifier = "==5.3.1" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = "==2.0.39" },
     { name = "uvicorn", specifier = "==0.34.0" },
@@ -792,7 +792,7 @@ lint = [{ name = "ruff", specifier = "==0.11.2" }]
 migrations = [
     { name = "alembic", specifier = "==1.15.1" },
     { name = "asyncpg", specifier = "==0.30.0" },
-    { name = "pydantic-settings", specifier = "==2.8.1" },
+    { name = "pydantic-settings", specifier = "==2.7.1" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = "==2.0.39" },
 ]
 security = [{ name = "pip-audit", specifier = "==2.7.3" }]
