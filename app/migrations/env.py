@@ -72,21 +72,13 @@ async def run_async_migrations() -> None:
     and associate a connection with the context.
 
     """
-    print("Creating connectable")
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
-    print("Created connectable")
 
     async with connectable.connect() as connection:
-        print("async with")
-        try:
-            result = await connection.execute(text("SELECT 1"))
-            print("Connection successful:", result.scalar())
-        except Exception as e:
-            print("Connection error:", e)
         await connection.execute(text(f"SET search_path TO {setup_config().db.schema_name};"))
         await connection.commit()
         connection.dialect.default_schema_name = setup_config().db.schema_name
@@ -97,7 +89,6 @@ async def run_async_migrations() -> None:
 
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
-    print(setup_config().DATABASE_URL.unicode_string())
     asyncio.run(run_async_migrations())
 
 
