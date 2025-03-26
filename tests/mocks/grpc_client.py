@@ -16,15 +16,15 @@ class MockGrpcClient:
             {
                 "id": 1,
                 "p_id": None,
-            },  # Корневой объект
+            },
             {
                 "id": 2,
                 "p_id": 1,
-            },  # Дочерний объект
+            },
             {
                 "id": 3,
                 "p_id": 1,
-            },  # Еще один дочерний объект
+            },
         ]
 
     def _default_tprm_data(self) -> list[dict]:

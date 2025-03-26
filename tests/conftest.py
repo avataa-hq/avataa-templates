@@ -22,6 +22,8 @@ from main import v1_app as real_app
 from models import Base
 from config import setup_config
 
+db_url = setup_config().test_database_url.unicode_string()
+
 if setup_config().tests.run_container_postgres_local:
 
     class DBContainer(PostgresContainer):
@@ -43,43 +45,26 @@ if setup_config().tests.run_container_postgres_local:
             yield container
             container.volumes.clear()
 
-    @pytest_asyncio.fixture(scope="session", loop_scope="session")
-    async def test_engine(
-        postgres_container: DBContainer,
-    ) -> AsyncIterator[AsyncEngine]:
-        engine = create_async_engine(
-            url=postgres_container.connection_url,
-            poolclass=NullPool,
-            echo=False,
-        )
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.drop_all)
-            await conn.run_sync(Base.metadata.create_all)
+    db_url = postgres_container.connection_url
 
-        yield engine
 
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.drop_all)
-        await engine.dispose()
-else:
+@pytest_asyncio.fixture(scope="session", loop_scope="session")
+async def test_engine() -> AsyncIterator[AsyncEngine]:
+    engine = create_async_engine(
+        url=db_url,
+        poolclass=NullPool,
+        echo=False,
+    )
 
-    @pytest_asyncio.fixture(scope="session", loop_scope="session")
-    async def test_engine() -> AsyncIterator[AsyncEngine]:
-        engine = create_async_engine(
-            url=setup_config().test_database_url.unicode_string(),
-            poolclass=NullPool,
-            echo=False,
-        )
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
 
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.drop_all)
-            await conn.run_sync(Base.metadata.create_all)
+    yield engine
 
-        yield engine
-
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.drop_all)
-        await engine.dispose()
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+    await engine.dispose()
 
 
 @pytest_asyncio.fixture(scope="function", loop_scope="function")
