@@ -79,6 +79,11 @@ async def run_async_migrations() -> None:
     )
 
     async with connectable.connect() as connection:
+        try:
+            result = await connection.execute(text("SELECT 1"))
+            print("Connection successful:", result.scalar())
+        except Exception as e:
+            print("Connection error:", e)
         await connection.execute(text(f"SET search_path TO {setup_config().db.schema_name};"))
         await connection.commit()
         connection.dialect.default_schema_name = setup_config().db.schema_name
