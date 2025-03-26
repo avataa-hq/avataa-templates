@@ -779,7 +779,7 @@ requires-dist = [
     { name = "pydantic", specifier = "==2.10.6" },
     { name = "pydantic-settings", specifier = "==2.7.1" },
     { name = "python-keycloak", specifier = "==5.3.1" },
-    { name = "sqlalchemy", extras = ["asyncio"], specifier = "==2.0.39" },
+    { name = "sqlalchemy", extras = ["asyncio"], specifier = "==2.0.37" },
     { name = "uvicorn", specifier = "==0.34.0" },
 ]
 
