@@ -72,13 +72,16 @@ async def run_async_migrations() -> None:
     and associate a connection with the context.
 
     """
+    print("Creating connectable")
     connectable = async_engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
+    print("Created connectable")
 
     async with connectable.connect() as connection:
+        print("async with")
         try:
             result = await connection.execute(text("SELECT 1"))
             print("Connection successful:", result.scalar())
