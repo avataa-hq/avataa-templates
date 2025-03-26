@@ -27,12 +27,12 @@ class KeycloakConfig(BaseSettings):
     host: str = Field(default="localhost", min_length=1)
     port: int = Field(default=443, gt=0, lt=65536)
 
+    @computed_field  # type: ignore
     @property
-    @computed_field
     def url(self) -> str:
         url = urlunparse(
             (
-                self.protocol,
+                str(self.protocol),
                 f"{self.host}:{self.port}",
                 "auth",
                 "",
@@ -77,10 +77,10 @@ class KafkaConfig(BaseSettings):
     )
 
     inventory_changes_topic: str = Field("inventory.changes")
-    with_keycloak: bool = Field(default=False)
+    secured: bool = Field(default=False)
 
+    @computed_field  # type: ignore
     @property
-    @computed_field
     def oauth_cb(
         self,
     ) -> None | Callable[[KeycloakConfig], tuple[str, float]]:
