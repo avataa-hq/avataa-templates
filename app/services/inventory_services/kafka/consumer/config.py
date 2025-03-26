@@ -32,7 +32,7 @@ class KeycloakConfig(BaseSettings):
     def url(self) -> str:
         url = urlunparse(
             (
-                self.protocol,
+                str(self.protocol),
                 f"{self.host}:{self.port}",
                 "auth",
                 "",
