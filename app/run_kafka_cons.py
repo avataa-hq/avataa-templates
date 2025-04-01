@@ -1,7 +1,10 @@
 import asyncio
 import functools
 
-from confluent_kafka import Consumer, TopicPartition
+from time import sleep
+
+from confluent_kafka import Consumer, TopicPartition, KafkaException
+from confluent_kafka.admin import TopicMetadata
 
 from di import build_session_factory
 from services.common.uow import SQLAlchemyUoW
@@ -25,21 +28,35 @@ async def run_kafka_cons_inv() -> None:
     if kafka_config.turn_on:
         print("Kafka turn on")
         loop = asyncio.get_running_loop()
+        dump_set = {
+            "bootstrap_servers",
+            "group_id",
+            "auto_offset_reset",
+            "enable_auto_commit",
+        }
+        if kafka_config.secured:
+            dump_set.update(
+                {
+                    "sasl_mechanism",
+                    "oauth_cb",
+                }
+            )
         consumer_config = kafka_config.model_dump(
             by_alias=True,
-            exclude={
-                "turn_on",
-                "inventory_changes_topic",
-                "secured",
-            },
+            exclude_none=True,
+            include=dump_set,
         )
-        if not kafka_config.secured:
-            consumer_config.pop("sasl.mechanisms")
         kafka_inventory_changes_consumer = Consumer(consumer_config)
         try:
+            check_topic_existence(
+                consumer=kafka_inventory_changes_consumer,
+                topic=kafka_config.inventory_changes_topic,
+            )
             kafka_inventory_changes_consumer.subscribe(
                 [kafka_config.inventory_changes_topic],
                 on_assign=on_assign,
+                on_revoke=on_revoke,
+                on_lost=on_lost,
             )
             while True:
                 poll = functools.partial(
@@ -67,8 +84,51 @@ async def run_kafka_cons_inv() -> None:
         print("kafka turn off")
 
 
-def on_assign(self, consumer, partition: TopicPartition):
-    print(f"Consumer assigned to the partition: {partition.topic}.")
+def on_assign(consumer: Consumer, partitions: list[TopicPartition]) -> None:
+    cons_id = consumer.memberid()
+    for p in partitions:
+        print(
+            f"Consumer {cons_id} assigned to the topic: {p.topic}, partition {p.partition}."
+        )
+
+
+def on_lost(consumer: Consumer, partitions: list[TopicPartition]) -> None:
+    cons_id = consumer.memberid()
+    for p in partitions:
+        print(
+            f"Consumer {cons_id} lost the topic: {p.topic}, partition {p.partition}."
+        )
+
+
+def on_revoke(consumer: Consumer, partitions: list[TopicPartition]) -> None:
+    consumer.commit()
+    cons_id = consumer.memberid()
+    print(f"Consumer {cons_id} will be rebalanced.")
+
+
+def check_topic_existence(consumer: Consumer, topic: str) -> None:
+    while True:
+        try:
+            # We should use poll to get keycloak token for authorization on broker
+            # https://github.com/confluentinc/confluent-kafka-python/issues/1713
+            consumer.poll(1)
+            topics: dict[str, TopicMetadata] = consumer.list_topics(
+                timeout=5
+            ).topics
+            if topic in topics.keys():
+                print(f"Topic:{topic} discovered successfully.")
+                break
+            else:
+                print(
+                    f"Topic:{topic} not found. Waiting 60 seconds before retrying."
+                )
+                sleep(60)
+        except KafkaException as ex:
+            print(f"Kafka Exception on Start: {ex}")
+            sleep(60)
+        except Exception as ex:
+            print(f"Python Exception on Start: {ex}")
+            sleep(60)
 
 
 if __name__ == "__main__":

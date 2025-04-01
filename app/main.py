@@ -1,7 +1,7 @@
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import setup_config
-from create_fastapi_app import create_app
+from init_app import create_app
 from di import init_dependencies
 from presentation.api.v1.endpoints import (
     template_registry_router,
