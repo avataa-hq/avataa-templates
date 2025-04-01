@@ -1,11 +1,11 @@
 import time
 
 from functools import partial
-from typing import Literal, Callable
+from typing import Any, Callable, Literal, Self
 from urllib.parse import urlunparse
 
 from keycloak import KeycloakOpenID
-from pydantic import Field, computed_field
+from pydantic import Field, computed_field, field_validator
 from pydantic_settings import (
     BaseSettings,
     SettingsConfigDict,
@@ -46,7 +46,11 @@ class KeycloakConfig(BaseSettings):
 
 
 class KafkaConfig(BaseSettings):
+    # Config example for correct work Kafka client
+    # https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md
     turn_on: bool = Field(default=False)
+    secured: bool = Field(default=False)
+    inventory_changes_topic: str = Field("inventory.changes")
     bootstrap_servers: str = Field(
         "kafka",
         serialization_alias="bootstrap.servers",
@@ -67,23 +71,27 @@ class KafkaConfig(BaseSettings):
         False,
         serialization_alias="enable.auto.commit",
     )
-    security_protocol: Literal["sasl_plaintext", "PLAINTEXT", None] = Field(
-        None,
-        serialization_alias="security.protocol",
-    )
     sasl_mechanism: Literal["OAUTHBEARER", None] = Field(
         None,
         serialization_alias="sasl.mechanisms",
     )
+    security_protocol_raw: Literal[
+        "plaintext", "sasl_plaintext", "sasl_ssl", "ssl", None
+    ] = Field(None, validation_alias="kafka_security_protocol")
 
-    inventory_changes_topic: str = Field("inventory.changes")
-    secured: bool = Field(default=False)
+    @field_validator("security_protocol_raw", mode="before")
+    @classmethod
+    def normalize_security_protocol(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return value.lower()
+        else:
+            return value
 
     @computed_field  # type: ignore
     @property
     def oauth_cb(
         self,
-    ) -> None | Callable[[KeycloakConfig], tuple[str, float]]:
+    ) -> None | Callable[[None, KeycloakConfig], tuple[str, float]]:
         if not self.sasl_mechanism:
             return None
         keycloak_config = KeycloakConfig()
@@ -92,8 +100,16 @@ class KafkaConfig(BaseSettings):
             keycloak_config=keycloak_config,
         )
 
+    @computed_field  # type: ignore
+    @property
+    def security_protocol(self) -> str:
+        if self.secured:
+            return str(self.security_protocol_raw) or "sasl_plaintext"
+        return "plaintext"
+
     @staticmethod
     def _get_token_for_kafka_producer(
+        conf: Any,
         keycloak_config: KeycloakConfig,
     ) -> tuple[str, float]:
         keycloak_openid = KeycloakOpenID(
@@ -123,5 +139,10 @@ class KafkaConfig(BaseSettings):
                     continue
         # print(f"KEYCLOAK TOKEN FOR KAFKA: ...{tkn['access_token'][-3:]} EXPIRED_TIME:{expires_in}.")
         return token, time.time() + expires_in
+
+    def model_dump(self: Self, **kwargs: Any) -> dict[str, Any]:
+        data = super().model_dump(**kwargs)
+        data["security.protocol"] = self.security_protocol
+        return data
 
     model_config = SettingsConfigDict(env_prefix="kafka_")
