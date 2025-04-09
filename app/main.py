@@ -10,8 +10,8 @@ from presentation.api.v1.endpoints import (
     template_parameter_router,
 )
 
-prefix = "/api/object_templates"
-app_title = "Template API"
+app_title = "Object Templates"
+prefix = f"/api/{app_title.replace(' ', '_').lower()}"
 app_version = "1"
 
 app = create_app(
