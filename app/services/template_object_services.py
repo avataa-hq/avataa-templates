@@ -1,4 +1,3 @@
-from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
@@ -25,10 +24,10 @@ class TemplateObjectService:
     async def get_template_objects(
         self,
         template_id: int,
-        parent_id: Optional[int] = None,
+        parent_id: int | None = None,
         include_parameters: bool = False,
         depth: int = 1,
-    ) -> List[TemplateObjectOutput]:
+    ) -> list[TemplateObjectOutput]:
         if depth <= 0:
             return []
 
@@ -64,7 +63,7 @@ class TemplateObjectService:
         result = await self.db.execute(query)
         template_objects = result.scalars().all()
 
-        objects = list()
+        objects: list[TemplateObjectOutput] = list()
 
         for obj in template_objects:
             # Include parameters if flag is True
@@ -124,8 +123,8 @@ class TemplateObjectService:
             # if hierarchy is changing
             registry_service = TemplateRegistryService(self.db)
             await registry_service.initialize_hierarchy_map()
-            parent_id: Optional[int] = object_data.parent_object_id
-            parent_object_type_id: Optional[int] = None
+            parent_id: int | None = object_data.parent_object_id
+            parent_object_type_id: int | None = None
 
             result = await self.db.execute(
                 select(TemplateObject).filter_by(id=parent_id)
@@ -167,5 +166,5 @@ class TemplateObjectService:
 
         await self.db.delete(object)
 
-    async def commit_changes(self):
+    async def commit_changes(self) -> None:
         await self.db.commit()

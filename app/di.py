@@ -20,7 +20,7 @@ logger = getLogger(__name__)
 
 def new_uow(
     session: AsyncSession = Depends(Stub(AsyncSession)),
-):
+) -> AsyncSession:
     return session
 
 
@@ -53,7 +53,7 @@ def build_session_factory(
 
 async def new_session(
     session_maker: async_sessionmaker,
-):
+) -> AsyncGenerator[AsyncSession, None]:
     async with session_maker() as session:
         yield session
 
@@ -67,7 +67,7 @@ async def build_session(
         logger.info(msg="Close DB session.")
 
 
-def init_dependencies(app: FastAPI):
+def init_dependencies(app: FastAPI) -> None:
     db_engine = create_engine()
     session_factory = build_session_factory(engine=db_engine)
 
