@@ -94,7 +94,7 @@ async def update_template_parameter(
 async def delete_template_parameter(
     parameter_id: int,
     db: Annotated[UoW, Depends(Stub(UoW))],
-):
+) -> Response:
     service = TemplateParameterService(db)
 
     try:

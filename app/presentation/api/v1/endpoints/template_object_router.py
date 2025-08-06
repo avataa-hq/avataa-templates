@@ -1,5 +1,4 @@
 from typing import (
-    List,
     Optional,
     Annotated,
 )
@@ -49,7 +48,7 @@ async def get_template_objects(
         False,
         description="Include parameters in the response (default: False)",
     ),
-) -> List[TemplateObjectOutput]:
+) -> list[TemplateObjectOutput]:
     service = TemplateObjectService(db)
 
     try:
@@ -107,7 +106,7 @@ async def update_template_object(
 async def delete_template_object(
     object_id: int,
     db: Annotated[UoW, Depends(Stub(UoW))],
-):
+) -> Response:
     service = TemplateObjectService(db)
 
     try:

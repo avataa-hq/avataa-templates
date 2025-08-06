@@ -88,5 +88,5 @@ class TemplateService:
 
         await self.db.delete(template)
 
-    async def commit_changes(self):
+    async def commit_changes(self) -> None:
         await self.db.commit()

@@ -86,7 +86,7 @@ async def update_template(
 async def delete_template(
     template_id: int,
     db: Annotated[UoW, Depends(Stub(UoW))],
-):
+) -> Response:
     service = TemplateService(db)
 
     try:
