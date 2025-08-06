@@ -55,7 +55,7 @@ class TemplateObjectService:
 
             query = query.filter(TemplateObject.parent_object_id == parent_id)
         else:
-            query = query.filter(TemplateObject.parent_object_id is None)
+            query = query.filter(TemplateObject.parent_object_id.is_(None))
 
         if include_parameters:
             query = query.options(selectinload(TemplateObject.parameters))
