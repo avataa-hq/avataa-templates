@@ -11,7 +11,9 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from application.common.uow import UoW
+from application.template.reader.interactors import TemplateReaderInteractor
 from config import setup_config
+from infrastructure.db.template.read.gateway import SQLTemplateRepository
 from presentation.api.depends_stub import Stub
 
 
@@ -67,6 +69,13 @@ async def build_session(
         logger.info(msg="Close DB session.")
 
 
+def read_template_interactor(
+    session: AsyncSession = Depends(Stub(AsyncSession)),
+) -> TemplateReaderInteractor:
+    repository = SQLTemplateRepository(session)
+    return TemplateReaderInteractor(repository)
+
+
 def init_dependencies(app: FastAPI) -> None:
     db_engine = create_engine()
     session_factory = build_session_factory(engine=db_engine)
@@ -75,3 +84,7 @@ def init_dependencies(app: FastAPI) -> None:
         build_session, session_factory
     )
     app.dependency_overrides[UoW] = new_uow
+
+    app.dependency_overrides[TemplateReaderInteractor] = (
+        read_template_interactor
+    )
