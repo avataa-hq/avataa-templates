@@ -8,9 +8,17 @@ from fastapi import (
     APIRouter,
     HTTPException,
 )
+from pydantic import ValidationError
 
 from application.common.uow import UoW
+from application.template.reader.exceptions import TemplateApplicationException
+from application.template.reader.interactors import TemplateReaderInteractor
 from presentation.api.depends_stub import Stub
+from presentation.api.v1.endpoints.dto import (
+    TemplateRequest,
+    TemplateResponse,
+    TemplateResponseDate,
+)
 
 from schemas.template_schemas import (
     SimpleTemplateOutput,
@@ -47,6 +55,34 @@ async def get_templates(
     service = TemplateService(db)
     result = await service.get_templates(limit=limit, offset=offset)
     return result
+
+
+@router.post(
+    "/search", status_code=status.HTTP_200_OK, response_model=TemplateResponse
+)
+async def get_templates_by_filter(
+    request: TemplateRequest,
+    interactor: Annotated[
+        TemplateReaderInteractor, Depends(Stub(TemplateReaderInteractor))
+    ],
+) -> TemplateResponse:
+    try:
+        result = await interactor(request=request.to_interactor_dto())
+        output_data: list[TemplateResponseDate] = list()
+        for application_el in result.data:
+            el = TemplateResponseDate.from_dto(application_el)
+            output_data.append(el)
+        return TemplateResponse(data=output_data)
+    except ValidationError as ex:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
+        )
+    except TemplateApplicationException as ex:
+        raise HTTPException(status_code=ex.status_code, detail=ex.detail)
+    except Exception as ex:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
+        )
 
 
 @router.put("/templates/{template_id}")
