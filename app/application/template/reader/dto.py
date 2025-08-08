@@ -10,7 +10,7 @@ class TemplateRequestDTO:
 
     name: str | None = None
     owner: str | None = None
-    object_type_id: str | None = None
+    object_type_id: int | None = None
 
 
 # To gateway
