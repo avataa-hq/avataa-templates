@@ -8,10 +8,8 @@ from application.template.reader.dto import (
 
 
 class TemplateReader(Protocol):
-    @abstractmethod
-    async def get_all_templates(self): ...
+    async def get_all_templates(self) -> None: ...
 
-    @abstractmethod
     async def get_template_by_filter(
         self, db_filter: TemplateGatewayRequestDTO
     ) -> list[TemplateGatewayResponseDTO]: ...

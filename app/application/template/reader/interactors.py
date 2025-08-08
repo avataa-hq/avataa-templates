@@ -15,7 +15,9 @@ class TemplateReaderInteractor(object):
         self._gateway = gateway
         self.logger = logging.getLogger("TemplateReaderInteractor")
 
-    async def __call__(self, request: TemplateRequestDTO):
+    async def __call__(
+        self, request: TemplateRequestDTO
+    ) -> TemplateResponseDTO:
         gateway_request: TemplateGatewayRequestDTO = TemplateGatewayRequestDTO(
             name=request.name,
             owner=request.owner,
