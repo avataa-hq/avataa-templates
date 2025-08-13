@@ -1,25 +1,29 @@
-from typing import Annotated, Optional, List
-from fastapi import (
-    Body,
-    Query,
-    status,
-    Depends,
-    Response,
-    APIRouter,
-    HTTPException,
-)
-from pydantic import ValidationError
+from typing import Annotated, List, Optional
 
-from application.common.uow import UoW
-from application.template.reader.exceptions import TemplateApplicationException
-from application.template.reader.interactors import TemplateReaderInteractor
+from fastapi import (
+    APIRouter,
+    Body,
+    Depends,
+    HTTPException,
+    Query,
+    Response,
+    status,
+)
 from presentation.api.depends_stub import Stub
 from presentation.api.v1.endpoints.dto import (
     TemplateRequest,
     TemplateResponse,
     TemplateResponseDate,
 )
+from pydantic import ValidationError
 
+from application.common.uow import UoW
+from application.template.read.exceptions import TemplateApplicationException
+from application.template.read.interactors import TemplateReaderInteractor
+from exceptions import (
+    TemplateNotFound,
+    TMOIdNotFoundInInventory,
+)
 from schemas.template_schemas import (
     SimpleTemplateOutput,
     TemplateUpdateInput,
@@ -28,11 +32,6 @@ from schemas.template_schemas import (
 from services.template_services import (
     TemplateService,
 )
-from exceptions import (
-    TemplateNotFound,
-    TMOIdNotFoundInInventory,
-)
-
 
 router = APIRouter(tags=["template"])
 

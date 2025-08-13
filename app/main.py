@@ -1,14 +1,14 @@
 from fastapi.middleware.cors import CORSMiddleware
+from presentation.api.v1.endpoints import (
+    template_object_router,
+    template_parameter_router,
+    template_registry_router,
+    template_router,
+)
 
 from config import setup_config
-from init_app import create_app
 from di import init_dependencies
-from presentation.api.v1.endpoints import (
-    template_registry_router,
-    template_object_router,
-    template_router,
-    template_parameter_router,
-)
+from init_app import create_app
 
 app_title = "Object Templates"
 prefix = f"/api/{app_title.replace(' ', '_').lower()}"

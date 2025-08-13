@@ -11,9 +11,9 @@ from services.inventory_services.kafka.consumer.config import (
     KafkaConfig,
 )
 from services.inventory_services.kafka.consumer.deserializer import (
+    INVENTORY_CHANGES_HANDLER_BY_MSG_CLASS_NAME,
     INVENTORY_CHANGES_PROTOBUF_DESERIALIZERS,
     protobuf_kafka_msg_to_dict,
-    INVENTORY_CHANGES_HANDLER_BY_MSG_CLASS_NAME,
 )
 from services.inventory_services.kafka.consumer.msg_protocol import (
     KafkaMSGProtocol,

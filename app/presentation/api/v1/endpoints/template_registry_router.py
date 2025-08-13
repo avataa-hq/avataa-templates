@@ -1,35 +1,35 @@
-from typing import Annotated, Optional, List
+from typing import Annotated, List, Optional
+
 from fastapi import (
+    APIRouter,
     Body,
     Depends,
-    APIRouter,
     HTTPException,
 )
+from presentation.api.depends_stub import Stub
 
 from application.common.uow import UoW
-from presentation.api.depends_stub import Stub
+from exceptions import (
+    InvalidHierarchy,
+    InvalidParameterValue,
+    RequiredMismatchException,
+    TemplateNotFound,
+    TemplateObjectNotFound,
+    TMOIdNotFoundInInventory,
+    TPRMNotFoundInInventory,
+    ValueConstraintException,
+)
 from schemas.template_schemas import (
     TemplateInput,
+    TemplateObjectInput,
+    TemplateObjectOutput,
     TemplateOutput,
     TemplateParameterInput,
     TemplateParameterOutput,
-    TemplateObjectInput,
-    TemplateObjectOutput,
 )
 from services.template_registry_services import (
     TemplateRegistryService,
 )
-from exceptions import (
-    TemplateObjectNotFound,
-    TemplateNotFound,
-    TMOIdNotFoundInInventory,
-    TPRMNotFoundInInventory,
-    InvalidHierarchy,
-    RequiredMismatchException,
-    InvalidParameterValue,
-    ValueConstraintException,
-)
-
 
 router = APIRouter(tags=["template-registry"])
 

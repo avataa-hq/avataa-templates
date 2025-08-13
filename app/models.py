@@ -1,9 +1,9 @@
 import datetime
 
 from sqlalchemy import (
+    CheckConstraint,
     ForeignKey,
     func,
-    CheckConstraint,
 )
 from sqlalchemy.orm import (
     Mapped,

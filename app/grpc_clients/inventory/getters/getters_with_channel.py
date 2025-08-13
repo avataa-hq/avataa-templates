@@ -1,10 +1,12 @@
-import grpc
 import pickle
+
+import grpc
+
+from config import setup_config
 from grpc_clients.inventory.protobuf.mo_info import (
     mo_info_pb2,
     mo_info_pb2_grpc,
 )
-from config import setup_config
 
 
 async def get_all_tmo_data_from_inventory_channel_in():

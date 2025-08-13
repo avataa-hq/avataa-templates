@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from application.template.reader.dto import (
+from application.template.read.dto import (
     TemplateRequestDTO,
     TemplateResponseDataDTO,
 )

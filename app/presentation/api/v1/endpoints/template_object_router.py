@@ -1,19 +1,25 @@
 from typing import (
-    Optional,
     Annotated,
-)
-from fastapi import (
-    Body,
-    Query,
-    status,
-    Depends,
-    Response,
-    APIRouter,
-    HTTPException,
+    Optional,
 )
 
-from application.common.uow import UoW
+from fastapi import (
+    APIRouter,
+    Body,
+    Depends,
+    HTTPException,
+    Query,
+    Response,
+    status,
+)
 from presentation.api.depends_stub import Stub
+
+from application.common.uow import UoW
+from exceptions import (
+    InvalidHierarchy,
+    TemplateNotFound,
+    TemplateObjectNotFound,
+)
 from schemas.template_schemas import (
     TemplateObjectOutput,
     TemplateObjectUpdateInput,
@@ -21,11 +27,6 @@ from schemas.template_schemas import (
 )
 from services.template_object_services import (
     TemplateObjectService,
-)
-from exceptions import (
-    TemplateNotFound,
-    InvalidHierarchy,
-    TemplateObjectNotFound,
 )
 
 router = APIRouter(tags=["template-object"])

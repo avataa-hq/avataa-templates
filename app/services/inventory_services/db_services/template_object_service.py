@@ -1,10 +1,10 @@
 from logging import getLogger
 
-from services.inventory_services.protocols import (
-    TemplateRepo,
-    TemplateObjectRepo,
-)
 from services.common.uow import SQLAlchemyUoW
+from services.inventory_services.protocols import (
+    TemplateObjectRepo,
+    TemplateRepo,
+)
 
 
 class TemplateObjectService(object):

@@ -1,9 +1,8 @@
 import asyncio
 import functools
-
 from time import sleep
 
-from confluent_kafka import Consumer, TopicPartition, KafkaException
+from confluent_kafka import Consumer, KafkaException, TopicPartition
 from confluent_kafka.admin import TopicMetadata
 
 from di import build_session_factory

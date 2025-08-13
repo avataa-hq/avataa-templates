@@ -1,15 +1,18 @@
 from typing import List
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+
+from exceptions import (
+    TemplateNotFound,
+)
+from models import Template
 from schemas.template_schemas import (
     SimpleTemplateOutput,
     TemplateUpdateInput,
     TemplateUpdateOutput,
 )
-from models import Template
-from exceptions import (
-    TemplateNotFound,
-)
+
 from .template_registry_services import (
     TemplateRegistryService,
 )

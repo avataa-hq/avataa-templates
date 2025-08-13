@@ -2,9 +2,9 @@ from logging import getLogger
 
 from services.common.uow import SQLAlchemyUoW
 from services.inventory_services.protocols import (
-    TemplateRepo,
     TemplateObjectRepo,
     TemplateParameterRepo,
+    TemplateRepo,
 )
 
 

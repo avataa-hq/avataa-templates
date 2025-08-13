@@ -1,6 +1,6 @@
 from functools import wraps
-from typing import Callable, ParamSpec, TypeVar
 from logging import getLogger
+from typing import Callable, ParamSpec, TypeVar
 
 from sqlalchemy.exc import (
     IntegrityError,

@@ -1,6 +1,5 @@
-import time
-
 from functools import partial
+import time
 from typing import Any, Callable, Literal, Self
 from urllib.parse import urlunparse
 

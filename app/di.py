@@ -2,20 +2,19 @@ from functools import partial
 from logging import getLogger
 from typing import AsyncGenerator
 
-from fastapi import FastAPI, Depends
+from fastapi import Depends, FastAPI
+from presentation.api.depends_stub import Stub
 from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
-    AsyncEngine,
 )
 
 from application.common.uow import UoW
-from application.template.reader.interactors import TemplateReaderInteractor
+from application.template.read.interactors import TemplateReaderInteractor
 from config import setup_config
 from infrastructure.db.template.read.gateway import SQLTemplateRepository
-from presentation.api.depends_stub import Stub
-
 
 logger = getLogger(__name__)
 

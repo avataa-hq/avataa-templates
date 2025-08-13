@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from datetime import datetime
 
+from domain.template.template import TemplateAggregate
+
 
 # From router
 @dataclass
@@ -11,17 +13,6 @@ class TemplateRequestDTO:
     name: str | None = None
     owner: str | None = None
     object_type_id: int | None = None
-
-
-# To gateway
-@dataclass
-class TemplateGatewayRequestDTO:
-    limit: int
-    offset: int
-
-    name: str | None = None
-    owner: str | None = None
-    object_type_id: str | None = None
 
 
 # From gateway
@@ -48,6 +39,21 @@ class TemplateResponseDataDTO:
     modification_date: datetime
     valid: bool
     version: int
+
+    @classmethod
+    def from_aggregate(
+        cls, aggregate: TemplateAggregate
+    ) -> "TemplateResponseDataDTO":
+        return cls(
+            id=aggregate.id,
+            name=aggregate.name,
+            owner=aggregate.owner,
+            object_type_id=aggregate.object_type_id,
+            creation_date=aggregate.creation_date,
+            modification_date=aggregate.modification_date,
+            valid=aggregate.valid,
+            version=aggregate.version,
+        )
 
 
 # To router

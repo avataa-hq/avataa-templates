@@ -1,10 +1,9 @@
-import pytest
-
 from datetime import datetime
 
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import TemplateObject, Template
+from models import Template, TemplateObject
 from services.inventory_services.protocols import (
     TemplateObjectRepo,
 )

@@ -1,11 +1,11 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from application.template.reader.dto import (
-    TemplateGatewayRequestDTO,
-    TemplateGatewayResponseDTO,
-)
-from application.template.reader.interfaces import TemplateReader
+from application.template.read.exceptions import TemplateApplicationException
+from domain.template.query import TemplateReader
+from domain.template.template import TemplateAggregate
+from domain.template.vo.template_filter import TemplateFilter
+from infrastructure.db.template.read.mappers import postgres_to_domain
 from models import Template
 
 
@@ -17,9 +17,10 @@ class SQLTemplateRepository(TemplateReader):
         raise NotImplementedError
 
     async def get_template_by_filter(
-        self, db_filter: TemplateGatewayRequestDTO
-    ) -> list[TemplateGatewayResponseDTO]:
+        self, db_filter: TemplateFilter
+    ) -> list[TemplateAggregate]:
         filters = []
+        output: list[TemplateAggregate] = list()
 
         if db_filter.name is not None:
             filters.append(Template.name == db_filter.name)
@@ -34,19 +35,14 @@ class SQLTemplateRepository(TemplateReader):
             .limit(db_filter.limit)
             .offset(db_filter.offset)
         )
-
-        result = await self.session.execute(query)
-        output: list[TemplateGatewayResponseDTO] = list()
-        for db_el in result.scalars().all():  # type: Template
-            el = TemplateGatewayResponseDTO(
-                id=db_el.id,
-                name=db_el.name,
-                owner=db_el.owner,
-                object_type_id=db_el.object_type_id,
-                creation_date=db_el.creation_date,
-                modification_date=db_el.modification_date,
-                valid=db_el.valid,
-                version=db_el.version,
+        try:
+            result = await self.session.execute(query)
+        except Exception as ex:
+            raise TemplateApplicationException(
+                status_code=400,
+                detail=str(ex),
             )
-            output.append(el)
+        for db_el in result.scalars().all():  # type: Template
+            template = postgres_to_domain(db_el)
+            output.append(template)
         return output
