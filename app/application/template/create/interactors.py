@@ -1,0 +1,2 @@
+class TemplateCreator(object):
+    pass

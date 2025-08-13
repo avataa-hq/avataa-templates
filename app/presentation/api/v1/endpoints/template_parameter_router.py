@@ -1,4 +1,5 @@
-from typing import List, Annotated
+from typing import Annotated, List
+
 from fastapi import (
     APIRouter,
     Depends,
@@ -6,9 +7,18 @@ from fastapi import (
     Response,
     status,
 )
+from presentation.api.depends_stub import Stub
 
 from application.common.uow import UoW
-from presentation.api.depends_stub import Stub
+from exceptions import (
+    IncorrectConstraintException,
+    InvalidParameterValue,
+    RequiredMismatchException,
+    TemplateObjectNotFound,
+    TemplateParameterNotFound,
+    TPRMNotFoundInInventory,
+    ValueConstraintException,
+)
 from schemas.template_schemas import (
     TemplateParameterInput,
     TemplateParameterOutput,
@@ -16,16 +26,6 @@ from schemas.template_schemas import (
 from services.template_parameter_services import (
     TemplateParameterService,
 )
-from exceptions import (
-    TemplateParameterNotFound,
-    TemplateObjectNotFound,
-    TPRMNotFoundInInventory,
-    RequiredMismatchException,
-    InvalidParameterValue,
-    ValueConstraintException,
-    IncorrectConstraintException,
-)
-
 
 router = APIRouter(tags=["template-parameter"])
 

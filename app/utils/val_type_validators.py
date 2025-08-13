@@ -1,6 +1,6 @@
 import ast
 from datetime import datetime
-from typing import Optional, Callable
+from typing import Callable, Optional
 
 
 def str_validation(value: str) -> bool:

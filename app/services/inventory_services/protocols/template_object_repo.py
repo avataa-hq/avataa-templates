@@ -1,5 +1,5 @@
-from typing import Sequence
 from logging import getLogger
+from typing import Sequence
 
 from sqlalchemy import select, update
 

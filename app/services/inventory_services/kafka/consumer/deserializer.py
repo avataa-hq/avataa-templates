@@ -3,20 +3,20 @@ from typing import Any
 
 from confluent_kafka import cimpl
 
-from services.inventory_services.kafka.consumer.protobuf import (
-    obj_pb2,
-)
 from services.inventory_services.kafka.consumer.custom_deserializer import (
     PROTO_TYPES_SERIALIZERS,
     SerializerType,
 )
+from services.inventory_services.kafka.consumer.protobuf import (
+    obj_pb2,
+)
 from services.inventory_services.kafka.events.tmo_msg import (
-    on_update_tmo,
     on_delete_tmo,
+    on_update_tmo,
 )
 from services.inventory_services.kafka.events.trpm_msg import (
-    on_update_tprm,
     on_delete_tprm,
+    on_update_tprm,
 )
 
 

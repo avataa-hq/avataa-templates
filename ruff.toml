@@ -37,7 +37,7 @@ select = [
     # flake8-simplify
     # "SIM",
     # isort
-    # "I",
+    "I",
 ]
 ignore = []
 
@@ -70,3 +70,15 @@ skip-magic-trailing-comma = false
 
 # Like Black, automatically detect the appropriate line ending.
 line-ending = "auto"
+
+[lint.isort]
+force-sort-within-sections = true
+from-first = false
+order-by-type = true
+
+known-first-party = [
+    "application", "domain",  "grpc_clients", "infrastructure", "presentations",
+    "schemas", "services", "utils",
+    "config", "database", "di", "exceptions",
+    "init_app", "models", "run_kafka_cons"
+]

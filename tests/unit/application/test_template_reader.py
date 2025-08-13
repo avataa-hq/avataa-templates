@@ -1,21 +1,21 @@
 from datetime import datetime, timezone
-
-import pytest
 from unittest.mock import AsyncMock
 
-from application.template.reader.interactors import TemplateReaderInteractor
-from application.template.reader.dto import (
+import pytest
+
+from application.template.read.dto import (
     TemplateRequestDTO,
     TemplateResponseDTO,
 )
+from application.template.read.interactors import TemplateReaderInteractor
 from domain.template.template import TemplateAggregate
 
 
 @pytest.mark.asyncio
 async def test_template_reader_interactor_returns_expected_response():
     # Arrange
-    mock_gateway = AsyncMock()
-    interactor = TemplateReaderInteractor(gateway=mock_gateway)  # noqa
+    mock_repo = AsyncMock()
+    interactor = TemplateReaderInteractor(repository=mock_repo)  # noqa
 
     request = TemplateRequestDTO(
         name="test_name",
@@ -36,7 +36,7 @@ async def test_template_reader_interactor_returns_expected_response():
         version=1,
     )
 
-    mock_gateway.get_template_by_filter.return_value = [fake_template]
+    mock_repo.get_template_by_filter.return_value = [fake_template]
 
     # Act
     result = await interactor(request)
@@ -45,4 +45,4 @@ async def test_template_reader_interactor_returns_expected_response():
     assert isinstance(result, TemplateResponseDTO)
     assert len(result.data) == 1
     assert result.data[0].name == "template1"
-    mock_gateway.get_template_by_filter.assert_awaited_once()
+    mock_repo.get_template_by_filter.assert_awaited_once()

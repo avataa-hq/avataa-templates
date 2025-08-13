@@ -14,14 +14,14 @@ dependencies = [
     "pydantic==2.11.7",
     "pydantic-settings==2.10.1",
     "python-keycloak==5.7.0",
-    "sqlalchemy[asyncio]==2.0.42",
+    "sqlalchemy[asyncio]==2.0.43",
     "uvicorn==0.35.0",
 ]
 
 [dependency-groups]
 dev = [
     "mypy==1.17.1",
-    "pre-commit==4.2.0",
+    "pre-commit>=4.3.0"
 ]
 lint = [
     "ruff==0.12.8",
@@ -39,5 +39,5 @@ migrations = [
     "alembic>=1.16.4",
     "asyncpg==0.30.0",
     "pydantic-settings>=2.10.1",
-    "sqlalchemy[asyncio]>=2.0.42",
+    "sqlalchemy[asyncio]>=2.0.43",
 ]
