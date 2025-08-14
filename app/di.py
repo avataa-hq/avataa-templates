@@ -11,10 +11,19 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from application.common.uow import UoW
+from application.common.uow import SQLAlchemyUnitOfWork, UoW
 from application.template.read.interactors import TemplateReaderInteractor
+from application.template_parameter.create.interactors import (
+    TemplateParameterCreatorInteractor,
+)
+from application.template_parameter.read.interactors import (
+    TemplateParameterReaderInteractor,
+)
 from config import setup_config
-from infrastructure.db.template.read.gateway import SQLTemplateRepository
+from infrastructure.db.template.read.gateway import SQLTemplateReaderRepository
+from infrastructure.db.template_parameter.read.gateway import (
+    SQLTemplateParameterReaderRepository,
+)
 
 logger = getLogger(__name__)
 
@@ -71,8 +80,23 @@ async def build_session(
 def read_template_interactor(
     session: AsyncSession = Depends(Stub(AsyncSession)),
 ) -> TemplateReaderInteractor:
-    repository = SQLTemplateRepository(session)
+    repository = SQLTemplateReaderRepository(session)
     return TemplateReaderInteractor(repository)
+
+
+def read_template_parameter_interactor(
+    session: AsyncSession = Depends(Stub(AsyncSession)),
+) -> TemplateParameterReaderInteractor:
+    repository = SQLTemplateParameterReaderRepository(session)
+    return TemplateParameterReaderInteractor(repository)
+
+
+def create_template_parameter_interactor(
+    session: AsyncSession = Depends(Stub(AsyncSession)),
+) -> TemplateParameterCreatorInteractor:
+    uow = SQLAlchemyUnitOfWork(session)
+    repository = SQLTemplateReaderRepository(session)
+    return TemplateParameterCreatorInteractor(repository, uow=uow)
 
 
 def init_dependencies(app: FastAPI) -> None:
@@ -86,4 +110,8 @@ def init_dependencies(app: FastAPI) -> None:
 
     app.dependency_overrides[TemplateReaderInteractor] = (
         read_template_interactor
+    )
+
+    app.dependency_overrides[TemplateParameterReaderInteractor] = (
+        read_template_parameter_interactor
     )

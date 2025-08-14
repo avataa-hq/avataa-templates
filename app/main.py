@@ -10,9 +10,9 @@ from config import setup_config
 from di import init_dependencies
 from init_app import create_app
 
-app_title = "Object Templates"
-prefix = f"/api/{app_title.replace(' ', '_').lower()}"
-app_version = "1"
+app_title = setup_config().app.app_title
+prefix = setup_config().app.prefix
+app_version = setup_config().app.app_version
 
 app = create_app(
     documentation_enabled=setup_config().app.docs_enabled,

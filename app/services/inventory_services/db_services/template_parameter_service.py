@@ -27,7 +27,8 @@ class TemplateParameterService(object):
                     parameters=template_parameters
                 )
                 tmo_ids = [
-                    templ.template_object_id for templ in template_parameters
+                    templ.template_object_id.to_raw()
+                    for templ in template_parameters
                 ]
                 # Invalidate objects
                 template_objects = await self.template_object_repo.get_template_objects_by_object_type_id(

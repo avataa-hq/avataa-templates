@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 from datetime import datetime
 
+from models import Template
 
-@dataclass
-class TemplateAggregate(object):
+
+@dataclass(frozen=True, slots=True)
+class TemplateAggregate:
     id: int
     name: str
     owner: str
@@ -12,3 +14,16 @@ class TemplateAggregate(object):
     modification_date: datetime
     valid: bool
     version: int
+
+    @classmethod
+    def from_db(cls, template: Template):
+        return cls(
+            id=template.id,
+            name=template.name,
+            owner=template.owner,
+            object_type_id=template.object_type_id,
+            creation_date=template.creation_date,
+            modification_date=template.modification_date,
+            valid=template.valid,
+            version=template.version,
+        )
