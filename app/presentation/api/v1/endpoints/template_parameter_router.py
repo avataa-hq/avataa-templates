@@ -1,4 +1,4 @@
-from typing import Annotated, List
+from typing import Annotated
 
 from fastapi import (
     APIRouter,
@@ -7,14 +7,26 @@ from fastapi import (
     Response,
     status,
 )
+from fastapi.params import Query
 from presentation.api.depends_stub import Stub
+from presentation.api.v1.endpoints.consts import USER_REQUEST
+from presentation.api.v1.endpoints.dto import (
+    TemplateParameterSearchRequest,
+    TemplateParameterSearchResponse,
+)
+from pydantic import ValidationError
 
 from application.common.uow import UoW
+from application.template_parameter.read.exceptions import (
+    TemplateParameterReaderApplicationException,
+)
+from application.template_parameter.read.interactors import (
+    TemplateParameterReaderInteractor,
+)
 from exceptions import (
     IncorrectConstraintException,
     InvalidParameterValue,
     RequiredMismatchException,
-    TemplateObjectNotFound,
     TemplateParameterNotFound,
     TPRMNotFoundInInventory,
     ValueConstraintException,
@@ -30,19 +42,37 @@ from services.template_parameter_services import (
 router = APIRouter(tags=["template-parameter"])
 
 
-@router.get("/parameters")
+@router.get(
+    "/parameters",
+    status_code=status.HTTP_200_OK,
+    response_model=list[TemplateParameterSearchResponse],
+)
 async def get_template_object_parameters(
-    template_object_id: int,
-    db: Annotated[UoW, Depends(Stub(UoW))],
-) -> List[TemplateParameterOutput]:
-    service = TemplateParameterService(db)
-
+    request: Annotated[TemplateParameterSearchRequest, Query()],
+    interactor: Annotated[
+        TemplateParameterReaderInteractor,
+        Depends(Stub(TemplateParameterReaderInteractor)),
+    ],
+) -> list[TemplateParameterSearchResponse]:
     try:
-        return await service.get_all_by_template_object(template_object_id)
-    except TemplateObjectNotFound:
+        result = await interactor(request=request.to_interactor_dto())
+        return [
+            TemplateParameterSearchResponse.from_application_dto(el)
+            for el in result
+        ]
+    except ValidationError as ex:
+        print(USER_REQUEST, request)
         raise HTTPException(
-            status_code=404,
-            detail="Template object not found",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
+        )
+    except TemplateParameterReaderApplicationException as ex:
+        print(USER_REQUEST, request)
+        raise HTTPException(status_code=ex.status_code, detail=ex.detail)
+    except Exception as ex:
+        print(USER_REQUEST, request)
+        print(type(ex), ex)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
         )
 
 

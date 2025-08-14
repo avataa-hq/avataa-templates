@@ -17,6 +17,9 @@ class ApplicationSettings(BaseSettings):
     redoc_js_url: str = Field(default="")
     swagger_js_url: str = Field(default="")
     swagger_css_url: str = Field(default="")
+    app_title: str = "Object Templates"
+    prefix: str = f"/api/{app_title.replace(' ', '_').lower()}"
+    app_version: str = "1"
 
     model_config = SettingsConfigDict(env_prefix="docs_")
 

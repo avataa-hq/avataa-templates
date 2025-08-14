@@ -3,8 +3,8 @@ from typing import Sequence
 
 from sqlalchemy import select, update
 
-from domain.template_parameter.entities.template_parameter import (
-    TemplateParameterDTO,
+from domain.template_parameter.template_parameter import (
+    TemplateParameterAggregate,
 )
 from models import TemplateParameter
 from services.common.uow import SQLAlchemyUoW
@@ -21,8 +21,8 @@ class TemplateParameterRepo(object):
     @handle_db_exceptions
     async def set_template_parameters_invalid(
         self,
-        parameters: list[TemplateParameterDTO],
-    ) -> list[TemplateParameterDTO]:
+        parameters: list[TemplateParameterAggregate],
+    ) -> list[TemplateParameterAggregate]:
         stmt = (
             update(TemplateParameter)
             .where(
@@ -38,14 +38,15 @@ class TemplateParameterRepo(object):
         ).all()
         if result:
             return [
-                TemplateParameterDTO.from_db(template) for template in result
+                TemplateParameterAggregate.from_db(template)
+                for template in result
             ]
         return []
 
     @handle_db_exceptions
     async def get_template_parameters_by_id(
         self, parameter_ids: list[int]
-    ) -> list[TemplateParameterDTO]:
+    ) -> list[TemplateParameterAggregate]:
         self.logger.info(
             f"Getting template parameter {parameter_ids} to invalid"
         )
@@ -57,6 +58,7 @@ class TemplateParameterRepo(object):
         ).all()
         if result:
             return [
-                TemplateParameterDTO.from_db(template) for template in result
+                TemplateParameterAggregate.from_db(template)
+                for template in result
             ]
         return []

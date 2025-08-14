@@ -6,6 +6,10 @@ from application.template.read.dto import (
     TemplateRequestDTO,
     TemplateResponseDataDTO,
 )
+from application.template_parameter.read.dto import (
+    TemplateParameterRequestDTO,
+    TemplateParameterSearchDTO,
+)
 
 
 class TemplateRequest(BaseModel):
@@ -46,3 +50,34 @@ class TemplateResponseDate(BaseModel):
 
 class TemplateResponse(BaseModel):
     data: list[TemplateResponseDate]
+
+
+class TemplateParameterSearchRequest(BaseModel):
+    template_object_id: int = Field(default=1, ge=1)
+
+    def to_interactor_dto(self) -> TemplateParameterRequestDTO:
+        return TemplateParameterRequestDTO(**self.model_dump(exclude_none=True))
+
+
+class TemplateParameterSearchResponse(BaseModel):
+    id: int
+    parameter_type_id: int = Field(
+        serialization_alias="parameter_type_id",
+        validation_alias="parameter_type_id",
+    )
+    value: str
+    constraint: str | None = Field(default=None)
+    val_type: str
+    required: bool
+    valid: bool
+
+    class Config:
+        from_attributes = True
+
+    @classmethod
+    def from_application_dto(
+        cls, dto: TemplateParameterSearchDTO
+    ) -> "TemplateParameterSearchResponse":
+        return TemplateParameterSearchResponse.model_validate(
+            dto, by_alias=True
+        )
