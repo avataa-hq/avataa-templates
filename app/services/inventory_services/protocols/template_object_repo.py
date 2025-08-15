@@ -3,8 +3,8 @@ from typing import Sequence
 
 from sqlalchemy import select, update
 
-from domain.template_object.entities.template_object import (
-    TemplateObjectDTO,
+from domain.template_object.template_object import (
+    TemplateObjectAggregate,
 )
 from models import TemplateObject
 from services.common.uow import SQLAlchemyUoW
@@ -21,8 +21,8 @@ class TemplateObjectRepo(object):
     @handle_db_exceptions
     async def set_template_objects_invalid(
         self,
-        template_objects: list[TemplateObjectDTO],
-    ) -> list[TemplateObjectDTO]:
+        template_objects: list[TemplateObjectAggregate],
+    ) -> list[TemplateObjectAggregate]:
         stmt = (
             update(TemplateObject)
             .where(
@@ -38,7 +38,7 @@ class TemplateObjectRepo(object):
         ).all()
         if result:
             return [
-                TemplateObjectDTO.from_db(template_obj)
+                TemplateObjectAggregate.from_db(template_obj)
                 for template_obj in result
             ]
         return []
@@ -46,7 +46,7 @@ class TemplateObjectRepo(object):
     @handle_db_exceptions
     async def get_template_objects_by_object_type_id(
         self, object_type_ids: list[int]
-    ) -> list[TemplateObjectDTO]:
+    ) -> list[TemplateObjectAggregate]:
         stmt = select(TemplateObject).where(
             TemplateObject.object_type_id.in_(object_type_ids)
         )
@@ -55,7 +55,7 @@ class TemplateObjectRepo(object):
         ).all()
         if result:
             return [
-                TemplateObjectDTO.from_db(template_obj)
+                TemplateObjectAggregate.from_db(template_obj)
                 for template_obj in result
             ]
         return []

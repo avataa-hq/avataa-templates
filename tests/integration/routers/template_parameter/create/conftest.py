@@ -1,4 +1,5 @@
-from unittest.mock import AsyncMock, Mock
+import datetime
+from unittest.mock import AsyncMock, Mock, patch
 
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
@@ -7,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.common.uow import UoW
 from config import setup_config
-from models import TemplateObject
+from models import TemplateObject, TemplateParameter
 
 
 @pytest.fixture
@@ -28,24 +29,114 @@ def app():
 
 
 @pytest.fixture
-def mock_grpc():
-    stub_mock = AsyncMock()
-
-    fake_chunk = AsyncMock()
-    fake_chunk.tprms_data = [
-        "800363680000000000000000000000000000000000000000".encode().hex()
+def mock_grpc_function():
+    mock = AsyncMock()
+    mock.return_value = [
+        {
+            "constraint": None,
+            "modified_by": "",
+            "prm_link_filter": None,
+            "creation_date": datetime.datetime(2024, 10, 7, 12, 4, 10, 448541),
+            "description": None,
+            "group": None,
+            "modification_date": datetime.datetime(
+                2024, 10, 7, 14, 21, 19, 472005
+            ),
+            "name": "Professor's name",
+            "field_value": None,
+            "backward_link": None,
+            "val_type": "str",
+            "id": 135296,
+            "tmo_id": 46181,
+            "multiple": False,
+            "version": 2,
+            "required": True,
+            "created_by": "",
+            "returnable": False,
+        },
+        {
+            "constraint": "46182",
+            "modified_by": "",
+            "prm_link_filter": None,
+            "creation_date": datetime.datetime(2024, 10, 7, 12, 7, 13, 357795),
+            "description": None,
+            "group": None,
+            "modification_date": datetime.datetime(
+                2024, 10, 7, 12, 7, 13, 357799
+            ),
+            "name": "Courses",
+            "field_value": None,
+            "backward_link": None,
+            "val_type": "mo_link",
+            "id": 135297,
+            "tmo_id": 46181,
+            "multiple": True,
+            "version": 1,
+            "required": False,
+            "created_by": "",
+            "returnable": False,
+        },
+        {
+            "constraint": None,
+            "modified_by": "",
+            "prm_link_filter": None,
+            "creation_date": datetime.datetime(2024, 10, 7, 12, 10, 16, 274405),
+            "description": None,
+            "group": None,
+            "modification_date": datetime.datetime(
+                2024, 10, 7, 12, 10, 16, 274409
+            ),
+            "name": "Year of commencement of teaching",
+            "field_value": None,
+            "backward_link": None,
+            "val_type": "int",
+            "id": 135298,
+            "tmo_id": 46181,
+            "multiple": False,
+            "version": 1,
+            "required": False,
+            "created_by": "",
+            "returnable": False,
+        },
+        {
+            "constraint": None,
+            "modified_by": "",
+            "prm_link_filter": None,
+            "creation_date": datetime.datetime(2024, 10, 7, 12, 10, 40, 952324),
+            "description": None,
+            "group": None,
+            "modification_date": datetime.datetime(
+                2024, 10, 7, 12, 10, 40, 952326
+            ),
+            "name": "Year of birth",
+            "field_value": None,
+            "backward_link": None,
+            "val_type": "str",
+            "id": 135299,
+            "tmo_id": 46181,
+            "multiple": False,
+            "version": 1,
+            "required": False,
+            "created_by": "",
+            "returnable": False,
+        },
     ]
-
-    async def fake_grpc_stream(_):
-        yield fake_chunk
-
-    stub_mock.GetAllTPRMSByTMOId.side_effect = fake_grpc_stream
-
-    return stub_mock
+    return mock
 
 
 @pytest.fixture
-def mock_db(mock_grpc):
+def mock_db():
+    id_counter = 1
+
+    def mock_add(obj: TemplateParameter):
+        nonlocal id_counter
+        if not hasattr(obj, "id") or obj.id is None:
+            obj.id = id_counter
+            id_counter += 1
+        for field, value in obj.__table__.columns.items():
+            if getattr(obj, field) is None:
+                setattr(obj, field, "null")
+
     execute_mock = AsyncMock()
 
     result_mock = Mock()
@@ -58,11 +149,14 @@ def mock_db(mock_grpc):
     )
     templ_obj.id = 1
     result_mock.scalar_one_or_none.return_value = templ_obj
-
     execute_mock.return_value = result_mock
+
     db = AsyncMock()
     db.execute = execute_mock
 
+    db.add = Mock(side_effect=mock_add)
+    db.flush = AsyncMock()
+    db.refresh = AsyncMock()
     return db
 
 
@@ -76,13 +170,16 @@ def mock_db(mock_grpc):
 
 
 @pytest.fixture
-async def http_client(app, mock_db):
+async def http_client(app, mock_db, mock_grpc_function):
     app.dependency_overrides[UoW] = lambda: mock_db
     app.dependency_overrides[AsyncSession] = lambda: mock_db
     # app.dependency_overrides[oauth2_scheme] = lambda: mock_auth
-
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as ac:
-        yield ac
+    with patch(
+        "services.template_registry_services.get_all_tprms_for_special_tmo_id_channel_in",
+        mock_grpc_function,
+    ):
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as ac:
+            yield ac
     app.dependency_overrides.clear()

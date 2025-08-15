@@ -1,10 +1,13 @@
 from logging import getLogger
 
-from infrastructure.db.template.read.gateway import SQLTemplateReaderRepository
+from application.common.uow import SQLAlchemyUnitOfWork
+from domain.template_parameter.command import TemplateParameterCreator
 
 
 class TemplateParameterCreatorInteractor(object):
-    def __init__(self, repository: SQLTemplateReaderRepository, uow):
+    def __init__(
+        self, repository: TemplateParameterCreator, uow: SQLAlchemyUnitOfWork
+    ):
         self.repository = repository
         self.uow = uow
         self.logger = getLogger("TemplateParameterCreatorInteractor")
