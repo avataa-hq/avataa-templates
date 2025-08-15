@@ -24,7 +24,7 @@ dev = [
     "pre-commit>=4.3.0"
 ]
 lint = [
-    "ruff==0.12.8",
+    "ruff==0.12.9",
 ]
 tests = [
     "httpx==0.28.1",

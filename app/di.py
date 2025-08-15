@@ -21,6 +21,9 @@ from application.template_parameter.read.interactors import (
 )
 from config import setup_config
 from infrastructure.db.template.read.gateway import SQLTemplateReaderRepository
+from infrastructure.db.template_parameter.create.gateway import (
+    SQLTemplateParameterCreatorRepository,
+)
 from infrastructure.db.template_parameter.read.gateway import (
     SQLTemplateParameterReaderRepository,
 )
@@ -95,7 +98,7 @@ def create_template_parameter_interactor(
     session: AsyncSession = Depends(Stub(AsyncSession)),
 ) -> TemplateParameterCreatorInteractor:
     uow = SQLAlchemyUnitOfWork(session)
-    repository = SQLTemplateReaderRepository(session)
+    repository = SQLTemplateParameterCreatorRepository(session)
     return TemplateParameterCreatorInteractor(repository, uow=uow)
 
 
@@ -114,4 +117,8 @@ def init_dependencies(app: FastAPI) -> None:
 
     app.dependency_overrides[TemplateParameterReaderInteractor] = (
         read_template_parameter_interactor
+    )
+
+    app.dependency_overrides[TemplateParameterCreatorInteractor] = (
+        create_template_parameter_interactor
     )

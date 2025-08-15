@@ -4,7 +4,7 @@ from models import TemplateObject
 
 
 @dataclass
-class TemplateObjectDTO(object):
+class TemplateObjectAggregate(object):
     id: int
     template_id: int
     parent_object_id: int
