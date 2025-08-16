@@ -1,6 +1,5 @@
 from typing import (
     Annotated,
-    Optional,
 )
 
 from fastapi import (
@@ -13,15 +12,25 @@ from fastapi import (
     status,
 )
 from presentation.api.depends_stub import Stub
+from presentation.api.v1.endpoints.consts import USER_REQUEST_MESSAGE
+from presentation.api.v1.endpoints.dto import (
+    TemplateObjectSearchRequest,
+    TemplateObjectSearchResponse,
+)
+from pydantic import ValidationError
 
 from application.common.uow import UoW
+from application.template_object.read.exceptions import (
+    TemplateObjectReaderApplicationException,
+)
+from application.template_object.read.interactors import (
+    TemplateObjectReaderInteractor,
+)
 from exceptions import (
     InvalidHierarchy,
-    TemplateNotFound,
     TemplateObjectNotFound,
 )
 from schemas.template_schemas import (
-    TemplateObjectOutput,
     TemplateObjectUpdateInput,
     TemplateObjectUpdateOutput,
 )
@@ -32,42 +41,37 @@ from services.template_object_services import (
 router = APIRouter(tags=["template-object"])
 
 
-@router.get("/objects")
+@router.get(
+    "/objects",
+    status_code=status.HTTP_200_OK,
+    response_model=list[TemplateObjectSearchResponse],
+)
 async def get_template_objects(
-    template_id: int,
-    db: Annotated[UoW, Depends(Stub(UoW))],
-    parent_id: Optional[int] = Query(
-        None,
-        description="Parent object ID (optional)",
-    ),
-    depth: int = Query(
-        1,
-        ge=1,
-        description="Depth of children to retrieve (1 by default)",
-    ),
-    include_parameters: bool = Query(
-        False,
-        description="Include parameters in the response (default: False)",
-    ),
-) -> list[TemplateObjectOutput]:
-    service = TemplateObjectService(db)
-
+    request: Annotated[TemplateObjectSearchRequest, Query()],
+    interactor: Annotated[
+        TemplateObjectReaderInteractor,
+        Depends(Stub(TemplateObjectReaderInteractor)),
+    ],
+) -> list[TemplateObjectSearchResponse]:
     try:
-        return await service.get_template_objects(
-            template_id=template_id,
-            parent_id=parent_id,
-            depth=depth,
-            include_parameters=include_parameters,
-        )
-    except TemplateNotFound:
+        result = await interactor(request=request.to_interactor_dto())
+        return [
+            TemplateObjectSearchResponse.from_application_dto(el)
+            for el in result
+        ]
+    except ValidationError as ex:
+        print(USER_REQUEST_MESSAGE, request)
         raise HTTPException(
-            status_code=404,
-            detail="Template not found",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
         )
-    except TemplateObjectNotFound:
+    except TemplateObjectReaderApplicationException as ex:
+        print(USER_REQUEST_MESSAGE, request)
+        raise HTTPException(status_code=ex.status_code, detail=ex.detail)
+    except Exception as ex:
+        print(USER_REQUEST_MESSAGE, request)
+        print(type(ex), ex)
         raise HTTPException(
-            status_code=404,
-            detail="Parent template object not found",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
         )
 
 

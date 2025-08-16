@@ -11,10 +11,11 @@ class TemplateParameterAggregate:
     template_object_id: TemplateObjectId
     parameter_type_id: ParameterTypeId
     value: str
-    constraint: str
     required: bool
     val_type: str
     valid: bool
+
+    constraint: str | None = None
 
     @classmethod
     def from_db(cls, template_parameter: TemplateParameter):

@@ -27,7 +27,7 @@ class TemplateParameterSearchDTO:
     def from_aggregate(
         cls, aggregate: TemplateParameterAggregate
     ) -> "TemplateParameterSearchDTO":
-        return TemplateParameterSearchDTO(
+        return cls(
             id=aggregate.id,
             template_object_id=aggregate.template_object_id.to_raw(),
             parameter_type_id=aggregate.parameter_type_id.to_raw(),

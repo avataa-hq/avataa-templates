@@ -7,10 +7,11 @@ from models import TemplateObject
 class TemplateObjectAggregate(object):
     id: int
     template_id: int
-    parent_object_id: int
     object_type_id: int
     required: bool
     valid: bool
+
+    parent_object_id: int | None = None
 
     @classmethod
     def from_db(cls, template_object: TemplateObject):

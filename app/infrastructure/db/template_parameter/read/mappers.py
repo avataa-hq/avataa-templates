@@ -30,7 +30,7 @@ def template_parameter_filter_to_sql_query(
     return query.where(*clauses)
 
 
-def postgres_to_domain(db_el: TemplateParameter) -> TemplateParameterAggregate:
+def sql_to_domain(db_el: TemplateParameter) -> TemplateParameterAggregate:
     return TemplateParameterAggregate(
         id=db_el.id,
         template_object_id=TemplateObjectId(db_el.template_object_id),

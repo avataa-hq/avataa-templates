@@ -12,7 +12,7 @@ from domain.template_parameter.vo.template_parameter_filter import (
     TemplateParameterFilter,
 )
 from infrastructure.db.template_parameter.read.mappers import (
-    postgres_to_domain,
+    sql_to_domain,
     template_parameter_filter_to_sql_query,
 )
 from models import TemplateParameter
@@ -33,11 +33,11 @@ class SQLTemplateParameterReaderRepository(TemplateParameterReader):
         try:
             result = await self.session.scalars(query)
             for db_el in result.all():  # type: TemplateParameter
-                template = postgres_to_domain(db_el)
+                template = sql_to_domain(db_el)
                 output.append(template)
             return output
         except Exception as ex:
-            print(ex)
+            print(type(ex), ex)
             raise TemplateParameterReaderApplicationException(
                 status_code=422, detail="Gateway Error."
             )

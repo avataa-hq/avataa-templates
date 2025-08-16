@@ -173,6 +173,7 @@ def mock_db():
 async def http_client(app, mock_db, mock_grpc_function):
     app.dependency_overrides[UoW] = lambda: mock_db
     app.dependency_overrides[AsyncSession] = lambda: mock_db
+
     # app.dependency_overrides[oauth2_scheme] = lambda: mock_auth
     with patch(
         "services.template_registry_services.get_all_tprms_for_special_tmo_id_channel_in",

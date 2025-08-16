@@ -13,6 +13,9 @@ from sqlalchemy.ext.asyncio import (
 
 from application.common.uow import SQLAlchemyUnitOfWork, UoW
 from application.template.read.interactors import TemplateReaderInteractor
+from application.template_object.read.interactors import (
+    TemplateObjectReaderInteractor,
+)
 from application.template_parameter.create.interactors import (
     TemplateParameterCreatorInteractor,
 )
@@ -20,7 +23,12 @@ from application.template_parameter.read.interactors import (
     TemplateParameterReaderInteractor,
 )
 from config import setup_config
+from domain.template_object.query import TemplateObjectReader
+from domain.template_parameter.query import TemplateParameterReader
 from infrastructure.db.template.read.gateway import SQLTemplateReaderRepository
+from infrastructure.db.template_object.read.gateway import (
+    SQLTemplateObjectReaderRepository,
+)
 from infrastructure.db.template_parameter.create.gateway import (
     SQLTemplateParameterCreatorRepository,
 )
@@ -87,6 +95,31 @@ def read_template_interactor(
     return TemplateReaderInteractor(repository)
 
 
+def get_template_object_reader_repository(
+    session: AsyncSession = Depends(Stub(AsyncSession)),
+) -> TemplateObjectReader:
+    return SQLTemplateObjectReaderRepository(session)
+
+
+def get_template_parameter_reader_repository(
+    session: AsyncSession = Depends(Stub(AsyncSession)),
+) -> TemplateParameterReader:
+    return SQLTemplateParameterReaderRepository(session)
+
+
+def read_template_object_interactor(
+    to_repository: TemplateObjectReader = Depends(
+        get_template_object_reader_repository
+    ),
+    tp_repository: TemplateParameterReader = Depends(
+        get_template_parameter_reader_repository
+    ),
+) -> TemplateObjectReaderInteractor:
+    return TemplateObjectReaderInteractor(
+        to_repository=to_repository, tp_repository=tp_repository
+    )
+
+
 def read_template_parameter_interactor(
     session: AsyncSession = Depends(Stub(AsyncSession)),
 ) -> TemplateParameterReaderInteractor:
@@ -113,6 +146,17 @@ def init_dependencies(app: FastAPI) -> None:
 
     app.dependency_overrides[TemplateReaderInteractor] = (
         read_template_interactor
+    )
+
+    app.dependency_overrides[TemplateObjectReader] = (
+        get_template_object_reader_repository
+    )
+    app.dependency_overrides[TemplateParameterReader] = (
+        get_template_parameter_reader_repository
+    )
+
+    app.dependency_overrides[TemplateObjectReaderInteractor] = (
+        read_template_object_interactor
     )
 
     app.dependency_overrides[TemplateParameterReaderInteractor] = (

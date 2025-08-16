@@ -30,7 +30,7 @@ class TemplateParameterReaderInteractor(object):
         except Exception as ex:
             print(ex, type(ex))
             raise TemplateParameterReaderApplicationException(
-                status_code=500, detail="Application Error."
+                status_code=422, detail="Application Error."
             )
         # Create user response
         result = [
