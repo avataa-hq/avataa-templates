@@ -31,7 +31,7 @@ class TemplateReaderInteractor(object):
         except Exception as ex:
             self.logger.error(ex)
             raise TemplateApplicationException(
-                status_code=422, detail="Error in application"
+                status_code=422, detail="Application Error."
             )
 
         # Create user response

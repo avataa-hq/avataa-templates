@@ -1,1 +1,1 @@
-USER_REQUEST = "User request:"
+USER_REQUEST_MESSAGE = "User request:"

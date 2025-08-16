@@ -9,7 +9,7 @@ from fastapi import (
 )
 from fastapi.params import Query
 from presentation.api.depends_stub import Stub
-from presentation.api.v1.endpoints.consts import USER_REQUEST
+from presentation.api.v1.endpoints.consts import USER_REQUEST_MESSAGE
 from presentation.api.v1.endpoints.dto import (
     TemplateParameterSearchRequest,
     TemplateParameterSearchResponse,
@@ -61,15 +61,15 @@ async def get_template_object_parameters(
             for el in result
         ]
     except ValidationError as ex:
-        print(USER_REQUEST, request)
+        print(USER_REQUEST_MESSAGE, request)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
         )
     except TemplateParameterReaderApplicationException as ex:
-        print(USER_REQUEST, request)
+        print(USER_REQUEST_MESSAGE, request)
         raise HTTPException(status_code=ex.status_code, detail=ex.detail)
     except Exception as ex:
-        print(USER_REQUEST, request)
+        print(USER_REQUEST_MESSAGE, request)
         print(type(ex), ex)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
