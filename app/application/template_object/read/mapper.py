@@ -12,9 +12,7 @@ def template_object_filter_from_dto(
 ) -> TemplateObjectFilter:
     return TemplateObjectFilter(
         template_id=request.template_object_id,
-        depth=request.depth,
         parent_object_id=request.parent_id,
-        include_parameters=request.include_parameters,
     )
 
 

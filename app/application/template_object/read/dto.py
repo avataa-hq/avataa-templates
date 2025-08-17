@@ -3,8 +3,8 @@ from dataclasses import dataclass
 from application.template_parameter.read.dto import (
     TemplateParameterSearchDTO,
 )
-from domain.template_object.template_object import TemplateObjectAggregate
-from domain.template_parameter.template_parameter import (
+from domain.template_object.aggregate import TemplateObjectAggregate
+from domain.template_parameter.aggregate import (
     TemplateParameterAggregate,
 )
 
@@ -37,8 +37,8 @@ class TemplateObjectSearchDTO:
         parameters: list[TemplateParameterAggregate],
     ) -> "TemplateObjectSearchDTO":
         return cls(
-            id=aggregate.id,
-            object_type_id=aggregate.object_type_id,
+            id=aggregate.id.to_raw(),
+            object_type_id=aggregate.object_type_id.to_raw(),
             required=aggregate.required,
             children=[],
             valid=aggregate.valid,

@@ -2,8 +2,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.template.read.exceptions import TemplateApplicationException
+from domain.template.aggregate import TemplateAggregate
 from domain.template.query import TemplateReader
-from domain.template.template import TemplateAggregate
 from domain.template.vo.template_filter import TemplateFilter
 from infrastructure.db.template.read.mappers import (
     postgres_to_domain,

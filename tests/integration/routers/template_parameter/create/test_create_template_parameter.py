@@ -19,7 +19,7 @@ async def test_create_template_parameter(http_client: AsyncClient, url: str):
             "id": 1,
             "parameter_type_id": 135299,
             "value": "123",
-            "constraint": "null",
+            "constraint": None,
             "required": True,
             "val_type": "str",
             "valid": True,

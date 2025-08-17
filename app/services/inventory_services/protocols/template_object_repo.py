@@ -3,7 +3,7 @@ from typing import Sequence
 
 from sqlalchemy import select, update
 
-from domain.template_object.template_object import (
+from domain.template_object.aggregate import (
     TemplateObjectAggregate,
 )
 from models import TemplateObject
@@ -27,7 +27,7 @@ class TemplateObjectRepo(object):
             update(TemplateObject)
             .where(
                 TemplateObject.id.in_(
-                    [template.id for template in template_objects]
+                    [template.id.to_raw() for template in template_objects]
                 )
             )
             .values(valid=False)

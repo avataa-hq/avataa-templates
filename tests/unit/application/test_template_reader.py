@@ -8,7 +8,9 @@ from application.template.read.dto import (
     TemplateResponseDTO,
 )
 from application.template.read.interactors import TemplateReaderInteractor
-from domain.template.template import TemplateAggregate
+from domain.shared.vo.object_type_id import ObjectTypeId
+from domain.shared.vo.template_id import TemplateId
+from domain.template.aggregate import TemplateAggregate
 
 
 @pytest.mark.asyncio
@@ -26,10 +28,10 @@ async def test_template_reader_interactor_returns_expected_response():
     )
 
     fake_template = TemplateAggregate(
-        id=1,
+        id=TemplateId(1),
         name="template1",
         owner="test_owner",
-        object_type_id=1,
+        object_type_id=ObjectTypeId(1),
         creation_date=datetime.now(tz=timezone.utc),
         modification_date=datetime.now(tz=timezone.utc),
         valid=True,

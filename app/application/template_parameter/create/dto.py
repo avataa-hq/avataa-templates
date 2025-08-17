@@ -1,19 +1,27 @@
 from dataclasses import dataclass
 
-from domain.template_parameter.aggregate import (
-    TemplateParameterAggregate,
-)
+from domain.template_parameter.aggregate import TemplateParameterAggregate
 
 
 # From router
 @dataclass(frozen=True, slots=True)
-class TemplateParameterRequestDTO:
+class TemplateParameterDataCreateRequestDTO:
+    parameter_type_id: int
+    required: bool
+
+    value: str | None = None
+    constraint: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class TemplateParameterCreateRequestDTO:
     template_object_id: int
+    data: list[TemplateParameterDataCreateRequestDTO]
 
 
 # From aggregate to router
 @dataclass(frozen=True, slots=True)
-class TemplateParameterSearchDTO:
+class TemplateParameterCreatedDTO:
     id: int
     template_object_id: int
     parameter_type_id: int
@@ -26,7 +34,7 @@ class TemplateParameterSearchDTO:
     @classmethod
     def from_aggregate(
         cls, aggregate: TemplateParameterAggregate
-    ) -> "TemplateParameterSearchDTO":
+    ) -> "TemplateParameterCreatedDTO":
         return cls(
             id=aggregate.id,
             template_object_id=aggregate.template_object_id.to_raw(),
