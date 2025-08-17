@@ -4,10 +4,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from application.template_parameter.read.exceptions import (
     TemplateParameterReaderApplicationException,
 )
-from domain.template_parameter.query import TemplateParameterReader
-from domain.template_parameter.template_parameter import (
+from domain.template_parameter.aggregate import (
     TemplateParameterAggregate,
 )
+from domain.template_parameter.query import TemplateParameterReader
 from domain.template_parameter.vo.template_parameter_filter import (
     TemplateParameterFilter,
 )
@@ -26,12 +26,12 @@ class SQLTemplateParameterReaderRepository(TemplateParameterReader):
         self, db_filter: TemplateParameterFilter
     ) -> list[TemplateParameterAggregate]:
         output: list[TemplateParameterAggregate] = list()
-        query = select(TemplateParameter)
-        query = template_parameter_filter_to_sql_query(
-            db_filter, TemplateParameter, query
+        base_query = select(TemplateParameter)
+        filtered_query = template_parameter_filter_to_sql_query(
+            db_filter, TemplateParameter, base_query
         )
         try:
-            result = await self.session.scalars(query)
+            result = await self.session.scalars(filtered_query)
             for db_el in result.all():  # type: TemplateParameter
                 template = sql_to_domain(db_el)
                 output.append(template)

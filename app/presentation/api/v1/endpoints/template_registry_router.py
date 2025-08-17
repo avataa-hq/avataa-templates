@@ -1,14 +1,24 @@
 from typing import Annotated, List, Optional
 
-from fastapi import (
-    APIRouter,
-    Body,
-    Depends,
-    HTTPException,
-)
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from presentation.api.depends_stub import Stub
+from presentation.api.v1.endpoints.consts import USER_REQUEST_MESSAGE
+from presentation.api.v1.endpoints.dto import (
+    TemplateParameterCreateResponse,
+    TemplateParameterData,
+)
+from pydantic import ValidationError
 
 from application.common.uow import UoW
+from application.template_parameter.create.dto import (
+    TemplateParameterCreateRequestDTO,
+)
+from application.template_parameter.create.exceptions import (
+    TemplateParameterCreatorApplicationException,
+)
+from application.template_parameter.create.interactors import (
+    TemplateParameterCreatorInteractor,
+)
 from exceptions import (
     InvalidHierarchy,
     InvalidParameterValue,
@@ -24,8 +34,6 @@ from schemas.template_schemas import (
     TemplateObjectInput,
     TemplateObjectOutput,
     TemplateOutput,
-    TemplateParameterInput,
-    TemplateParameterOutput,
 )
 from services.template_registry_services import (
     TemplateRegistryService,
@@ -216,11 +224,15 @@ async def add_objects(
     return objects
 
 
-@router.post("/add-parameters/{template_object_id}/")
+@router.post(
+    "/add-parameters/{template_object_id}/",
+    status_code=200,
+    response_model=list[TemplateParameterCreateResponse],
+)
 async def add_parameters(
     template_object_id: int,
     parameters_data: Annotated[
-        List[TemplateParameterInput],
+        list[TemplateParameterData],
         Body(
             example=[
                 {
@@ -238,38 +250,35 @@ async def add_parameters(
             ]
         ),
     ],
-    db: Annotated[UoW, Depends(Stub(UoW))],
-) -> List[TemplateParameterOutput]:
-    service = TemplateRegistryService(db)
-
+    interactor: Annotated[
+        TemplateParameterCreatorInteractor,
+        Depends(Stub(TemplateParameterCreatorInteractor)),
+    ],
+) -> list[TemplateParameterCreateResponse]:
     try:
-        service.get_template_object_or_raise(template_object_id)
-    except TemplateObjectNotFound:
+        result = await interactor(
+            request=TemplateParameterCreateRequestDTO(
+                template_object_id=template_object_id,
+                data=[
+                    param.to_create_request_dto() for param in parameters_data
+                ],
+            )
+        )
+        return [
+            TemplateParameterCreateResponse.from_application_dto(el)
+            for el in result
+        ]
+    except ValidationError as ex:
+        print(USER_REQUEST_MESSAGE, parameters_data)
         raise HTTPException(
-            status_code=404,
-            detail="Template object not found",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
         )
-
-    try:
-        parameters = await service.create_template_parameters(
-            parameters_data, template_object_id
-        )
-    except TPRMNotFoundInInventory as e:
+    except TemplateParameterCreatorApplicationException as ex:
+        print(USER_REQUEST_MESSAGE, parameters_data)
+        raise HTTPException(status_code=ex.status_code, detail=ex.detail)
+    except Exception as ex:
+        print(USER_REQUEST_MESSAGE, parameters_data)
+        print(type(ex), ex)
         raise HTTPException(
-            status_code=404,
-            detail=(
-                f"TPRM with id {e.parameter_type_id} not "
-                f"found for TMO {e.object_type_id} in Inventory."
-            ),
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
         )
-    except RequiredMismatchException as e:
-        raise HTTPException(
-            status_code=400,
-            detail=str(e),
-        )
-    except InvalidParameterValue as e:
-        raise HTTPException(status_code=422, detail=str(e))
-    except ValueConstraintException as e:
-        raise HTTPException(status_code=422, detail=str(e))
-    await service.commit_changes()
-    return parameters

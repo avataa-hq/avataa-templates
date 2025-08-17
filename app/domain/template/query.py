@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from domain.template.template import TemplateAggregate
+from domain.template.aggregate import TemplateAggregate
 from domain.template.vo.template_filter import TemplateFilter
 
 

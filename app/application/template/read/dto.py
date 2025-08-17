@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from domain.template.template import TemplateAggregate
+from domain.template.aggregate import TemplateAggregate
 
 
 # From router
@@ -45,10 +45,10 @@ class TemplateResponseDataDTO:
         cls, aggregate: TemplateAggregate
     ) -> "TemplateResponseDataDTO":
         return cls(
-            id=aggregate.id,
+            id=aggregate.id.to_raw(),
             name=aggregate.name,
             owner=aggregate.owner,
-            object_type_id=aggregate.object_type_id,
+            object_type_id=aggregate.object_type_id.to_raw(),
             creation_date=aggregate.creation_date,
             modification_date=aggregate.modification_date,
             valid=aggregate.valid,

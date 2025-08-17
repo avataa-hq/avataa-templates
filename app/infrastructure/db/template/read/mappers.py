@@ -2,7 +2,9 @@ from typing import Type
 
 from sqlalchemy import Select
 
-from domain.template.template import TemplateAggregate
+from domain.shared.vo.object_type_id import ObjectTypeId
+from domain.shared.vo.template_id import TemplateId
+from domain.template.aggregate import TemplateAggregate
 from domain.template.vo.template_filter import TemplateFilter
 from models import Template
 
@@ -24,10 +26,10 @@ def template_to_sql_query(
 
 def postgres_to_domain(template: Template) -> TemplateAggregate:
     return TemplateAggregate(
-        id=template.id,
+        id=TemplateId(template.id),
         name=template.name,
         owner=template.owner,
-        object_type_id=template.object_type_id,
+        object_type_id=ObjectTypeId(template.object_type_id),
         creation_date=template.creation_date,
         modification_date=template.modification_date,
         valid=template.valid,

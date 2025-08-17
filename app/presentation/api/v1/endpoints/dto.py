@@ -10,6 +10,10 @@ from application.template_object.read.dto import (
     TemplateObjectRequestDTO,
     TemplateObjectSearchDTO,
 )
+from application.template_parameter.create.dto import (
+    TemplateParameterCreatedDTO,
+    TemplateParameterDataCreateRequestDTO,
+)
 from application.template_parameter.read.dto import (
     TemplateParameterRequestDTO,
     TemplateParameterSearchDTO,
@@ -23,12 +27,43 @@ class TemplateParameterSearchRequest(BaseModel):
         return TemplateParameterRequestDTO(**self.model_dump(exclude_none=True))
 
 
+class TemplateParameterData(BaseModel):
+    parameter_type_id: int = Field(default=1, ge=1)
+    value: str | None = Field(default=None)
+    constraint: str | None = Field(default=None)
+    required: bool = Field(default=False)
+
+    def to_create_request_dto(self) -> TemplateParameterDataCreateRequestDTO:
+        return TemplateParameterDataCreateRequestDTO(
+            parameter_type_id=self.parameter_type_id,
+            value=self.value,
+            constraint=self.constraint,
+            required=self.required,
+        )
+
+
+class TemplateParameterCreateResponse(BaseModel):
+    id: int
+    parameter_type_id: int
+    value: str
+    constraint: str | None = Field(default=None)
+    val_type: str
+    required: bool
+    valid: bool
+
+    class Config:
+        from_attributes = True
+
+    @classmethod
+    def from_application_dto(
+        cls, dto: TemplateParameterCreatedDTO
+    ) -> "TemplateParameterCreateResponse":
+        return cls.model_validate(dto, by_alias=True)
+
+
 class TemplateParameterSearchResponse(BaseModel):
     id: int
-    parameter_type_id: int = Field(
-        serialization_alias="parameter_type_id",
-        validation_alias="parameter_type_id",
-    )
+    parameter_type_id: int
     value: str
     constraint: str | None = Field(default=None)
     val_type: str

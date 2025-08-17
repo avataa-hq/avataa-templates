@@ -18,11 +18,11 @@ from domain.template_parameter.query import TemplateParameterReader
 class TemplateObjectReaderInteractor(object):
     def __init__(
         self,
-        to_repository: TemplateObjectReader,
-        tp_repository: TemplateParameterReader,
+        to_repo: TemplateObjectReader,
+        tp_repo: TemplateParameterReader,
     ):
-        self._to_repository = to_repository
-        self._tp_repository = tp_repository
+        self._to_repository = to_repo
+        self._tp_repository = tp_repo
         self.logger = getLogger("TemplateObjectReaderInteractor")
 
     async def __call__(

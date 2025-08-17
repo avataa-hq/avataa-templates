@@ -20,13 +20,23 @@ class UoW(ABC):
 class SQLAlchemyUnitOfWork:
     def __init__(self, session: AsyncSession):
         self.session = session
+        self._committed = False
 
     async def __aenter__(self):
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if exc_type:
-            await self.session.rollback()
+            await self.rollback()
         else:
-            await self.session.commit()
+            if not self._committed:
+                await self.rollback()
+
         await self.session.close()
+
+    async def commit(self):
+        await self.session.commit()
+        self._committed = True
+
+    async def rollback(self):
+        await self.session.rollback()

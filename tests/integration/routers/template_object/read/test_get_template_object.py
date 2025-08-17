@@ -72,8 +72,8 @@ async def test_search_template_parameter(
     param_4.id = 4
     obj_1 = TemplateObject(
         template_id=1,
-        parent_object_id=None,
         object_type_id=46181,
+        parent_object_id=None,
         required=True,
         valid=True,
         parameters=[param_1, param_2, param_3, param_4],

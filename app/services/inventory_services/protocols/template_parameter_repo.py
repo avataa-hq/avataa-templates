@@ -3,7 +3,7 @@ from typing import Sequence
 
 from sqlalchemy import select, update
 
-from domain.template_parameter.template_parameter import (
+from domain.template_parameter.aggregate import (
     TemplateParameterAggregate,
 )
 from models import TemplateParameter

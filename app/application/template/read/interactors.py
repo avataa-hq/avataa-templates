@@ -7,8 +7,8 @@ from application.template.read.dto import (
 )
 from application.template.read.exceptions import TemplateApplicationException
 from application.template.read.mapper import template_filter_from_dto
+from domain.template.aggregate import TemplateAggregate
 from domain.template.query import TemplateReader
-from domain.template.template import TemplateAggregate
 from domain.template.vo.template_filter import TemplateFilter
 
 

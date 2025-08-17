@@ -10,14 +10,16 @@ from application.template_object.read.interactors import (
     TemplateObjectReaderInteractor,
 )
 from config import setup_config
+from domain.shared.vo.object_type_id import ObjectTypeId
+from domain.shared.vo.template_id import TemplateId
+from domain.shared.vo.template_object_id import TemplateObjectId
+from domain.template_object.aggregate import TemplateObjectAggregate
 from domain.template_object.query import TemplateObjectReader
-from domain.template_object.template_object import TemplateObjectAggregate
-from domain.template_parameter.query import TemplateParameterReader
-from domain.template_parameter.template_parameter import (
+from domain.template_parameter.aggregate import (
     TemplateParameterAggregate,
 )
+from domain.template_parameter.query import TemplateParameterReader
 from domain.template_parameter.vo.parameter_type_id import ParameterTypeId
-from domain.template_parameter.vo.template_object_id import TemplateObjectId
 
 
 @pytest.fixture
@@ -94,10 +96,10 @@ def fake_tp_repo() -> AsyncMock:
 def fake_to_repo() -> AsyncMock:
     repo = AsyncMock(spec=TemplateObjectReader)
     obj_1 = TemplateObjectAggregate(
-        id=1,
-        template_id=1,
+        id=TemplateObjectId(1),
+        template_id=TemplateId(1),
         parent_object_id=None,
-        object_type_id=46181,
+        object_type_id=ObjectTypeId(46181),
         required=True,
         valid=True,
     )
@@ -122,8 +124,8 @@ async def http_client(app, mock_db, fake_tp_repo, fake_to_repo):
     app.dependency_overrides[TemplateParameterReader] = lambda: fake_tp_repo
     app.dependency_overrides[TemplateObjectReaderInteractor] = (
         lambda: TemplateObjectReaderInteractor(
-            to_repository=fake_to_repo,
-            tp_repository=fake_tp_repo,
+            to_repo=fake_to_repo,
+            tp_repo=fake_tp_repo,
         )
     )
     # app.dependency_overrides[oauth2_scheme] = lambda: mock_auth

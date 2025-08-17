@@ -2,11 +2,11 @@ from typing import Type
 
 from sqlalchemy import Select
 
-from domain.template_parameter.template_parameter import (
+from domain.shared.vo.template_object_id import TemplateObjectId
+from domain.template_parameter.aggregate import (
     TemplateParameterAggregate,
 )
 from domain.template_parameter.vo.parameter_type_id import ParameterTypeId
-from domain.template_parameter.vo.template_object_id import TemplateObjectId
 from domain.template_parameter.vo.template_parameter_filter import (
     TemplateParameterFilter,
 )
