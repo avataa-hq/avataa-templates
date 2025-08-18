@@ -24,7 +24,11 @@ class TemplateRepo(object):
     ) -> list[TemplateAggregate]:
         stmt = (
             update(Template)
-            .where(Template.id.in_([template.id for template in templates]))
+            .where(
+                Template.id.in_(
+                    [template.id.to_raw() for template in templates]
+                )
+            )
             .values(valid=False)
             .returning(Template)
         )
@@ -36,12 +40,10 @@ class TemplateRepo(object):
         return []
 
     @handle_db_exceptions
-    async def get_templates_by_tmo_id(
-        self, object_type_ids: list[int]
+    async def get_templates_by_id(
+        self, template_ids: list[int]
     ) -> list[TemplateAggregate]:
-        stmt = select(Template).where(
-            Template.object_type_id.in_(object_type_ids)
-        )
+        stmt = select(Template).where(Template.id.in_(template_ids))
         result: Sequence[Template] = (
             await self.session.scalars(statement=stmt)
         ).all()

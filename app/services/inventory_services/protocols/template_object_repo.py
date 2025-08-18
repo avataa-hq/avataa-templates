@@ -44,12 +44,10 @@ class TemplateObjectRepo(object):
         return []
 
     @handle_db_exceptions
-    async def get_template_objects_by_object_type_id(
-        self, object_type_ids: list[int]
+    async def get_template_objects_by_id(
+        self, ids: list[int]
     ) -> list[TemplateObjectAggregate]:
-        stmt = select(TemplateObject).where(
-            TemplateObject.object_type_id.in_(object_type_ids)
-        )
+        stmt = select(TemplateObject).where(TemplateObject.id.in_(ids))
         result: Sequence[TemplateObject] = (
             await self.session.scalars(statement=stmt)
         ).all()
