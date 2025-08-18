@@ -2,19 +2,19 @@ from logging import getLogger
 from typing import Sequence
 
 from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from domain.template_parameter.aggregate import (
     TemplateParameterAggregate,
 )
 from models import TemplateParameter
-from services.common.uow import SQLAlchemyUoW
 from services.inventory_services.protocols.utils import (
     handle_db_exceptions,
 )
 
 
 class TemplateParameterRepo(object):
-    def __init__(self, session: SQLAlchemyUoW):
+    def __init__(self, session: AsyncSession):
         self.session = session
         self.logger = getLogger("Template Parameter Repo")
 

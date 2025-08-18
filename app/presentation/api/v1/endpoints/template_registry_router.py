@@ -9,7 +9,7 @@ from presentation.api.v1.endpoints.dto import (
 )
 from pydantic import ValidationError
 
-from application.common.uow import UoW
+from application.common.uow import SQLAlchemyUoW, UoW
 from application.template_parameter.create.dto import (
     TemplateParameterCreateRequestDTO,
 )
@@ -87,9 +87,9 @@ async def create_template(
             }
         ),
     ],
-    db: Annotated[UoW, Depends(Stub(UoW))],
+    db: Annotated[SQLAlchemyUoW, Depends(Stub(UoW))],
 ) -> TemplateOutput:
-    service = TemplateRegistryService(db)
+    service = TemplateRegistryService(db.session)
     try:
         template = await service.create_template(template_data)
     except TMOIdNotFoundInInventory as e:
@@ -154,10 +154,10 @@ async def add_objects(
             ]
         ),
     ],
-    db: Annotated[UoW, Depends(Stub(UoW))],
+    db: Annotated[SQLAlchemyUoW, Depends(Stub(UoW))],
     parent_id: Optional[int] = None,
 ) -> List[TemplateObjectOutput]:
-    service = TemplateRegistryService(db)
+    service = TemplateRegistryService(db.session)
 
     try:
         await service.get_template_or_raise(template_id)

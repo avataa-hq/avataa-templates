@@ -1,6 +1,6 @@
 from logging import getLogger
 
-from application.common.uow import SQLAlchemyUnitOfWork
+from application.common.uow import UoW
 from application.template_object.read.dto import TemplateObjectRequestDTO
 from application.template_object.read.mapper import (
     template_object_filter_from_dto,
@@ -34,7 +34,7 @@ class TemplateParameterCreatorInteractor(object):
         tp_repo: TemplateParameterCreator,
         to_repo: TemplateObjectReader,
         inventory_tprm_repo: TPRMReader,
-        uow: SQLAlchemyUnitOfWork,
+        uow: UoW,
     ):
         self._tp_repo = tp_repo
         self._to_repo = to_repo
@@ -43,7 +43,7 @@ class TemplateParameterCreatorInteractor(object):
 
         self.logger = getLogger("TemplateParameterCreatorInteractor")
 
-        self.tprm_data = dict()
+        self.tprm_data: dict[int, dict] = dict()
 
     async def __call__(self, request: TemplateParameterCreateRequestDTO):
         create_dtos = list()
@@ -68,24 +68,23 @@ class TemplateParameterCreatorInteractor(object):
             )
         )
 
-        async with self.uow:
-            for el in request.data:  # type: TemplateParameterDataCreateRequestDTO
-                self._validate_template_parameter(
-                    tmo_id=object_type_id, parameter=el
-                )
-                create_dtos.append(
-                    template_parameter_create_from_dto(
-                        dto=el,
-                        template_object_id=request.template_object_id,
-                        val_type=self.tprm_data[object_type_id][
-                            el.parameter_type_id
-                        ].val_type,
-                    )
-                )
-            created_parameters = await self._tp_repo.create_template_parameters(
-                create_dtos=create_dtos
+        for el in request.data:  # type: TemplateParameterDataCreateRequestDTO
+            self._validate_template_parameter(
+                tmo_id=object_type_id, parameter=el
             )
-            await self.uow.commit()
+            create_dtos.append(
+                template_parameter_create_from_dto(
+                    dto=el,
+                    template_object_id=request.template_object_id,
+                    val_type=self.tprm_data[object_type_id][
+                        el.parameter_type_id
+                    ].val_type,
+                )
+            )
+        created_parameters = await self._tp_repo.create_template_parameters(
+            create_dtos=create_dtos
+        )
+        await self.uow.commit()
         # Create user response
         result = [
             TemplateParameterCreatedDTO.from_aggregate(created)

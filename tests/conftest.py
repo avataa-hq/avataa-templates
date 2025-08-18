@@ -16,7 +16,7 @@ from testcontainers.postgres import (
     PostgresContainer,
 )
 
-from application.common.uow import UoW
+from application.common.uow import SQLAlchemyUoW, UoW
 from config import setup_config
 from models import Base
 
@@ -66,12 +66,12 @@ async def test_session(
         expire_on_commit=False,
     )
 
-    async with async_session() as session:
-        yield session
+    async with SQLAlchemyUoW(session_factory=async_session) as uow:
+        yield uow
         try:
-            await session.rollback()
+            await uow.rollback()
         finally:
-            await session.close()
+            await uow.close()
 
 
 # only for pytest-asyncio 0.21/0.23

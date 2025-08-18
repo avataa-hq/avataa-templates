@@ -25,18 +25,18 @@ def non_value_constraint_validation(value: Any, constraint: Any) -> bool:
 
 def float_value_constraint_validation(value: float, constraint: str) -> bool:
     bottom, top = constraint.split(":")
-    top = float(top)
-    bottom = float(bottom)
+    f_top = float(top)
+    f_bottom = float(bottom)
 
-    return bottom < value < top
+    return f_bottom < value < f_top
 
 
 def int_value_constraint_validation(value: int, constraint: str) -> bool:
     bottom, top = constraint.split(":")
-    top = int(top)
-    bottom = int(bottom)
+    int_top = int(top)
+    int_bottom = int(bottom)
 
-    return bottom < value < top
+    return int_bottom < value < int_top
 
 
 param_value_constraint_validation_router = {
