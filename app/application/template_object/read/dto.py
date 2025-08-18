@@ -25,7 +25,6 @@ class TemplateObjectSearchDTO:
     id: int
     object_type_id: int
     required: bool
-    parameters: list
     children: list  # Not implemented
     parameters: list[TemplateParameterSearchDTO]
     valid: bool

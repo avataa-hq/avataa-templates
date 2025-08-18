@@ -1,6 +1,6 @@
 from logging import getLogger
 
-from services.common.uow import SQLAlchemyUoW
+from application.common.uow import SQLAlchemyUoW
 from services.inventory_services.protocols.template_repo import (
     TemplateRepo,
 )

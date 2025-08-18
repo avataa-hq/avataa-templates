@@ -19,7 +19,7 @@ from presentation.api.v1.endpoints.dto import (
 )
 from pydantic import ValidationError
 
-from application.common.uow import UoW
+from application.common.uow import SQLAlchemyUoW, UoW
 from application.template_object.read.exceptions import (
     TemplateObjectReaderApplicationException,
 )
@@ -87,9 +87,9 @@ async def update_template_object(
             }
         ),
     ],
-    db: Annotated[UoW, Depends(Stub(UoW))],
+    db: Annotated[SQLAlchemyUoW, Depends(Stub(UoW))],
 ) -> TemplateObjectUpdateOutput:
-    service = TemplateObjectService(db)
+    service = TemplateObjectService(db.session)
 
     try:
         obj = await service.update_template_object(
@@ -110,9 +110,9 @@ async def update_template_object(
 )
 async def delete_template_object(
     object_id: int,
-    db: Annotated[UoW, Depends(Stub(UoW))],
+    db: Annotated[SQLAlchemyUoW, Depends(Stub(UoW))],
 ) -> Response:
-    service = TemplateObjectService(db)
+    service = TemplateObjectService(db.session)
 
     try:
         await service.delete_template_object(object_id)

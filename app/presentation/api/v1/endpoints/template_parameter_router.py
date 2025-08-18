@@ -16,7 +16,7 @@ from presentation.api.v1.endpoints.dto import (
 )
 from pydantic import ValidationError
 
-from application.common.uow import UoW
+from application.common.uow import SQLAlchemyUoW, UoW
 from application.template_parameter.read.exceptions import (
     TemplateParameterReaderApplicationException,
 )
@@ -80,9 +80,9 @@ async def get_template_object_parameters(
 async def update_template_parameter(
     parameter_id: int,
     parameter_data: TemplateParameterInput,
-    db: Annotated[UoW, Depends(Stub(UoW))],
+    db: Annotated[SQLAlchemyUoW, Depends(Stub(UoW))],
 ) -> TemplateParameterOutput:
-    service = TemplateParameterService(db)
+    service = TemplateParameterService(db.session)
 
     try:
         parameter = await service.update_template_parameter(
@@ -123,9 +123,9 @@ async def update_template_parameter(
 )
 async def delete_template_parameter(
     parameter_id: int,
-    db: Annotated[UoW, Depends(Stub(UoW))],
+    db: Annotated[SQLAlchemyUoW, Depends(Stub(UoW))],
 ) -> Response:
-    service = TemplateParameterService(db)
+    service = TemplateParameterService(db.session)
 
     try:
         await service.delete_template_parameter(parameter_id)

@@ -18,7 +18,7 @@ from presentation.api.v1.endpoints.dto import (
 )
 from pydantic import ValidationError
 
-from application.common.uow import UoW
+from application.common.uow import SQLAlchemyUoW, UoW
 from application.template.read.exceptions import TemplateApplicationException
 from application.template.read.interactors import TemplateReaderInteractor
 from exceptions import (
@@ -39,7 +39,7 @@ router = APIRouter(tags=["template"])
 
 @router.get("/templates")
 async def get_templates(
-    db: Annotated[UoW, Depends(Stub(UoW))],
+    db: Annotated[SQLAlchemyUoW, Depends(Stub(UoW))],
     limit: Optional[int] = Query(
         None,
         ge=1,
@@ -52,7 +52,7 @@ async def get_templates(
         description="Number of templates to skip",
     ),
 ) -> List[SimpleTemplateOutput]:
-    service = TemplateService(db)
+    service = TemplateService(db.session)
     result = await service.get_templates(limit=limit, offset=offset)
     return result
 
@@ -102,9 +102,9 @@ async def update_template(
             }
         ),
     ],
-    db: Annotated[UoW, Depends(Stub(UoW))],
+    db: Annotated[SQLAlchemyUoW, Depends(Stub(UoW))],
 ) -> TemplateUpdateOutput:
-    service = TemplateService(db)
+    service = TemplateService(db.session)
 
     try:
         template = await service.update_template(
@@ -125,9 +125,9 @@ async def update_template(
 )
 async def delete_template(
     template_id: int,
-    db: Annotated[UoW, Depends(Stub(UoW))],
+    db: Annotated[SQLAlchemyUoW, Depends(Stub(UoW))],
 ) -> Response:
-    service = TemplateService(db)
+    service = TemplateService(db.get_session())
 
     try:
         await service.delete_template(template_id)

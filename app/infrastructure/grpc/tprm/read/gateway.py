@@ -21,7 +21,7 @@ class GrpcTPRMReaderRepository(BaseGRPCRepository, TPRMReader):
         return mo_info_pb2_grpc.InformerStub(channel)
 
     async def get_all_tprms_by_tmo_id(self, tmo_id: int) -> dict:
-        result = {tmo_id: dict()}
+        result: dict[int, dict] = {tmo_id: dict()}
         data = []
         try:
             stub = await self._get_stub()
