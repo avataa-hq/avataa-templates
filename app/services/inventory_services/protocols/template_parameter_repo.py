@@ -44,14 +44,14 @@ class TemplateParameterRepo(object):
         return []
 
     @handle_db_exceptions
-    async def get_template_parameters_by_id(
+    async def get_template_parameters_by_parameter_id(
         self, parameter_ids: list[int]
     ) -> list[TemplateParameterAggregate]:
         self.logger.info(
             f"Getting template parameter {parameter_ids} to invalid"
         )
         stmt = select(TemplateParameter).where(
-            TemplateParameter.id.in_(parameter_ids)
+            TemplateParameter.parameter_type_id.in_(parameter_ids)
         )
         result: Sequence[TemplateParameter] = (
             await self.session.scalars(statement=stmt)
