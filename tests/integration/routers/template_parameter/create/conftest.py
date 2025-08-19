@@ -133,6 +133,28 @@ def mock_grpc_function():
             "created_by": "",
             "returnable": False,
         },
+        {
+            "returnable": True,
+            "modified_by": "test_client",
+            "constraint": None,
+            "creation_date": datetime.datetime(2025, 8, 19, 12, 8, 42, 928289),
+            "prm_link_filter": None,
+            "modification_date": datetime.datetime(
+                2025, 8, 19, 12, 8, 42, 928312
+            ),
+            "description": None,
+            "group": None,
+            "backward_link": None,
+            "name": "Results",
+            "field_value": None,
+            "tmo_id": 46181,
+            "val_type": "int",
+            "id": 141046,
+            "multiple": True,
+            "version": 1,
+            "required": False,
+            "created_by": "test_client",
+        },
     ]
     return mock
 
@@ -201,6 +223,13 @@ def mock_grpc_new():
                 required=False,
                 multiple=False,
                 id=135299,
+                constraint=None,
+            ),
+            141047: InventoryTprmAggregate(
+                val_type="str",
+                required=False,
+                multiple=False,
+                id=141047,
                 constraint=None,
             ),
         }

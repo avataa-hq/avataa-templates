@@ -30,4 +30,5 @@ param_type_casting_router = {
     "mo_link": cast_to_int,
     "prm_link": cast_to_int,
     "sequence": cast_to_int,
+    "enum": cast_to_str,
 }
