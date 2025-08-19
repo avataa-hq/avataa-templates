@@ -51,6 +51,7 @@ param_value_constraint_validation_router = {
     "mo_link": non_value_constraint_validation,
     "prm_link": non_value_constraint_validation,
     "sequence": non_value_constraint_validation,
+    "enum": str_value_constraint_validation,
 }
 
 

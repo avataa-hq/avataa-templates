@@ -80,6 +80,7 @@ param_validation_by_val_type_router = {
     "mo_link": mo_link_validation,
     "prm_link": prm_link_validation,
     "sequence": sequence_validation,
+    "enum": str_validation,
 }
 
 

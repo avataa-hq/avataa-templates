@@ -65,4 +65,6 @@ class SQLAlchemyUoW(UoW):
             await self.session.flush()
 
     def get_session(self) -> AsyncSession:
+        if not self.session:
+            raise RuntimeError("Session not initialized")
         return self.session
