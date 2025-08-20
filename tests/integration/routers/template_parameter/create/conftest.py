@@ -18,9 +18,7 @@ from domain.shared.vo.template_id import TemplateId
 from domain.shared.vo.template_object_id import TemplateObjectId
 from domain.template_object.aggregate import TemplateObjectAggregate
 from domain.template_object.query import TemplateObjectReader
-from domain.template_parameter.aggregate import TemplateParameterAggregate
 from domain.template_parameter.command import TemplateParameterCreator
-from domain.template_parameter.vo.parameter_type_id import ParameterTypeId
 from models import TemplateObject, TemplateParameter
 
 
@@ -155,6 +153,28 @@ def mock_grpc_function():
             "required": False,
             "created_by": "test_client",
         },
+        {
+            "returnable": True,
+            "modified_by": "test_client",
+            "constraint": None,
+            "creation_date": datetime.datetime(2025, 8, 19, 12, 8, 42, 928290),
+            "prm_link_filter": None,
+            "modification_date": datetime.datetime(
+                2025, 8, 19, 12, 8, 42, 928313
+            ),
+            "description": None,
+            "group": None,
+            "backward_link": None,
+            "name": "Results",
+            "field_value": None,
+            "tmo_id": 46181,
+            "val_type": "bool",
+            "id": 141047,
+            "multiple": True,
+            "version": 1,
+            "required": False,
+            "created_by": "test_client",
+        },
     ]
     return mock
 
@@ -177,18 +197,6 @@ def fake_to_repo() -> AsyncMock:
 @pytest.fixture
 def fake_tp_repo() -> AsyncMock:
     repo = AsyncMock(spec=TemplateParameterCreator)
-    param_1 = TemplateParameterAggregate(
-        id=1,
-        template_object_id=TemplateObjectId(1),
-        parameter_type_id=ParameterTypeId(135_299),
-        value="123",
-        required=True,
-        val_type="str",
-        valid=True,
-        constraint=None,
-    )
-
-    repo.create_template_parameters.return_value = [param_1]
     return repo
 
 
@@ -225,10 +233,17 @@ def mock_grpc_new():
                 id=135299,
                 constraint=None,
             ),
-            141047: InventoryTprmAggregate(
-                val_type="str",
+            141046: InventoryTprmAggregate(
+                val_type="int",
                 required=False,
-                multiple=False,
+                multiple=True,
+                id=141046,
+                constraint=None,
+            ),
+            141047: InventoryTprmAggregate(
+                val_type="bool",
+                required=False,
+                multiple=True,
                 id=141047,
                 constraint=None,
             ),
