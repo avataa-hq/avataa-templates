@@ -10,10 +10,10 @@ dependencies = [
     "confluent-kafka[protobuf,schemaregistry]==2.11.1",
     "fastapi==0.116.1",
     "grpcio==1.64.1",
-    "protobuf==5.29.3",
+    "protobuf==5.29.5",
     "pydantic==2.11.7",
     "pydantic-settings==2.10.1",
-    "python-keycloak==5.8.0",
+    "python-keycloak==5.8.1",
     "sqlalchemy[asyncio]==2.0.43",
     "uvicorn==0.35.0",
 ]
