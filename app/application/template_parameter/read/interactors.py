@@ -16,7 +16,7 @@ from domain.template_parameter.query import TemplateParameterReader
 class TemplateParameterReaderInteractor(object):
     def __init__(self, repository: TemplateParameterReader):
         self._repository = repository
-        self.logger = getLogger("TemplateParameterReader")
+        self.logger = getLogger("TemplateParameterReaderInteractor")
 
     async def __call__(self, request: TemplateParameterRequestDTO) -> list:
         template_parameter_filters = template_parameter_filter_from_dto(request)

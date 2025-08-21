@@ -18,16 +18,16 @@ class TemplateObjectService(object):
         try:
             # Invalid objects
             template_objects = (
-                await self.template_object_repo.get_template_objects_by_id(
-                    object_type_ids=tmo_ids
+                await self.template_object_repo.get_template_objects_by_tmo_ids(
+                    tmo_ids=tmo_ids
                 )
             )
             await self.template_object_repo.set_template_objects_invalid(
                 template_objects=template_objects
             )
             # Invalid templates
-            templates = await self.template_repo.get_templates_by_id(
-                ids=tmo_ids
+            templates = await self.template_repo.get_templates_by_tmo_ids(
+                tmo_ids=tmo_ids
             )
             await self.template_repo.set_templates_invalid(templates=templates)
         except ValueError as ex:

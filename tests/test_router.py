@@ -47,4 +47,3 @@ async def test_registry_template(
     )
 
     assert response.status_code == 200
-    print(response.json())

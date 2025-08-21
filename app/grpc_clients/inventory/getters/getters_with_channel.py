@@ -1,6 +1,7 @@
 import pickle
 
 import grpc
+import grpc.aio
 
 from config import setup_config
 from grpc_clients.inventory.protobuf.mo_info import (

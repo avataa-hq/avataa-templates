@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 import grpc
+import grpc.aio
 
 
 @dataclass
@@ -13,6 +14,13 @@ class GRPCServiceConfig:
 class GRPCChannelManager:
     _channels: dict[str, grpc.Channel] = {}
     _services: dict[str, GRPCServiceConfig] = {}
+    _instance = None
+
+    @classmethod
+    def get_instance(cls) -> "GRPCChannelManager":
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
 
     @classmethod
     def register_service(cls, service_name: str, config: GRPCServiceConfig):
@@ -21,7 +29,7 @@ class GRPCChannelManager:
     @classmethod
     async def get_channel(cls, service_name: str) -> grpc.Channel:
         if service_name not in cls._services:
-            raise ValueError(f"Service {service_name} not registered")
+            raise ValueError(f"Service {service_name} not registered.")
 
         config = cls._services[service_name]
 

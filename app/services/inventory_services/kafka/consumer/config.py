@@ -28,16 +28,9 @@ class KeycloakConfig(BaseSettings):
 
     @computed_field  # type: ignore
     @property
-    def url(self) -> str:
+    def url(self):
         url = urlunparse(
-            (
-                str(self.protocol),
-                f"{self.host}:{self.port}",
-                "auth",
-                "",
-                "",
-                "",
-            )
+            (str(self.protocol), f"{self.host}:{self.port}", "auth", "", "", "")
         )
         return url
 
@@ -139,8 +132,8 @@ class KafkaConfig(BaseSettings):
         # print(f"KEYCLOAK TOKEN FOR KAFKA: ...{tkn['access_token'][-3:]} EXPIRED_TIME:{expires_in}.")
         return token, time.time() + expires_in
 
-    def model_dump(self: Self, **kwargs: Any) -> dict[str, Any]:
-        data = super().model_dump(**kwargs)
+    def get_config(self: Self, **kwargs: Any) -> dict[str, Any]:
+        data = self.model_dump(**kwargs)
         data["security.protocol"] = self.security_protocol
         return data
 

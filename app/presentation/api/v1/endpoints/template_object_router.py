@@ -1,6 +1,4 @@
-from typing import (
-    Annotated,
-)
+from typing import Annotated
 
 from fastapi import (
     APIRouter,
@@ -11,24 +9,24 @@ from fastapi import (
     Response,
     status,
 )
-from presentation.api.depends_stub import Stub
-from presentation.api.v1.endpoints.consts import USER_REQUEST_MESSAGE
-from presentation.api.v1.endpoints.dto import (
-    TemplateObjectSearchRequest,
-    TemplateObjectSearchResponse,
-)
 from pydantic import ValidationError
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from application.common.uow import SQLAlchemyUoW, UoW
 from application.template_object.read.exceptions import (
     TemplateObjectReaderApplicationException,
 )
 from application.template_object.read.interactors import (
     TemplateObjectReaderInteractor,
 )
+from di import get_async_session, read_template_object_interactor
 from exceptions import (
     InvalidHierarchy,
     TemplateObjectNotFound,
+)
+from presentation.api.v1.endpoints.consts import USER_REQUEST_MESSAGE
+from presentation.api.v1.endpoints.dto import (
+    TemplateObjectSearchRequest,
+    TemplateObjectSearchResponse,
 )
 from schemas.template_schemas import (
     TemplateObjectUpdateInput,
@@ -50,7 +48,7 @@ async def get_template_objects(
     request: Annotated[TemplateObjectSearchRequest, Query()],
     interactor: Annotated[
         TemplateObjectReaderInteractor,
-        Depends(Stub(TemplateObjectReaderInteractor)),
+        Depends(read_template_object_interactor),
     ],
 ) -> list[TemplateObjectSearchResponse]:
     try:
@@ -81,15 +79,17 @@ async def update_template_object(
     object_data: Annotated[
         TemplateObjectUpdateInput,
         Body(
-            example={
-                "required": True,
-                "parent_object_id": 1,
-            }
+            examples=[
+                {
+                    "required": True,
+                    "parent_object_id": 1,
+                }
+            ]
         ),
     ],
-    db: Annotated[SQLAlchemyUoW, Depends(Stub(UoW))],
+    db: Annotated[AsyncSession, Depends(get_async_session)],
 ) -> TemplateObjectUpdateOutput:
-    service = TemplateObjectService(db.session)
+    service = TemplateObjectService(db)
 
     try:
         obj = await service.update_template_object(
@@ -110,9 +110,9 @@ async def update_template_object(
 )
 async def delete_template_object(
     object_id: int,
-    db: Annotated[SQLAlchemyUoW, Depends(Stub(UoW))],
+    db: Annotated[AsyncSession, Depends(get_async_session)],
 ) -> Response:
-    service = TemplateObjectService(db.session)
+    service = TemplateObjectService(db)
 
     try:
         await service.delete_template_object(object_id)

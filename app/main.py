@@ -1,4 +1,11 @@
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from config import setup_config
+from infrastructure.grpc.config import cleanup_grpc_services, init_grpc_services
+from init_app import create_app
 from presentation.api.v1.endpoints import (
     template_object_router,
     template_parameter_router,
@@ -6,9 +13,13 @@ from presentation.api.v1.endpoints import (
     template_router,
 )
 
-from config import setup_config
-from di import init_dependencies
-from init_app import create_app
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_grpc_services()
+    yield
+    await cleanup_grpc_services()
+
 
 app_title = setup_config().app.app_title
 prefix = setup_config().app.prefix
@@ -19,6 +30,7 @@ app = create_app(
     root_path=prefix,
     title=app_title,
     version=app_version,
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -44,4 +56,3 @@ v1_app.include_router(template_object_router.router)
 v1_app.include_router(template_router.router)
 
 app.mount(f"/v{app_version}", v1_app)
-init_dependencies(v1_app)

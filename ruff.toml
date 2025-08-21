@@ -77,7 +77,7 @@ from-first = false
 order-by-type = true
 
 known-first-party = [
-    "application", "domain",  "grpc_clients", "infrastructure", "presentations",
+    "application", "domain",  "grpc_clients", "infrastructure", "presentation",
     "schemas", "services", "utils",
     "config", "database", "di", "exceptions",
     "init_app", "models", "run_kafka_cons"

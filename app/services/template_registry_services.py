@@ -212,13 +212,13 @@ class TemplateRegistryService:
                 object_type_id=template_object_data.object_type_id,
                 parent_object_type_id=parent_object_type_id,
             )
-
-            db_template_object = TemplateObject(
-                object_type_id=template_object_data.object_type_id,
-                required=template_object_data.required,
-                template_id=template_id,
-                parent_object_id=parent_id,
+            object_data = template_object_data.model_dump(
+                exclude={"children", "parameters"}
             )
+            object_data["template_id"] = template_id
+            object_data["parent_object_id"] = parent_id
+
+            db_template_object = TemplateObject(**object_data)
             self.db.add(db_template_object)
             await self.db.flush()
             await self.db.refresh(db_template_object)
@@ -278,19 +278,18 @@ class TemplateRegistryService:
                 "val_type"
             ]
 
-            db_parameter = TemplateParameter(
-                parameter_type_id=parameter.parameter_type_id,
-                value=parameter.value,
-                constraint=parameter.constraint,
-                required=parameter.required,
-                template_object_id=template_object_id,
-                val_type=val_type,
-            )
+            parameter_data = parameter.model_dump()
+            parameter_data["val_type"] = val_type
+            parameter_data["template_object_id"] = template_object_id
+
+            db_parameter = TemplateParameter(**parameter_data)
             self.db.add(db_parameter)
             await self.db.flush()
             await self.db.refresh(db_parameter)
 
-            parameters.append(TemplateParameterOutput(**db_parameter.__dict__))
+            parameters.append(
+                TemplateParameterOutput.model_validate(db_parameter.__dict__)
+            )
         return parameters
 
     async def get_template_or_raise(self, template_id: int) -> Template:

@@ -1,6 +1,5 @@
-from typing import Callable, Self
+from typing import Callable, Self, Union
 
-from confluent_kafka import cimpl
 from typing_extensions import Any
 
 from services.inventory_services.db_services import (
@@ -18,52 +17,21 @@ from services.inventory_services.kafka.consumer.deserializer import (
 from services.inventory_services.kafka.consumer.msg_protocol import (
     KafkaMSGProtocol,
 )
+from services.inventory_services.kafka.consumer.protobuf import obj_pb2
+
+KafkaMessage = Union[
+    obj_pb2.ListMO, obj_pb2.ListTMO, obj_pb2.ListTPRM, obj_pb2.ListPRM
+]
 
 
 class InventoryChangesHandler(object):
-    def __init__(self, kafka_msg: KafkaMSGProtocol):
+    def __init__(self: Self, kafka_msg: KafkaMSGProtocol, key: str):
         self.msg = kafka_msg
-        self.msg_instance_class_name = None
-        self.msg_instance_event = None
-        self.allowed_msg_class_name = [
-            "TMO",
-            "TPRM",
-        ]
-        self.allowed_msg_event = [
-            "deleted",
-            "updated",
-        ]
-
-    def clear_msg_data(self: Self) -> None:
-        """Clears the message data, if successful, change self.msg_instance_class_name and self.msg_instance_event,
-        otherwise self.msg_instance_class_name and self.msg_instance_event will be None
-        """
-        msg_key = getattr(self.msg, "key", None)
-        if msg_key is None:
-            return
-
-        msg_key = msg_key()
-        if msg_key is None:
-            return
-
-        # msg_key in this case must be bytes
-        msg_key = msg_key.decode("utf-8")
-        if msg_key.find(":") == -1:
-            return
-
-        msg_class_name, msg_event = msg_key.split(":")
-        if (
-            msg_class_name
-            and msg_event
-            and msg_class_name in self.allowed_msg_class_name
-            and msg_event in self.allowed_msg_event
-        ):
-            self.msg_instance_class_name = msg_class_name
-            self.msg_instance_event = msg_event
+        self.msg_instance_class_name, self.msg_instance_event = key.split(":")
 
     def __from_bytes_to_python_proto_model_msg(
         self,
-    ) -> cimpl.Message:
+    ) -> type[KafkaMessage]:
         if not self.msg_instance_class_name:
             raise NotImplementedError(
                 f"Proto model deserializer does not implemented"
@@ -84,7 +52,7 @@ class InventoryChangesHandler(object):
 
     @staticmethod
     def __deserialize_to_dict(
-        deserializer_instance: cimpl.Message,
+        deserializer_instance: type[KafkaMessage],
         including_default_value_fields: bool = True,
     ) -> dict[str, list[dict[str, str]]]:
         return protobuf_kafka_msg_to_dict(
@@ -127,19 +95,17 @@ class InventoryChangesHandler(object):
         template_object_service: TemplateObjectService,
         template_parameter_service: TemplateParameterService,
     ):
-        self.clear_msg_data()
-        if self.msg_instance_class_name:
-            deserialized_msg = self.__from_bytes_to_python_proto_model_msg()
+        deserialized_msg = self.__from_bytes_to_python_proto_model_msg()
 
-            if deserialized_msg:
-                deserialized_msg = self.__deserialize_to_dict(
-                    deserializer_instance=deserialized_msg
-                )
-            else:
-                return
-            handler = self.__get_event_handler()
-            await handler(
-                msg=deserialized_msg,
-                template_object_service=template_object_service,
-                template_parameter_service=template_parameter_service,
+        if deserialized_msg:
+            dict_msg = self.__deserialize_to_dict(
+                deserializer_instance=deserialized_msg
             )
+        else:
+            return
+        handler = self.__get_event_handler()
+        await handler(
+            msg=dict_msg,
+            template_object_service=template_object_service,
+            template_parameter_service=template_parameter_service,
+        )

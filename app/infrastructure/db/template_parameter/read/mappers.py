@@ -1,3 +1,4 @@
+from dataclasses import fields
 from typing import Type
 
 from sqlalchemy import Select
@@ -20,11 +21,11 @@ def template_parameter_filter_to_sql_query(
 ) -> Select[tuple[TemplateParameter]]:
     clauses = []
     exclude_fields = ["limit", "offset"]
-    for field in vo.__slots__:
-        if field not in exclude_fields:
-            value = getattr(vo, field)
+    for f in fields(vo):
+        if f.name not in exclude_fields:
+            value = getattr(vo, f.name)
             if value is not None:
-                clauses.append(getattr(model, field) == value)
+                clauses.append(getattr(model, f.name) == value)
     query.limit(vo.limit)
     query.offset(vo.offset)
     return query.where(*clauses)

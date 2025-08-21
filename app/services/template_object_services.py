@@ -152,7 +152,7 @@ class TemplateObjectService:
         return TemplateObjectUpdateOutput(
             id=object.id,
             object_type_id=object.object_type_id,
-            parent_id=object.parent_object_id,
+            parent_object_id=object.parent_object_id,
             required=object.required,
             valid=object.valid,
         )
