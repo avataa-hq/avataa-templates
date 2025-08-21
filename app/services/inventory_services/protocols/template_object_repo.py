@@ -57,3 +57,20 @@ class TemplateObjectRepo(object):
                 for template_obj in result
             ]
         return []
+
+    @handle_db_exceptions
+    async def get_template_objects_by_tmo_ids(
+        self, tmo_ids: list[int]
+    ) -> list[TemplateObjectAggregate]:
+        stmt = select(TemplateObject).where(
+            TemplateObject.object_type_id.in_(tmo_ids)
+        )
+        result: Sequence[TemplateObject] = (
+            await self.session.scalars(statement=stmt)
+        ).all()
+        if result:
+            return [
+                TemplateObjectAggregate.from_db(template_obj)
+                for template_obj in result
+            ]
+        return []

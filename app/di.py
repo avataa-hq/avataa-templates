@@ -1,15 +1,7 @@
-from functools import partial
-from logging import getLogger
 from typing import AsyncGenerator
 
-from fastapi import Depends, FastAPI
-from presentation.api.depends_stub import Stub
-from sqlalchemy.ext.asyncio import (
-    AsyncEngine,
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.common.uow import SQLAlchemyUoW, UoW
 from application.template.read.interactors import TemplateReaderInteractor
@@ -22,9 +14,11 @@ from application.template_parameter.create.interactors import (
 from application.template_parameter.read.interactors import (
     TemplateParameterReaderInteractor,
 )
-from config import setup_config
+from database import get_session_factory
 from domain.inventory_tprm.query import TPRMReader
+from domain.template.query import TemplateReader
 from domain.template_object.query import TemplateObjectReader
+from domain.template_parameter.command import TemplateParameterCreator
 from domain.template_parameter.query import TemplateParameterReader
 from infrastructure.db.template.read.gateway import SQLTemplateReaderRepository
 from infrastructure.db.template_object.read.gateway import (
@@ -36,78 +30,65 @@ from infrastructure.db.template_parameter.create.gateway import (
 from infrastructure.db.template_parameter.read.gateway import (
     SQLTemplateParameterReaderRepository,
 )
-from infrastructure.grpc.config import init_grpc_services
 from infrastructure.grpc.tprm.read.gateway import GrpcTPRMReaderRepository
 
-logger = getLogger(__name__)
 
-
-def create_engine() -> AsyncEngine:
-    engine = create_async_engine(
-        url=setup_config().DATABASE_URL.unicode_string(),
-        echo=True,
-        max_overflow=15,
-        pool_size=15,
-        pool_pre_ping=True,
-        connect_args={
-            "server_settings": {
-                "application_name": "Object Template MS",
-                "search_path": setup_config().db.schema_name,
-            },
-        },
-    )
-    return engine
-
-
-def build_session_factory(
-    engine: AsyncEngine,
-) -> async_sessionmaker[AsyncSession]:
-    return async_sessionmaker(
-        bind=engine,
-        autoflush=False,
-        expire_on_commit=False,
-    )
-
-
-async def get_session(
-    session_factory: async_sessionmaker[AsyncSession],
-) -> AsyncGenerator[AsyncSession, None]:
+# Common
+async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
+    session_factory = get_session_factory()
     async with session_factory() as session:
-        logger.info("Create DB session.")
         try:
             yield session
+        except Exception:
+            await session.rollback()
+            raise
         finally:
-            logger.info("Close DB session.")
+            await session.close()
 
 
-async def get_uow(
-    session_factory: async_sessionmaker[AsyncSession],
-) -> AsyncGenerator[UoW, None]:
-    async with SQLAlchemyUoW(session_factory=session_factory) as uow:
-        yield uow
+def get_unit_of_work(session: AsyncSession = Depends(get_async_session)) -> UoW:
+    return SQLAlchemyUoW(session)
 
 
 def get_inventory_repository() -> TPRMReader:
     return GrpcTPRMReaderRepository()
 
 
-def read_template_interactor(
-    session: AsyncSession = Depends(Stub(AsyncSession)),
-) -> TemplateReaderInteractor:
-    repository = SQLTemplateReaderRepository(session)
-    return TemplateReaderInteractor(repository)
+# Template Repo
+async def get_template_reader_repository(
+    session: AsyncSession = Depends(get_async_session),
+) -> TemplateReader:
+    return SQLTemplateReaderRepository(session)
 
 
+# Template object Repo
 def get_template_object_reader_repository(
-    session: AsyncSession = Depends(Stub(AsyncSession)),
+    session: AsyncSession = Depends(get_async_session),
 ) -> TemplateObjectReader:
     return SQLTemplateObjectReaderRepository(session)
 
 
+# Template parameter Repo
+def get_template_parameter_creator_repository(
+    session: AsyncSession = Depends(get_async_session),
+) -> TemplateParameterCreator:
+    return SQLTemplateParameterCreatorRepository(session)
+
+
 def get_template_parameter_reader_repository(
-    session: AsyncSession = Depends(Stub(AsyncSession)),
+    session: AsyncSession = Depends(get_async_session),
 ) -> TemplateParameterReader:
     return SQLTemplateParameterReaderRepository(session)
+
+
+# Template Interactor
+def read_template_interactor(
+    repository: TemplateReader = Depends(get_template_reader_repository),
+) -> TemplateReaderInteractor:
+    return TemplateReaderInteractor(repository)
+
+
+# Template object Interactor
 
 
 def read_template_object_interactor(
@@ -123,63 +104,28 @@ def read_template_object_interactor(
     )
 
 
-def read_template_parameter_interactor(
-    session: AsyncSession = Depends(Stub(AsyncSession)),
-) -> TemplateParameterReaderInteractor:
-    repository = SQLTemplateParameterReaderRepository(session)
-    return TemplateParameterReaderInteractor(repository)
-
-
+# Template parameter Interactor
 def create_template_parameter_interactor(
-    uow: UoW = Depends(),
+    uow: UoW = Depends(get_unit_of_work),
     to_repo: TemplateObjectReader = Depends(
         get_template_object_reader_repository
     ),
+    tp_repo: TemplateParameterCreator = Depends(
+        get_template_parameter_creator_repository
+    ),
     inventory_repo: TPRMReader = Depends(get_inventory_repository),
 ) -> TemplateParameterCreatorInteractor:
-    repository = SQLTemplateParameterCreatorRepository(uow.get_session())
     return TemplateParameterCreatorInteractor(
         to_repo=to_repo,
-        tp_repo=repository,
+        tp_repo=tp_repo,
         inventory_tprm_repo=inventory_repo,
         uow=uow,
     )
 
 
-def init_dependencies(app: FastAPI) -> None:
-    db_engine = create_engine()
-    session_factory = build_session_factory(engine=db_engine)
-    init_grpc_services()
-
-    app.dependency_overrides[async_sessionmaker[AsyncSession]] = (
-        lambda: session_factory
-    )
-    app.dependency_overrides[AsyncSession] = partial(
-        get_session, session_factory
-    )
-    app.dependency_overrides[UoW] = partial(get_uow, session_factory)
-
-    app.dependency_overrides[TPRMReader] = get_inventory_repository
-
-    app.dependency_overrides[TemplateReaderInteractor] = (
-        read_template_interactor
-    )
-
-    app.dependency_overrides[TemplateObjectReader] = (
-        get_template_object_reader_repository
-    )
-    app.dependency_overrides[TemplateParameterReader] = (
+def read_template_parameter_interactor(
+    tp_repo: TemplateParameterReader = Depends(
         get_template_parameter_reader_repository
-    )
-
-    app.dependency_overrides[TemplateObjectReaderInteractor] = (
-        read_template_object_interactor
-    )
-
-    app.dependency_overrides[TemplateParameterReaderInteractor] = (
-        read_template_parameter_interactor
-    )
-
-    app.dependency_overrides[TemplateParameterCreatorInteractor] = (
-        create_template_parameter_interactor
-    )
+    ),
+) -> TemplateParameterReaderInteractor:
+    return TemplateParameterReaderInteractor(tp_repo)

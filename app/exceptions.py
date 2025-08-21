@@ -69,7 +69,7 @@ class InvalidParameterValue(Exception):
         object_type_id: int,
         tprm_val_type: str,
         tprm_is_multiple: bool,
-        value: str,
+        value: str | None,
     ) -> None:
         # self.parameter_type_id = parameter_type_id
         # self.object_type_id = object_type_id
@@ -86,8 +86,8 @@ class ValueConstraintException(Exception):
         self,
         parameter_type_id: int,
         object_type_id: int,
-        value: str,
-        constraint: str,
+        value: str | None,
+        constraint: str | None,
         tprm_val_type: str,
         tprm_is_multiple: bool,
     ) -> None:

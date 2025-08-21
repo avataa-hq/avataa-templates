@@ -58,7 +58,7 @@ class TemplateObject(Base):
         ),
         nullable=False,
     )
-    parent_object_id: Mapped[int] = mapped_column(
+    parent_object_id: Mapped[int | None] = mapped_column(
         ForeignKey(
             column="template_object.id",
             ondelete="CASCADE",
@@ -112,7 +112,7 @@ class TemplateParameter(Base):
     )
     parameter_type_id: Mapped[int] = mapped_column(nullable=False)
     value: Mapped[str] = mapped_column(nullable=True)
-    constraint: Mapped[str] = mapped_column(nullable=True)
+    constraint: Mapped[str | None] = mapped_column(nullable=True)
     val_type: Mapped[str] = mapped_column(nullable=False)
 
     # Relationships

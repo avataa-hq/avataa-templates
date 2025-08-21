@@ -3,10 +3,9 @@ from unittest.mock import AsyncMock, Mock
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from application.common.uow import UoW
 from config import setup_config
+from di import get_async_session, get_unit_of_work
 from models import TemplateParameter
 
 
@@ -15,10 +14,6 @@ from models import TemplateParameter
 def app():
     v1_prefix = f"{setup_config().app.prefix}/v{setup_config().app.app_version}"
     _app = FastAPI(root_path=v1_prefix)
-
-    from di import init_dependencies
-
-    init_dependencies(_app)
 
     from presentation.api.v1.endpoints.template_parameter_router import router
 
@@ -92,8 +87,8 @@ def mock_db():
 
 @pytest.fixture
 async def http_client(app, mock_db):
-    app.dependency_overrides[UoW] = lambda: mock_db
-    app.dependency_overrides[AsyncSession] = lambda: mock_db
+    app.dependency_overrides[get_unit_of_work] = lambda: mock_db
+    app.dependency_overrides[get_async_session] = lambda: mock_db
     # app.dependency_overrides[oauth2_scheme] = lambda: mock_auth
 
     async with AsyncClient(

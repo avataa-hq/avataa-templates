@@ -16,8 +16,8 @@ from testcontainers.postgres import (
     PostgresContainer,
 )
 
-from application.common.uow import SQLAlchemyUoW, UoW
 from config import setup_config
+from di import get_async_session
 from models import Base
 
 
@@ -58,20 +58,21 @@ async def test_engine(db_url) -> AsyncIterator[AsyncEngine]:
 @pytest_asyncio.fixture(scope="function", loop_scope="function")
 async def test_session(
     test_engine: AsyncEngine,
-) -> AsyncIterator[AsyncSession]:
+):
     """Create test database session"""
-    async_session = async_sessionmaker(
+    session_factory = async_sessionmaker(
         bind=test_engine,
         class_=AsyncSession,
         expire_on_commit=False,
     )
-
-    async with SQLAlchemyUoW(session_factory=async_session) as uow:
-        yield uow
+    async with session_factory() as session:
         try:
-            await uow.rollback()
+            yield session
+        except Exception:
+            await session.rollback()
+            raise
         finally:
-            await uow.close()
+            await session.close()
 
 
 # only for pytest-asyncio 0.21/0.23
@@ -107,7 +108,7 @@ async def mock_grpc_response() -> AsyncIterator:
 
 @pytest_asyncio.fixture(scope="function", loop_scope="function")
 async def app(test_session, mock_grpc_response, test_engine) -> FastAPI:
-    real_app.dependency_overrides[UoW] = lambda: test_session
+    real_app.dependency_overrides[get_async_session] = lambda: test_session
     return real_app
 
 

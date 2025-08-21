@@ -9,37 +9,35 @@ from fastapi import (
     Response,
     status,
 )
-from presentation.api.depends_stub import Stub
+from pydantic import ValidationError
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from application.template.read.exceptions import TemplateApplicationException
+from application.template.read.interactors import TemplateReaderInteractor
+from di import get_async_session, read_template_interactor
+from exceptions import (
+    TemplateNotFound,
+    TMOIdNotFoundInInventory,
+)
 from presentation.api.v1.endpoints.consts import USER_REQUEST_MESSAGE
 from presentation.api.v1.endpoints.dto import (
     TemplateRequest,
     TemplateResponse,
     TemplateResponseDate,
 )
-from pydantic import ValidationError
-
-from application.common.uow import SQLAlchemyUoW, UoW
-from application.template.read.exceptions import TemplateApplicationException
-from application.template.read.interactors import TemplateReaderInteractor
-from exceptions import (
-    TemplateNotFound,
-    TMOIdNotFoundInInventory,
-)
 from schemas.template_schemas import (
     SimpleTemplateOutput,
     TemplateUpdateInput,
     TemplateUpdateOutput,
 )
-from services.template_services import (
-    TemplateService,
-)
+from services.template_services import TemplateService
 
 router = APIRouter(tags=["template"])
 
 
 @router.get("/templates")
 async def get_templates(
-    db: Annotated[SQLAlchemyUoW, Depends(Stub(UoW))],
+    db: Annotated[AsyncSession, Depends(get_async_session)],
     limit: Optional[int] = Query(
         None,
         ge=1,
@@ -52,7 +50,7 @@ async def get_templates(
         description="Number of templates to skip",
     ),
 ) -> List[SimpleTemplateOutput]:
-    service = TemplateService(db.session)
+    service = TemplateService(db)
     result = await service.get_templates(limit=limit, offset=offset)
     return result
 
@@ -63,7 +61,7 @@ async def get_templates(
 async def get_templates_by_filter(
     request: TemplateRequest,
     interactor: Annotated[
-        TemplateReaderInteractor, Depends(Stub(TemplateReaderInteractor))
+        TemplateReaderInteractor, Depends(read_template_interactor)
     ],
 ) -> TemplateResponse:
     try:
@@ -95,16 +93,18 @@ async def update_template(
     template_data: Annotated[
         TemplateUpdateInput,
         Body(
-            example={
-                "name": "Template Name X",
-                "owner": "Updated Owner",
-                "object_type_id": 1,
-            }
+            examples=[
+                {
+                    "name": "Template Name X",
+                    "owner": "Updated Owner",
+                    "object_type_id": 1,
+                }
+            ]
         ),
     ],
-    db: Annotated[SQLAlchemyUoW, Depends(Stub(UoW))],
+    db: Annotated[AsyncSession, Depends(get_async_session)],
 ) -> TemplateUpdateOutput:
-    service = TemplateService(db.session)
+    service = TemplateService(db)
 
     try:
         template = await service.update_template(
@@ -125,9 +125,9 @@ async def update_template(
 )
 async def delete_template(
     template_id: int,
-    db: Annotated[SQLAlchemyUoW, Depends(Stub(UoW))],
+    db: Annotated[AsyncSession, Depends(get_async_session)],
 ) -> Response:
-    service = TemplateService(db.get_session())
+    service = TemplateService(db)
 
     try:
         await service.delete_template(template_id)

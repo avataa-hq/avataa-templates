@@ -1,13 +1,13 @@
 import asyncio
+from datetime import datetime
 import functools
 from time import sleep
 
 from confluent_kafka import Consumer, KafkaException, TopicPartition
 from confluent_kafka.admin import TopicMetadata
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from application.common.uow import SQLAlchemyUoW
-from di import build_session_factory, create_engine
+from database import get_session_factory
 from services.inventory_services.db_services import (
     TemplateObjectService,
     TemplateParameterService,
@@ -25,8 +25,7 @@ from services.inventory_services.kafka.consumer.utils import (
 
 async def run_kafka_cons_inv() -> None:
     kafka_config = KafkaConfig()
-    engine = create_engine()
-    session_factory = build_session_factory(engine=engine)
+
     if not kafka_config.turn_on:
         print("kafka turn off")
         return
@@ -45,7 +44,7 @@ async def run_kafka_cons_inv() -> None:
                 "oauth_cb",
             }
         )
-    consumer_config = kafka_config.model_dump(
+    consumer_config = kafka_config.get_config(
         by_alias=True,
         exclude_none=True,
         include=dump_set,
@@ -67,9 +66,19 @@ async def run_kafka_cons_inv() -> None:
             msg = await loop.run_in_executor(None, poll)
             if msg is None:
                 continue
-            success = await process_single_message(
-                message=msg, session_factory=session_factory
-            )
+            if not msg.key:
+                kafka_inventory_changes_consumer.commit(
+                    asynchronous=True, message=msg
+                )
+                continue
+            key = parse_key_message(msg.key())
+            if not is_relevant_message_type(key):
+                kafka_inventory_changes_consumer.commit(
+                    asynchronous=True, message=msg
+                )
+                print(f"{datetime.now()} Skip message {msg.offset()}")
+                continue
+            success = await process_single_message(message=msg, key=key)
             if success:
                 kafka_inventory_changes_consumer.commit(
                     asynchronous=True, message=msg
@@ -83,28 +92,31 @@ async def run_kafka_cons_inv() -> None:
         print("Kafka consumer - end")
 
 
-async def process_single_message(
-    message: KafkaMSGProtocol, session_factory: async_sessionmaker[AsyncSession]
-) -> bool:
-    async with SQLAlchemyUoW(session_factory=session_factory) as uow:
+async def process_single_message(message: KafkaMSGProtocol, key: str) -> bool:
+    handler_inst = InventoryChangesHandler(kafka_msg=message, key=key)
+    session_factory = get_session_factory()
+
+    async with session_factory() as session:
         try:
+            uow = SQLAlchemyUoW(session)
             template_object_service = TemplateObjectService(session=uow.session)
             template_parameter_service = TemplateParameterService(
                 session=uow.session
             )
 
-            handler_inst = InventoryChangesHandler(kafka_msg=message)
             await handler_inst.process_the_message(
                 template_object_service=template_object_service,
                 template_parameter_service=template_parameter_service,
             )
-
+            await uow.commit()
             print(f"Successfully processed message: {message.offset()}")
-            return True
-
         except Exception as ex:
-            print(f"Error processing message {message.offset()}: {ex}")
+            print(f"Error processing message  {message.offset()}: {ex}.")
+            await uow.rollback()
             return False
+    if session.is_active:
+        await uow.rollback()
+    return True
 
 
 def on_assign(consumer: Consumer, partitions: list[TopicPartition]) -> None:
@@ -152,6 +164,31 @@ def check_topic_existence(consumer: Consumer, topic: str) -> None:
         except Exception as ex:
             print(f"Python Exception on Start: {ex}")
             sleep(60)
+
+
+def parse_key_message(key: bytes) -> str:
+    """Return 'TMO:delete' or empty string"""
+    result = ""
+    if key is None:
+        return result
+    decoded_msg_key = key.decode("utf-8")
+    if decoded_msg_key.find(":") == -1:
+        print("Message key is not correct for this MS.")
+        return result
+    return decoded_msg_key
+
+
+def is_relevant_message_type(key: str) -> bool:
+    relevant: bool = False
+    allowed_keys: set[str] = {
+        "TMO:updated",
+        "TMO:deleted",
+        "TPRM:updated",
+        "TPRM:deleted",
+    }
+    if key in allowed_keys:
+        relevant = True
+    return relevant
 
 
 if __name__ == "__main__":

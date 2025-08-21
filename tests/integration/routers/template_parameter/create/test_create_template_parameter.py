@@ -1,3 +1,5 @@
+from unittest.mock import AsyncMock
+
 from httpx import AsyncClient
 import pytest
 
@@ -14,11 +16,15 @@ def url() -> str:
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_create_template_parameter(
-    http_client: AsyncClient, url: str, fake_tp_repo
+    http_client: AsyncClient,
+    url: str,
+    fake_tp_repo: AsyncMock,
+    fake_to_repo: AsyncMock,
 ):
     template_object_id = 1
     tprm_id = 135_299
     val = "123"
+    full_url = f"{url}/{template_object_id}"
     param_1 = TemplateParameterAggregate(
         id=1,
         template_object_id=TemplateObjectId(template_object_id),
@@ -30,7 +36,8 @@ async def test_create_template_parameter(
         constraint=None,
     )
     fake_tp_repo.create_template_parameters.return_value = [param_1]
-    full_url = f"{url}/{template_object_id}/"
+
+    fake_to_repo.get_object_type_by_id.return_value = 46_181
     request = [{"parameter_type_id": tprm_id, "value": val, "required": True}]
     response = [
         {
@@ -51,9 +58,14 @@ async def test_create_template_parameter(
 @pytest.mark.asyncio(loop_scope="session")
 @pytest.mark.parametrize("val", ["[False, True]", "[false, true]"])
 async def test_create_template_parameter_multiple_bool(
-    http_client: AsyncClient, url: str, fake_tp_repo, val: str
+    http_client: AsyncClient,
+    url: str,
+    fake_tp_repo: AsyncMock,
+    val: str,
+    fake_to_repo: AsyncMock,
 ):
     template_object_id = 1
+    full_url = f"{url}/{template_object_id}"
     tprm_id = 141_047
     param_1 = TemplateParameterAggregate(
         id=1,
@@ -66,7 +78,8 @@ async def test_create_template_parameter_multiple_bool(
         constraint=None,
     )
     fake_tp_repo.create_template_parameters.return_value = [param_1]
-    full_url = f"{url}/{template_object_id}/"
+    fake_to_repo.get_object_type_by_id.return_value = 46_181
+
     request = [{"parameter_type_id": tprm_id, "value": val, "required": False}]
     response = [
         {

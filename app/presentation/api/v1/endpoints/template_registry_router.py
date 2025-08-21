@@ -1,15 +1,9 @@
 from typing import Annotated, List, Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, status
-from presentation.api.depends_stub import Stub
-from presentation.api.v1.endpoints.consts import USER_REQUEST_MESSAGE
-from presentation.api.v1.endpoints.dto import (
-    TemplateParameterCreateResponse,
-    TemplateParameterData,
-)
 from pydantic import ValidationError
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from application.common.uow import SQLAlchemyUoW, UoW
 from application.template_parameter.create.dto import (
     TemplateParameterCreateRequestDTO,
 )
@@ -19,6 +13,7 @@ from application.template_parameter.create.exceptions import (
 from application.template_parameter.create.interactors import (
     TemplateParameterCreatorInteractor,
 )
+from di import create_template_parameter_interactor, get_async_session
 from exceptions import (
     InvalidHierarchy,
     InvalidParameterValue,
@@ -29,15 +24,18 @@ from exceptions import (
     TPRMNotFoundInInventory,
     ValueConstraintException,
 )
+from presentation.api.v1.endpoints.consts import USER_REQUEST_MESSAGE
+from presentation.api.v1.endpoints.dto import (
+    TemplateParameterCreateResponse,
+    TemplateParameterData,
+)
 from schemas.template_schemas import (
     TemplateInput,
     TemplateObjectInput,
     TemplateObjectOutput,
     TemplateOutput,
 )
-from services.template_registry_services import (
-    TemplateRegistryService,
-)
+from services.template_registry_services import TemplateRegistryService
 
 router = APIRouter(tags=["template-registry"])
 
@@ -47,49 +45,51 @@ async def create_template(
     template_data: Annotated[
         TemplateInput,
         Body(
-            example={
-                "name": "Template Name",
-                "owner": "Admin",
-                "object_type_id": 1,
-                "template_objects": [
-                    {
-                        "object_type_id": 46181,
-                        "required": True,
-                        "parameters": [
-                            {
-                                "parameter_type_id": 135296,
-                                "value": "Value 1",
-                                "constraint": "Value 1",
-                                "required": True,
-                            },
-                            {
-                                "parameter_type_id": 135297,
-                                "value": "[1, 2]",
-                                "required": False,
-                            },
-                            {
-                                "parameter_type_id": 135298,
-                                "value": "1234567",
-                                "constraint": None,
-                                "required": False,
-                            },
-                        ],
-                        # "children": [
-                        #     {
-                        #         "object_type_id": 3,
-                        #         "required": False,
-                        #         "parameters": [],
-                        #         "children": []
-                        #     }
-                        # ]
-                    }
-                ],
-            }
+            examples=[
+                {
+                    "name": "Template Name",
+                    "owner": "Admin",
+                    "object_type_id": 1,
+                    "template_objects": [
+                        {
+                            "object_type_id": 46181,
+                            "required": True,
+                            "parameters": [
+                                {
+                                    "parameter_type_id": 135296,
+                                    "value": "Value 1",
+                                    "constraint": "Value 1",
+                                    "required": True,
+                                },
+                                {
+                                    "parameter_type_id": 135297,
+                                    "value": "[1, 2]",
+                                    "required": False,
+                                },
+                                {
+                                    "parameter_type_id": 135298,
+                                    "value": "1234567",
+                                    "constraint": None,
+                                    "required": False,
+                                },
+                            ],
+                            # "children": [
+                            #     {
+                            #         "object_type_id": 3,
+                            #         "required": False,
+                            #         "parameters": [],
+                            #         "children": []
+                            #     }
+                            # ]
+                        }
+                    ],
+                }
+            ]
         ),
     ],
-    db: Annotated[SQLAlchemyUoW, Depends(Stub(UoW))],
+    db: Annotated[AsyncSession, Depends(get_async_session)],
 ) -> TemplateOutput:
-    service = TemplateRegistryService(db.session)
+    service = TemplateRegistryService(db)
     try:
         template = await service.create_template(template_data)
     except TMOIdNotFoundInInventory as e:
@@ -122,17 +122,20 @@ async def create_template(
         raise HTTPException(status_code=422, detail=str(e))
     except ValueConstraintException as e:
         raise HTTPException(status_code=422, detail=str(e))
+    except Exception as ex:
+        print(ex)
+        raise HTTPException(status_code=422, detail=str(ex))
     await service.commit_changes()
     return template
 
 
-@router.post("/add-objects/{template_id}/")
+@router.post("/add-objects/{template_id}")
 async def add_objects(
     template_id: int,
     objects_data: Annotated[
         List[TemplateObjectInput],
         Body(
-            example=[
+            examples=[
                 {
                     "object_type_id": 46181,
                     "required": True,
@@ -154,10 +157,10 @@ async def add_objects(
             ]
         ),
     ],
-    db: Annotated[SQLAlchemyUoW, Depends(Stub(UoW))],
+    db: Annotated[AsyncSession, Depends(get_async_session)],
     parent_id: Optional[int] = None,
 ) -> List[TemplateObjectOutput]:
-    service = TemplateRegistryService(db.session)
+    service = TemplateRegistryService(db)
 
     try:
         await service.get_template_or_raise(template_id)
@@ -225,7 +228,7 @@ async def add_objects(
 
 
 @router.post(
-    "/add-parameters/{template_object_id}/",
+    "/add-parameters/{template_object_id}",
     status_code=200,
     response_model=list[TemplateParameterCreateResponse],
 )
@@ -234,25 +237,27 @@ async def add_parameters(
     parameters_data: Annotated[
         list[TemplateParameterData],
         Body(
-            example=[
-                {
-                    "parameter_type_id": 101,
-                    "value": "New Parameter Value",
-                    "constraint": "New Parameter Constraint",
-                    "required": True,
-                },
-                {
-                    "parameter_type_id": 102,
-                    "value": "Another Parameter Value",
-                    "constraint": None,
-                    "required": False,
-                },
+            examples=[
+                [
+                    {
+                        "parameter_type_id": 101,
+                        "value": "New Parameter Value",
+                        "constraint": "New Parameter Constraint",
+                        "required": True,
+                    },
+                    {
+                        "parameter_type_id": 102,
+                        "value": "Another Parameter Value",
+                        "constraint": None,
+                        "required": False,
+                    },
+                ]
             ]
         ),
     ],
     interactor: Annotated[
         TemplateParameterCreatorInteractor,
-        Depends(Stub(TemplateParameterCreatorInteractor)),
+        Depends(create_template_parameter_interactor),
     ],
 ) -> list[TemplateParameterCreateResponse]:
     try:

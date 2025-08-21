@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from application.template.read.dto import (
     TemplateRequestDTO,
@@ -24,7 +24,9 @@ class TemplateParameterSearchRequest(BaseModel):
     template_object_id: int = Field(default=1, ge=1)
 
     def to_interactor_dto(self) -> TemplateParameterRequestDTO:
-        return TemplateParameterRequestDTO(**self.model_dump(exclude_none=True))
+        return TemplateParameterRequestDTO(
+            template_object_id=self.template_object_id,
+        )
 
 
 class TemplateParameterData(BaseModel):
@@ -51,8 +53,7 @@ class TemplateParameterCreateResponse(BaseModel):
     required: bool
     valid: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @classmethod
     def from_application_dto(
@@ -70,8 +71,7 @@ class TemplateParameterSearchResponse(BaseModel):
     required: bool
     valid: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
     @classmethod
     def from_application_dto(
@@ -138,7 +138,13 @@ class TemplateRequest(BaseModel):
     offset: int = Field(default=0, ge=0)
 
     def to_interactor_dto(self) -> TemplateRequestDTO:
-        return TemplateRequestDTO(**self.model_dump(exclude_none=True))
+        return TemplateRequestDTO(
+            name=self.name,
+            owner=self.owner,
+            object_type_id=self.object_type_id,
+            limit=self.limit,
+            offset=self.offset,
+        )
 
 
 class TemplateResponseDate(BaseModel):

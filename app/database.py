@@ -1,8 +1,18 @@
+from functools import lru_cache
+
 from sqlalchemy import MetaData
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from sqlalchemy.orm import (
     DeclarativeBase,
     MappedAsDataclass,
 )
+
+from config import setup_config
 
 convention = {
     "ix": "ix_%(column_0_label)s",  # INDEX
@@ -15,3 +25,30 @@ convention = {
 
 class Base(DeclarativeBase, MappedAsDataclass):
     metadata = MetaData(naming_convention=convention)
+
+
+@lru_cache()
+def get_engine() -> AsyncEngine:
+    engine = create_async_engine(
+        url=setup_config().DATABASE_URL.unicode_string(),
+        echo=True,
+        max_overflow=15,
+        pool_size=15,
+        pool_pre_ping=True,
+        connect_args={
+            "server_settings": {
+                "application_name": "Object Template MS",
+                "search_path": setup_config().db.schema_name,
+            },
+        },
+    )
+    return engine
+
+
+@lru_cache()
+def get_session_factory() -> async_sessionmaker[AsyncSession]:
+    return async_sessionmaker(
+        bind=get_engine(),
+        autoflush=False,
+        expire_on_commit=False,
+    )

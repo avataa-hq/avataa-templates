@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Self
+from typing import Self
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,40 +17,10 @@ class UoW(ABC):
     async def rollback(self) -> None:
         raise NotImplementedError
 
-    @abstractmethod
-    def get_session(self) -> AsyncSession:
-        raise NotImplementedError
-
 
 class SQLAlchemyUoW(UoW):
-    def __init__(
-        self,
-        session_factory: Callable[[], AsyncSession],
-    ):
-        self.session_factory = session_factory
-        self.session: AsyncSession | None = None
-
-    async def __aenter__(self) -> Self:
-        self.session = self.session_factory()
-        return self
-
-    async def __aexit__(self: Self, exc_type, exc_val, exc_tb) -> None:
-        try:
-            if exc_type:
-                await self.rollback()
-            else:
-                await self.commit()
-        finally:
-            if self.session:
-                await self.session.close()
-                self.session = None
-
-    def __getattr__(self, name: str) -> Any:
-        if self.session is None:
-            raise RuntimeError(
-                "Session not initialized. Use 'async with' context manager."
-            )
-        return getattr(self.session, name)
+    def __init__(self, session: AsyncSession):
+        self.session = session
 
     async def commit(self: Self) -> None:
         if self.session:
@@ -63,8 +33,3 @@ class SQLAlchemyUoW(UoW):
     async def flush(self: Self) -> None:
         if self.session:
             await self.session.flush()
-
-    def get_session(self) -> AsyncSession:
-        if not self.session:
-            raise RuntimeError("Session not initialized")
-        return self.session

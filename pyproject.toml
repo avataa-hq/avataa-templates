@@ -20,8 +20,11 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "black>=25.1.0",
+    "grpcio-tools>=1.64.1",
     "mypy==1.17.1",
     "pre-commit>=4.3.0",
+    "ty>=0.0.1a19",
 ]
 lint = [
     "ruff==0.12.9",

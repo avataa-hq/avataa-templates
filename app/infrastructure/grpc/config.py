@@ -21,3 +21,9 @@ def init_grpc_services():
             ],
         ),
     )
+
+
+async def cleanup_grpc_services():
+    manager = GRPCChannelManager.get_instance()
+    await manager.close_all_channels()
+    print("Closed gRPC all channels.")

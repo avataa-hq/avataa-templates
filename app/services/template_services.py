@@ -20,7 +20,7 @@ from .template_registry_services import (
 
 class TemplateService:
     def __init__(self, db: AsyncSession) -> None:
-        self.db = db
+        self.db: AsyncSession = db
 
     async def get_templates(
         self,

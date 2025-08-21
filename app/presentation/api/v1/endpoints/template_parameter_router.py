@@ -8,21 +8,16 @@ from fastapi import (
     status,
 )
 from fastapi.params import Query
-from presentation.api.depends_stub import Stub
-from presentation.api.v1.endpoints.consts import USER_REQUEST_MESSAGE
-from presentation.api.v1.endpoints.dto import (
-    TemplateParameterSearchRequest,
-    TemplateParameterSearchResponse,
-)
 from pydantic import ValidationError
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from application.common.uow import SQLAlchemyUoW, UoW
 from application.template_parameter.read.exceptions import (
     TemplateParameterReaderApplicationException,
 )
 from application.template_parameter.read.interactors import (
     TemplateParameterReaderInteractor,
 )
+from di import get_async_session, read_template_parameter_interactor
 from exceptions import (
     IncorrectConstraintException,
     InvalidParameterValue,
@@ -30,6 +25,11 @@ from exceptions import (
     TemplateParameterNotFound,
     TPRMNotFoundInInventory,
     ValueConstraintException,
+)
+from presentation.api.v1.endpoints.consts import USER_REQUEST_MESSAGE
+from presentation.api.v1.endpoints.dto import (
+    TemplateParameterSearchRequest,
+    TemplateParameterSearchResponse,
 )
 from schemas.template_schemas import (
     TemplateParameterInput,
@@ -51,7 +51,7 @@ async def get_template_object_parameters(
     request: Annotated[TemplateParameterSearchRequest, Query()],
     interactor: Annotated[
         TemplateParameterReaderInteractor,
-        Depends(Stub(TemplateParameterReaderInteractor)),
+        Depends(read_template_parameter_interactor),
     ],
 ) -> list[TemplateParameterSearchResponse]:
     try:
@@ -80,9 +80,9 @@ async def get_template_object_parameters(
 async def update_template_parameter(
     parameter_id: int,
     parameter_data: TemplateParameterInput,
-    db: Annotated[SQLAlchemyUoW, Depends(Stub(UoW))],
+    db: Annotated[AsyncSession, Depends(get_async_session)],
 ) -> TemplateParameterOutput:
-    service = TemplateParameterService(db.session)
+    service = TemplateParameterService(db)
 
     try:
         parameter = await service.update_template_parameter(
@@ -113,6 +113,8 @@ async def update_template_parameter(
         raise HTTPException(status_code=422, detail=str(e))
     except IncorrectConstraintException as e:
         raise HTTPException(status_code=422, detail=str(e))
+    except Exception as ex:
+        raise HTTPException(status_code=422, detail=str(ex))
     await service.commit_changes()
     return parameter
 
@@ -123,9 +125,9 @@ async def update_template_parameter(
 )
 async def delete_template_parameter(
     parameter_id: int,
-    db: Annotated[SQLAlchemyUoW, Depends(Stub(UoW))],
+    db: Annotated[AsyncSession, Depends(get_async_session)],
 ) -> Response:
-    service = TemplateParameterService(db.session)
+    service = TemplateParameterService(db)
 
     try:
         await service.delete_template_parameter(parameter_id)

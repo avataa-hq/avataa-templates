@@ -4,7 +4,6 @@ from unittest.mock import AsyncMock, Mock, patch
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.common.uow import UoW
 from application.template_parameter.create.interactors import (
@@ -13,6 +12,7 @@ from application.template_parameter.create.interactors import (
 from config import setup_config
 from di import (
     create_template_parameter_interactor,
+    get_async_session,
     get_inventory_repository,
     get_template_object_reader_repository,
     get_template_parameter_creator_repository,
@@ -30,7 +30,7 @@ def app():
     v1_prefix = f"{setup_config().app.prefix}/v{setup_config().app.app_version}"
     _app = FastAPI(root_path=v1_prefix)
 
-    from presentation.api.v1.endpoints.template_registry_router import router
+    from presentation.api.v1.endpoints.template_parameter_router import router
 
     _app.include_router(router)
 
@@ -258,15 +258,26 @@ def mock_db():
     execute_mock = AsyncMock()
 
     result_mock = Mock()
-    templ_obj_id = TemplateObject(
+    templ_parameter = TemplateParameter(
+        template_object_id=1,
+        parameter_type_id=141_029,
+        value="[7]",
+        constraint=None,
+        val_type="int",
+        required=False,
+        valid=True,
+    )
+    templ_parameter.id = 1
+    templ_obj = TemplateObject(
         template_id=1,
         parent_object_id=None,
         object_type_id=46181,
         required=True,
         valid=True,
     )
-    templ_obj_id.id = 1
-    result_mock.scalar_one_or_none.return_value = templ_obj_id.object_type_id
+    templ_obj.id = 1
+    result_mock.scalar_one_or_none.return_value = templ_parameter
+    result_mock.scalar_one.return_value = templ_obj
     execute_mock.return_value = result_mock
 
     db = AsyncMock()
@@ -292,7 +303,7 @@ async def http_client(
     app, mock_db, mock_grpc_function, mock_grpc_new, fake_to_repo, fake_tp_repo
 ):
     app.dependency_overrides[UoW] = lambda: mock_db
-    app.dependency_overrides[AsyncSession] = lambda: mock_db
+    app.dependency_overrides[get_async_session] = lambda: mock_db
     app.dependency_overrides[get_inventory_repository] = lambda: mock_grpc_new
     app.dependency_overrides[get_template_object_reader_repository] = (
         lambda: fake_to_repo

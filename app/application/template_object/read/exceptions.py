@@ -1,5 +1,5 @@
 class TemplateObjectReaderApplicationException(Exception):
-    def __init__(self, detail, status_code=None):
+    def __init__(self, detail: str, status_code: int):
         super().__init__(detail)
         self.status_code = status_code
         self.detail = detail
