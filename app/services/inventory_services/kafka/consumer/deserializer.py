@@ -1,12 +1,11 @@
 from enum import StrEnum
-from typing import Any
+from typing import Any, Union
 
 from services.inventory_services.kafka.consumer.custom_deserializer import (
     PROTO_TYPES_SERIALIZERS,
     SerializerType,
 )
 from services.inventory_services.kafka.consumer.protobuf import obj_pb2
-from services.inventory_services.kafka.consumer.utils import KafkaMessage
 from services.inventory_services.kafka.events.tmo_msg import (
     on_delete_tmo,
     on_update_tmo,
@@ -44,6 +43,10 @@ INVENTORY_CHANGES_HANDLER_BY_MSG_CLASS_NAME = {
     "TMO": TMO_HANDLERS_BY_MSG_EVENT,
     "TPRM": TPRM_HANDLERS_BY_MSG_EVENT,
 }
+
+KafkaMessage = Union[
+    obj_pb2.ListMO, obj_pb2.ListTMO, obj_pb2.ListTPRM, obj_pb2.ListPRM
+]
 
 
 def __msg_f_serializer(value: Any) -> Any:

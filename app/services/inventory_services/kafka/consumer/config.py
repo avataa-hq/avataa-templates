@@ -28,11 +28,11 @@ class KeycloakConfig(BaseSettings):
 
     @computed_field  # type: ignore
     @property
-    def url(self):
+    def url(self) -> str:
         url = urlunparse(
             (str(self.protocol), f"{self.host}:{self.port}", "auth", "", "", "")
         )
-        return url
+        return str(url)
 
     model_config = SettingsConfigDict(env_prefix="keycloak_")
 
