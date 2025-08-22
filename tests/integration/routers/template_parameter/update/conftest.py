@@ -6,19 +6,15 @@ from httpx import ASGITransport, AsyncClient
 import pytest
 
 from application.common.uow import UoW
-from application.template_parameter.create.interactors import (
-    TemplateParameterCreatorInteractor,
-)
 from config import setup_config
 from di import (
-    create_template_parameter_interactor,
     get_async_session,
     get_inventory_repository,
     get_template_object_reader_repository,
     get_template_parameter_creator_repository,
 )
-from domain.inventory_tprm.aggregate import InventoryTprmAggregate
-from domain.inventory_tprm.query import TPRMReader
+from domain.parameter_validation.aggregate import InventoryTprmAggregate
+from domain.parameter_validation.query import TPRMReader
 from domain.template_object.query import TemplateObjectReader
 from domain.template_parameter.command import TemplateParameterCreator
 from models import TemplateObject, TemplateParameter
@@ -310,14 +306,6 @@ async def http_client(
     )
     app.dependency_overrides[get_template_parameter_creator_repository] = (
         lambda: fake_tp_repo
-    )
-    app.dependency_overrides[create_template_parameter_interactor] = (
-        lambda: TemplateParameterCreatorInteractor(
-            to_repo=fake_to_repo,
-            tp_repo=fake_tp_repo,
-            inventory_tprm_repo=mock_grpc_new,
-            uow=mock_db,
-        )
     )
 
     # app.dependency_overrides[oauth2_scheme] = lambda: mock_auth

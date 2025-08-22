@@ -16,19 +16,21 @@ from domain.template_parameter.query import TemplateParameterReader
 class TemplateParameterReaderInteractor(object):
     def __init__(self, repository: TemplateParameterReader):
         self._repository = repository
-        self.logger = getLogger("TemplateParameterReaderInteractor")
+        self.logger = getLogger(self.__class__.__name__)
 
-    async def __call__(self, request: TemplateParameterRequestDTO) -> list:
+    async def __call__(
+        self, request: TemplateParameterRequestDTO
+    ) -> list[TemplateParameterSearchDTO]:
         template_parameter_filters = template_parameter_filter_from_dto(request)
         try:
             template_parameters = await self._repository.get_by_filter(
                 template_parameter_filters
             )
         except TemplateParameterReaderApplicationException as ex:
-            print(ex)
+            self.logger.exception(ex)
             raise
         except Exception as ex:
-            print(ex, type(ex))
+            self.logger.exception(ex)
             raise TemplateParameterReaderApplicationException(
                 status_code=422, detail="Application Error."
             )

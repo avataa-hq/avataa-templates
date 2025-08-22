@@ -1,3 +1,7 @@
+from application.paramater_validation.dto import (
+    TemplateParameterValidationDTO,
+    TemplateParameterValidationRequestDTO,
+)
 from application.template_parameter.create.dto import (
     TemplateParameterDataCreateRequestDTO,
 )
@@ -18,4 +22,22 @@ def template_parameter_create_from_dto(
         constraint=dto.constraint,
         template_object_id=template_object_id,
         val_type=val_type,
+    )
+
+
+def template_parameter_to_validator(
+    obj_type_id: int,
+    data: list[TemplateParameterDataCreateRequestDTO],
+) -> TemplateParameterValidationRequestDTO:
+    return TemplateParameterValidationRequestDTO(
+        object_type_id=obj_type_id,
+        parameter_to_validate=[
+            TemplateParameterValidationDTO(
+                parameter_type_id=el.parameter_type_id,
+                value=el.value,
+                required=el.required,
+                constraint=el.constraint,
+            )
+            for el in data
+        ],
     )
