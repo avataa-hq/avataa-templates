@@ -1,6 +1,6 @@
 from typing import Any
 
-from domain.inventory_tprm.aggregate import InventoryTprmAggregate
+from domain.parameter_validation.aggregate import InventoryTprmAggregate
 
 
 def grpc_to_domain(data: dict[str, Any]) -> InventoryTprmAggregate:

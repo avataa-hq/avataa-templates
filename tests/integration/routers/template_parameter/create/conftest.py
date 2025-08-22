@@ -4,21 +4,28 @@ from unittest.mock import AsyncMock, Mock, patch
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.common.uow import UoW
+from application.paramater_validation.dto import (
+    TemplateParameterValidationResponseDTO,
+    TemplateParameterWithTPRMData,
+)
+from application.paramater_validation.interactors import (
+    ParameterValidationInteractor,
+)
 from application.template_parameter.create.interactors import (
     TemplateParameterCreatorInteractor,
 )
 from config import setup_config
 from di import (
     create_template_parameter_interactor,
+    get_async_session,
     get_inventory_repository,
     get_template_object_reader_repository,
     get_template_parameter_creator_repository,
+    get_template_parameter_reader_interactor,
 )
-from domain.inventory_tprm.aggregate import InventoryTprmAggregate
-from domain.inventory_tprm.query import TPRMReader
+from domain.parameter_validation.query import TPRMReader
 from domain.template_object.query import TemplateObjectReader
 from domain.template_parameter.command import TemplateParameterCreator
 from models import TemplateObject, TemplateParameter
@@ -192,54 +199,114 @@ def fake_tp_repo() -> AsyncMock:
 @pytest.fixture
 def mock_grpc_new():
     repo = AsyncMock(spec=TPRMReader)
-    repo.get_all_tprms_by_tmo_id.return_value = {
-        46181: {
-            135296: InventoryTprmAggregate(
-                val_type="str",
-                required=True,
-                multiple=False,
-                id=135296,
-                constraint=None,
-            ),
-            135297: InventoryTprmAggregate(
-                val_type="mo_link",
-                required=False,
-                multiple=True,
-                id=135297,
-                constraint="46182",
-            ),
-            135298: InventoryTprmAggregate(
-                val_type="int",
-                required=False,
-                multiple=False,
-                id=135298,
-                constraint=None,
-            ),
-            135299: InventoryTprmAggregate(
-                val_type="str",
-                required=False,
-                multiple=False,
-                id=135299,
-                constraint=None,
-            ),
-            141046: InventoryTprmAggregate(
-                val_type="int",
-                required=False,
-                multiple=True,
-                id=141046,
-                constraint=None,
-            ),
-            141047: InventoryTprmAggregate(
-                val_type="bool",
-                required=False,
-                multiple=True,
-                id=141047,
-                constraint=None,
-            ),
-        }
-    }
+    # repo.get_all_tprms_by_tmo_id.return_value = {
+    #     46181: {
+    #         135296: InventoryTprmAggregate(
+    #             val_type="str",
+    #             required=True,
+    #             multiple=False,
+    #             id=135296,
+    #             constraint=None,
+    #         ),
+    #         135297: InventoryTprmAggregate(
+    #             val_type="mo_link",
+    #             required=False,
+    #             multiple=True,
+    #             id=135297,
+    #             constraint="46182",
+    #         ),
+    #         135298: InventoryTprmAggregate(
+    #             val_type="int",
+    #             required=False,
+    #             multiple=False,
+    #             id=135298,
+    #             constraint=None,
+    #         ),
+    #         135299: InventoryTprmAggregate(
+    #             val_type="str",
+    #             required=False,
+    #             multiple=False,
+    #             id=135299,
+    #             constraint=None,
+    #         ),
+    #         141046: InventoryTprmAggregate(
+    #             val_type="int",
+    #             required=False,
+    #             multiple=True,
+    #             id=141046,
+    #             constraint=None,
+    #         ),
+    #         141047: InventoryTprmAggregate(
+    #             val_type="bool",
+    #             required=False,
+    #             multiple=True,
+    #             id=141047,
+    #             constraint=None,
+    #         ),
+    #     }
+    # }
 
     return repo
+
+
+@pytest.fixture
+def mock_trpm_validator():
+    tprm_1 = TemplateParameterWithTPRMData(
+        parameter_type_id=135296,
+        val_type="str",
+        required=True,
+        multiple=False,
+        constraint=None,
+        value="",
+    )
+    tprm_2 = TemplateParameterWithTPRMData(
+        parameter_type_id=135297,
+        val_type="mo_link",
+        required=False,
+        multiple=True,
+        constraint=None,
+        value="",
+    )
+    tprm_3 = TemplateParameterWithTPRMData(
+        parameter_type_id=135298,
+        val_type="int",
+        required=False,
+        multiple=False,
+        constraint=None,
+        value="",
+    )
+    tprm_4 = TemplateParameterWithTPRMData(
+        parameter_type_id=135299,
+        val_type="str",
+        required=False,
+        multiple=False,
+        constraint=None,
+        value="123",
+    )
+    tprm_5 = TemplateParameterWithTPRMData(
+        parameter_type_id=141046,
+        val_type="int",
+        required=False,
+        multiple=True,
+        constraint=None,
+        value="",
+    )
+    tprm_6 = TemplateParameterWithTPRMData(
+        parameter_type_id=141047,
+        val_type="bool",
+        required=False,
+        multiple=True,
+        constraint=None,
+        value="",
+    )
+    result = TemplateParameterValidationResponseDTO(
+        valid_items=[tprm_1, tprm_2, tprm_3, tprm_4, tprm_5, tprm_6],
+        invalid_items=[],
+        errors=[],
+    )
+    interactor = AsyncMock(spec=ParameterValidationInteractor)
+    interactor.return_value = result
+    return interactor
 
 
 @pytest.fixture
@@ -289,11 +356,20 @@ def mock_db():
 
 @pytest.fixture
 async def http_client(
-    app, mock_db, mock_grpc_function, mock_grpc_new, fake_to_repo, fake_tp_repo
+    app,
+    mock_db,
+    mock_grpc_function,
+    mock_grpc_new,
+    fake_to_repo,
+    fake_tp_repo,
+    mock_trpm_validator,
 ):
     app.dependency_overrides[UoW] = lambda: mock_db
-    app.dependency_overrides[AsyncSession] = lambda: mock_db
+    app.dependency_overrides[get_async_session] = lambda: mock_db
     app.dependency_overrides[get_inventory_repository] = lambda: mock_grpc_new
+    app.dependency_overrides[get_template_parameter_reader_interactor] = (
+        lambda: mock_trpm_validator
+    )
     app.dependency_overrides[get_template_object_reader_repository] = (
         lambda: fake_to_repo
     )
@@ -304,7 +380,7 @@ async def http_client(
         lambda: TemplateParameterCreatorInteractor(
             to_repo=fake_to_repo,
             tp_repo=fake_tp_repo,
-            inventory_tprm_repo=mock_grpc_new,
+            tprm_validator=mock_trpm_validator,
             uow=mock_db,
         )
     )

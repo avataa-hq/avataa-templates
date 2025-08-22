@@ -1,6 +1,9 @@
 from logging import getLogger
 
 from application.common.uow import UoW
+from application.paramater_validation.interactors import (
+    ParameterValidationInteractor,
+)
 from application.template_object.read.dto import TemplateObjectRequestDTO
 from application.template_object.read.mapper import (
     template_object_filter_from_dto,
@@ -12,20 +15,14 @@ from application.template_parameter.create.dto import (
 )
 from application.template_parameter.create.exceptions import (
     InvalidParameterValue,
-    RequiredMismatchException,
     TemplateObjectNotFound,
-    TPRMNotFoundInInventory,
-    ValueConstraintException,
 )
 from application.template_parameter.create.mapper import (
     template_parameter_create_from_dto,
+    template_parameter_to_validator,
 )
-from domain.inventory_tprm.aggregate import InventoryTprmAggregate
-from domain.inventory_tprm.query import TPRMReader
 from domain.template_object.query import TemplateObjectReader
 from domain.template_parameter.command import TemplateParameterCreator
-from utils.constraint_validators import validate_by_constraint
-from utils.val_type_validators import validate_by_val_type
 
 
 class TemplateParameterCreatorInteractor(object):
@@ -33,17 +30,15 @@ class TemplateParameterCreatorInteractor(object):
         self,
         tp_repo: TemplateParameterCreator,
         to_repo: TemplateObjectReader,
-        inventory_tprm_repo: TPRMReader,
+        tprm_validator: ParameterValidationInteractor,
         uow: UoW,
     ):
         self._tp_repo = tp_repo
         self._to_repo = to_repo
-        self._inventory_tprm_repo = inventory_tprm_repo
+        self._tprm_validator = tprm_validator
         self.uow = uow
 
-        self.logger = getLogger("TemplateParameterCreatorInteractor")
-
-        self.tprm_data: dict[int, dict] = dict()
+        self.logger = getLogger(self.__class__.__name__)
 
     async def __call__(self, request: TemplateParameterCreateRequestDTO):
         create_dtos = list()
@@ -62,23 +57,27 @@ class TemplateParameterCreatorInteractor(object):
                 status_code=422, detail="Template object not found."
             )
         # Get information about all tprm for tmo
-        self.tprm_data = (
-            await self._inventory_tprm_repo.get_all_tprms_by_tmo_id(
-                object_type_id
-            )
+        inventory_request = template_parameter_to_validator(
+            object_type_id, request.data
         )
-
-        for el in request.data:  # type: TemplateParameterDataCreateRequestDTO
-            self._validate_template_parameter(
-                tmo_id=object_type_id, parameter=el
+        validated_elements = await self._tprm_validator(
+            request=inventory_request
+        )
+        if validated_elements.invalid_items:
+            raise InvalidParameterValue(
+                status_code=422, detail=" ".join(validated_elements.errors)
             )
+        for el in validated_elements.valid_items:
             create_dtos.append(
                 template_parameter_create_from_dto(
-                    dto=el,
+                    dto=TemplateParameterDataCreateRequestDTO(
+                        parameter_type_id=el.parameter_type_id,
+                        required=el.required,
+                        value=el.value,
+                        constraint=el.constraint,
+                    ),
                     template_object_id=request.template_object_id,
-                    val_type=self.tprm_data[object_type_id][
-                        el.parameter_type_id
-                    ].val_type,
+                    val_type=el.val_type,
                 )
             )
         created_parameters = await self._tp_repo.create_template_parameters(
@@ -91,53 +90,3 @@ class TemplateParameterCreatorInteractor(object):
             for created in created_parameters
         ]
         return result
-
-    def _validate_template_parameter(
-        self, tmo_id: int, parameter: TemplateParameterDataCreateRequestDTO
-    ):
-        parameter_type_id: int = parameter.parameter_type_id
-        inventory_tmo_data: dict[int, InventoryTprmAggregate] = self.tprm_data[
-            tmo_id
-        ]
-
-        if parameter_type_id not in inventory_tmo_data:
-            raise TPRMNotFoundInInventory(
-                status_code=422,
-                detail=f"Inventory tprm {parameter_type_id} not found in tmo {tmo_id}.",
-            )
-
-        if not parameter.required and parameter.required:
-            raise RequiredMismatchException(
-                status_code=422,
-                detail=f"Inventory tprm {parameter_type_id} requires consistency error.",
-            )
-
-        if not validate_by_val_type(
-            inventory_tmo_data[parameter_type_id].val_type,
-            parameter.value,
-            inventory_tmo_data[parameter_type_id].multiple,
-        ):
-            raise InvalidParameterValue(
-                status_code=422,
-                detail=f"Invalid value type for tprm {parameter_type_id}.",
-            )
-        if not validate_by_constraint(
-            inventory_tmo_data[parameter_type_id].val_type,
-            parameter.value,
-            parameter.constraint,
-            inventory_tmo_data[parameter_type_id].multiple,
-        ):
-            raise ValueConstraintException(
-                status_code=422,
-                detail=f"Invalid constraint for tprm {parameter_type_id}.",
-            )
-        if not validate_by_constraint(
-            inventory_tmo_data[parameter_type_id].val_type,
-            parameter.value,
-            inventory_tmo_data[parameter_type_id].constraint,
-            inventory_tmo_data[parameter_type_id].multiple,
-        ):
-            raise ValueConstraintException(
-                status_code=422,
-                detail=f"Invalid constraint for tprm {parameter_type_id}.",
-            )
