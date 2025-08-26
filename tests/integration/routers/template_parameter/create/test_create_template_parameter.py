@@ -60,8 +60,8 @@ async def test_create_template_parameter(
 async def test_create_template_parameter_multiple_bool(
     http_client: AsyncClient,
     url: str,
-    fake_tp_repo: AsyncMock,
     val: str,
+    fake_tp_repo: AsyncMock,
     fake_to_repo: AsyncMock,
 ):
     template_object_id = 1

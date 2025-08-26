@@ -17,23 +17,27 @@ from application.template_parameter.read.exceptions import (
 from application.template_parameter.read.interactors import (
     TemplateParameterReaderInteractor,
 )
-from di import get_async_session, read_template_parameter_interactor
-from exceptions import (
-    IncorrectConstraintException,
-    InvalidParameterValue,
-    RequiredMismatchException,
-    TemplateParameterNotFound,
-    TPRMNotFoundInInventory,
-    ValueConstraintException,
+from application.template_parameter.update.dto import (
+    TemplateParameterUpdateRequestDTO,
 )
+from application.template_parameter.update.exceptions import (
+    TemplateParameterUpdaterApplicationException,
+)
+from application.template_parameter.update.interactors import (
+    TemplateParameterUpdaterInteractor,
+)
+from di import (
+    get_async_session,
+    read_template_parameter_interactor,
+    update_template_parameter_interactor,
+)
+from exceptions import TemplateParameterNotFound
 from presentation.api.v1.endpoints.consts import USER_REQUEST_MESSAGE
 from presentation.api.v1.endpoints.dto import (
     TemplateParameterSearchRequest,
     TemplateParameterSearchResponse,
-)
-from schemas.template_schemas import (
-    TemplateParameterInput,
-    TemplateParameterOutput,
+    TemplateParameterUpdateInput,
+    TemplateParameterUpdateResponse,
 )
 from services.template_parameter_services import (
     TemplateParameterService,
@@ -76,47 +80,44 @@ async def get_template_object_parameters(
         )
 
 
-@router.put("/parameters/{parameter_id}")
+@router.put(
+    "/parameters/{parameter_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=TemplateParameterUpdateResponse,
+)
 async def update_template_parameter(
     parameter_id: int,
-    parameter_data: TemplateParameterInput,
-    db: Annotated[AsyncSession, Depends(get_async_session)],
-) -> TemplateParameterOutput:
-    service = TemplateParameterService(db)
-
+    parameter_data: TemplateParameterUpdateInput,
+    interactor: Annotated[
+        TemplateParameterUpdaterInteractor,
+        Depends(update_template_parameter_interactor),
+    ],
+) -> TemplateParameterUpdateResponse:
     try:
-        parameter = await service.update_template_parameter(
-            parameter_data=parameter_data,
-            parameter_id=parameter_id,
+        updated_parameter = await interactor(
+            request=TemplateParameterUpdateRequestDTO(
+                template_parameter_id=parameter_id,
+                data=parameter_data.to_application_dto(),
+            )
         )
-    except TemplateParameterNotFound:
+        output = TemplateParameterUpdateResponse.from_application_dto(
+            updated_parameter
+        )
+        return output
+    except ValidationError as ex:
+        print(USER_REQUEST_MESSAGE, parameter_id, parameter_data)
         raise HTTPException(
-            status_code=404,
-            detail="Template parameter not found",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
         )
-    except TPRMNotFoundInInventory as e:
-        raise HTTPException(
-            status_code=404,
-            detail=(
-                f"TPRM with id {e.parameter_type_id} not "
-                f"found for TMO {e.object_type_id} in Inventory."
-            ),
-        )
-    except RequiredMismatchException as e:
-        raise HTTPException(
-            status_code=400,
-            detail=str(e),
-        )
-    except InvalidParameterValue as e:
-        raise HTTPException(status_code=422, detail=str(e))
-    except ValueConstraintException as e:
-        raise HTTPException(status_code=422, detail=str(e))
-    except IncorrectConstraintException as e:
-        raise HTTPException(status_code=422, detail=str(e))
+    except TemplateParameterUpdaterApplicationException as ex:
+        print(USER_REQUEST_MESSAGE, parameter_id, parameter_data)
+        raise HTTPException(status_code=ex.status_code, detail=ex.detail)
     except Exception as ex:
-        raise HTTPException(status_code=422, detail=str(ex))
-    await service.commit_changes()
-    return parameter
+        print(USER_REQUEST_MESSAGE, parameter_id, parameter_data)
+        print(type(ex), ex)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
+        )
 
 
 @router.delete(

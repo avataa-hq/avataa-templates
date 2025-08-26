@@ -5,7 +5,7 @@ from dataclasses import dataclass
 class TemplateObjectFilter:
     template_id: int
 
-    parent_object_id: int | None
+    parent_object_id: int | None = None
 
     limit: int = 50
     offset: int = 0

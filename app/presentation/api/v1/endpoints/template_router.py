@@ -68,7 +68,7 @@ async def get_templates_by_filter(
         result = await interactor(request=request.to_interactor_dto())
         output_data: list[TemplateResponseDate] = list()
         for application_el in result.data:
-            el = TemplateResponseDate.from_dto(application_el)
+            el = TemplateResponseDate.from_application_dto(application_el)
             output_data.append(el)
         return TemplateResponse(data=output_data)
     except ValidationError as ex:

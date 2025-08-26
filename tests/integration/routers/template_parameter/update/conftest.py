@@ -6,17 +6,30 @@ from httpx import ASGITransport, AsyncClient
 import pytest
 
 from application.common.uow import UoW
+from application.paramater_validation.dto import (
+    TemplateParameterValidationResponseDTO,
+    TemplateParameterWithTPRMData,
+)
+from application.paramater_validation.interactors import (
+    ParameterValidationInteractor,
+)
+from application.template_parameter.update.interactors import (
+    TemplateParameterUpdaterInteractor,
+)
 from config import setup_config
 from di import (
     get_async_session,
     get_inventory_repository,
     get_template_object_reader_repository,
-    get_template_parameter_creator_repository,
+    get_template_parameter_reader_repository,
+    get_template_parameter_updater_repository,
+    get_template_parameter_validator_interactor,
+    update_template_parameter_interactor,
 )
-from domain.parameter_validation.aggregate import InventoryTprmAggregate
 from domain.parameter_validation.query import TPRMReader
 from domain.template_object.query import TemplateObjectReader
-from domain.template_parameter.command import TemplateParameterCreator
+from domain.template_parameter.command import TemplateParameterUpdater
+from domain.template_parameter.query import TemplateParameterReader
 from models import TemplateObject, TemplateParameter
 
 
@@ -181,61 +194,80 @@ def fake_to_repo() -> AsyncMock:
 
 @pytest.fixture
 def fake_tp_repo() -> AsyncMock:
-    repo = AsyncMock(spec=TemplateParameterCreator)
+    repo = AsyncMock(spec=TemplateParameterReader)
+    return repo
+
+
+@pytest.fixture
+def fake_tp_update() -> AsyncMock:
+    repo = AsyncMock(spec=TemplateParameterUpdater)
     return repo
 
 
 @pytest.fixture
 def mock_grpc_new():
     repo = AsyncMock(spec=TPRMReader)
-    repo.get_all_tprms_by_tmo_id.return_value = {
-        46181: {
-            135296: InventoryTprmAggregate(
-                val_type="str",
-                required=True,
-                multiple=False,
-                id=135296,
-                constraint=None,
-            ),
-            135297: InventoryTprmAggregate(
-                val_type="mo_link",
-                required=False,
-                multiple=True,
-                id=135297,
-                constraint="46182",
-            ),
-            135298: InventoryTprmAggregate(
-                val_type="int",
-                required=False,
-                multiple=False,
-                id=135298,
-                constraint=None,
-            ),
-            135299: InventoryTprmAggregate(
-                val_type="str",
-                required=False,
-                multiple=False,
-                id=135299,
-                constraint=None,
-            ),
-            141046: InventoryTprmAggregate(
-                val_type="int",
-                required=False,
-                multiple=True,
-                id=141046,
-                constraint=None,
-            ),
-            141047: InventoryTprmAggregate(
-                val_type="bool",
-                required=False,
-                multiple=True,
-                id=141047,
-                constraint=None,
-            ),
-        }
-    }
-
     return repo
+
+
+@pytest.fixture
+def mock_trpm_validator():
+    tprm_1 = TemplateParameterWithTPRMData(
+        parameter_type_id=135296,
+        val_type="str",
+        required=True,
+        multiple=False,
+        constraint=None,
+        value="",
+    )
+    tprm_2 = TemplateParameterWithTPRMData(
+        parameter_type_id=135297,
+        val_type="mo_link",
+        required=False,
+        multiple=True,
+        constraint=None,
+        value="",
+    )
+    tprm_3 = TemplateParameterWithTPRMData(
+        parameter_type_id=135298,
+        val_type="int",
+        required=False,
+        multiple=False,
+        constraint=None,
+        value="",
+    )
+    tprm_4 = TemplateParameterWithTPRMData(
+        parameter_type_id=135299,
+        val_type="str",
+        required=False,
+        multiple=False,
+        constraint=None,
+        value="123",
+    )
+    tprm_5 = TemplateParameterWithTPRMData(
+        parameter_type_id=141046,
+        val_type="int",
+        required=False,
+        multiple=True,
+        constraint=None,
+        value="",
+    )
+    tprm_6 = TemplateParameterWithTPRMData(
+        parameter_type_id=141047,
+        val_type="bool",
+        required=False,
+        multiple=True,
+        constraint=None,
+        value="",
+    )
+    result = TemplateParameterValidationResponseDTO(
+        valid_items=[tprm_1, tprm_2, tprm_3, tprm_4, tprm_5, tprm_6],
+        invalid_items=[],
+        errors=[],
+    )
+    interactor = AsyncMock(spec=ParameterValidationInteractor)
+    interactor.return_value = result
+    return interactor
 
 
 @pytest.fixture
@@ -296,16 +328,39 @@ def mock_db():
 
 @pytest.fixture
 async def http_client(
-    app, mock_db, mock_grpc_function, mock_grpc_new, fake_to_repo, fake_tp_repo
+    app,
+    mock_db,
+    mock_grpc_function,
+    mock_grpc_new,
+    fake_to_repo,
+    fake_tp_repo,
+    fake_tp_update,
+    mock_trpm_validator,
 ):
     app.dependency_overrides[UoW] = lambda: mock_db
     app.dependency_overrides[get_async_session] = lambda: mock_db
     app.dependency_overrides[get_inventory_repository] = lambda: mock_grpc_new
+    app.dependency_overrides[get_template_parameter_validator_interactor] = (
+        lambda: mock_trpm_validator
+    )
     app.dependency_overrides[get_template_object_reader_repository] = (
         lambda: fake_to_repo
     )
-    app.dependency_overrides[get_template_parameter_creator_repository] = (
+    app.dependency_overrides[get_template_parameter_reader_repository] = (
         lambda: fake_tp_repo
+    )
+    app.dependency_overrides[get_template_parameter_updater_repository] = (
+        lambda: fake_tp_update
+    )
+
+    app.dependency_overrides[update_template_parameter_interactor] = (
+        lambda: TemplateParameterUpdaterInteractor(
+            tp_reader=fake_tp_repo,
+            to_reader=fake_to_repo,
+            tp_updater=fake_tp_update,
+            tprm_validator=mock_trpm_validator,
+            uow=mock_db,
+        )
     )
 
     # app.dependency_overrides[oauth2_scheme] = lambda: mock_auth

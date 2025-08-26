@@ -23,7 +23,7 @@ from di import (
     get_inventory_repository,
     get_template_object_reader_repository,
     get_template_parameter_creator_repository,
-    get_template_parameter_reader_interactor,
+    get_template_parameter_validator_interactor,
 )
 from domain.parameter_validation.query import TPRMReader
 from domain.template_object.query import TemplateObjectReader
@@ -367,7 +367,7 @@ async def http_client(
     app.dependency_overrides[UoW] = lambda: mock_db
     app.dependency_overrides[get_async_session] = lambda: mock_db
     app.dependency_overrides[get_inventory_repository] = lambda: mock_grpc_new
-    app.dependency_overrides[get_template_parameter_reader_interactor] = (
+    app.dependency_overrides[get_template_parameter_validator_interactor] = (
         lambda: mock_trpm_validator
     )
     app.dependency_overrides[get_template_object_reader_repository] = (

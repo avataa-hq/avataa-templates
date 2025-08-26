@@ -10,3 +10,9 @@ class TemplateParameterCreator(Protocol):
     async def create_template_parameters(
         self, create_dtos: list[TemplateParameterCreate]
     ) -> list[TemplateParameterAggregate]: ...
+
+
+class TemplateParameterUpdater(Protocol):
+    async def update_template_parameters(
+        self, template_parameter: TemplateParameterAggregate
+    ) -> TemplateParameterAggregate: ...

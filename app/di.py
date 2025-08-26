@@ -17,11 +17,17 @@ from application.template_parameter.create.interactors import (
 from application.template_parameter.read.interactors import (
     TemplateParameterReaderInteractor,
 )
+from application.template_parameter.update.interactors import (
+    TemplateParameterUpdaterInteractor,
+)
 from database import get_session_factory
 from domain.parameter_validation.query import TPRMReader
 from domain.template.query import TemplateReader
 from domain.template_object.query import TemplateObjectReader
-from domain.template_parameter.command import TemplateParameterCreator
+from domain.template_parameter.command import (
+    TemplateParameterCreator,
+    TemplateParameterUpdater,
+)
 from domain.template_parameter.query import TemplateParameterReader
 from infrastructure.db.template.read.gateway import SQLTemplateReaderRepository
 from infrastructure.db.template_object.read.gateway import (
@@ -32,6 +38,9 @@ from infrastructure.db.template_parameter.create.gateway import (
 )
 from infrastructure.db.template_parameter.read.gateway import (
     SQLTemplateParameterReaderRepository,
+)
+from infrastructure.db.template_parameter.update.gateway import (
+    SQLTemplateParameterUpdaterRepository,
 )
 from infrastructure.grpc.tprm.read.gateway import GrpcTPRMReaderRepository
 
@@ -55,8 +64,6 @@ def get_unit_of_work(session: AsyncSession = Depends(get_async_session)) -> UoW:
 
 # REPO
 ## Inventory Repo
-
-
 def get_inventory_repository() -> TPRMReader:
     return GrpcTPRMReaderRepository()
 
@@ -88,9 +95,15 @@ def get_template_parameter_reader_repository(
     return SQLTemplateParameterReaderRepository(session)
 
 
+def get_template_parameter_updater_repository(
+    session: AsyncSession = Depends(get_async_session),
+) -> TemplateParameterUpdater:
+    return SQLTemplateParameterUpdaterRepository(session)
+
+
 # INTERACTORS
 ## ParameterValidator Interactor
-def get_template_parameter_reader_interactor(
+def get_template_parameter_validator_interactor(
     repository: TPRMReader = Depends(get_inventory_repository),
 ) -> ParameterValidationInteractor:
     return ParameterValidationInteractor(repository)
@@ -103,7 +116,7 @@ def read_template_interactor(
     return TemplateReaderInteractor(repository)
 
 
-## Template object Interactor
+## Template Object Interactor
 def read_template_object_interactor(
     to_repository: TemplateObjectReader = Depends(
         get_template_object_reader_repository
@@ -117,7 +130,7 @@ def read_template_object_interactor(
     )
 
 
-## Template parameter Interactor
+## Template Parameter Interactor
 def create_template_parameter_interactor(
     uow: UoW = Depends(get_unit_of_work),
     to_repo: TemplateObjectReader = Depends(
@@ -127,7 +140,7 @@ def create_template_parameter_interactor(
         get_template_parameter_creator_repository
     ),
     tprm_validator: ParameterValidationInteractor = Depends(
-        get_template_parameter_reader_interactor
+        get_template_parameter_validator_interactor
     ),
 ) -> TemplateParameterCreatorInteractor:
     return TemplateParameterCreatorInteractor(
@@ -144,3 +157,27 @@ def read_template_parameter_interactor(
     ),
 ) -> TemplateParameterReaderInteractor:
     return TemplateParameterReaderInteractor(tp_repo)
+
+
+def update_template_parameter_interactor(
+    uow: UoW = Depends(get_unit_of_work),
+    tp_reader: TemplateParameterReader = Depends(
+        get_template_parameter_reader_repository
+    ),
+    to_reader: TemplateObjectReader = Depends(
+        get_template_object_reader_repository
+    ),
+    tp_updater: TemplateParameterUpdater = Depends(
+        get_template_parameter_updater_repository
+    ),
+    tprm_validator: ParameterValidationInteractor = Depends(
+        get_template_parameter_validator_interactor
+    ),
+) -> TemplateParameterUpdaterInteractor:
+    return TemplateParameterUpdaterInteractor(
+        tp_reader=tp_reader,
+        to_reader=to_reader,
+        tp_updater=tp_updater,
+        tprm_validator=tprm_validator,
+        uow=uow,
+    )
