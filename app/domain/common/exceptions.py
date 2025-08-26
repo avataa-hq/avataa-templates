@@ -10,10 +10,25 @@ class DomainException(Exception):
         return self.detail
 
 
-class IncorrectValueError(DomainException):
+class InvalidValueError(DomainException):
+    pass
+
+
+class EmptyValueError(DomainException):
+    pass
+
+
+class ConstraintViolationError(DomainException):
+    pass
+
+
+class RequiredParameterError(DomainException):
     pass
 
 
 __all__ = [
-    "IncorrectValueError",
+    "InvalidValueError",
+    "EmptyValueError",
+    "ConstraintViolationError",
+    "RequiredParameterError",
 ]

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from domain.common.exceptions import IncorrectValueError
+from domain.common.exceptions import InvalidValueError
 from domain.common.value_object import ValueObject
 
 
@@ -8,7 +8,7 @@ from domain.common.value_object import ValueObject
 class ParameterTypeId(ValueObject[int]):
     def _validate(self):
         if self.value < 1:
-            raise IncorrectValueError(
+            raise InvalidValueError(
                 status_code=422,
                 detail="Parameter type id must be positive.",
             )

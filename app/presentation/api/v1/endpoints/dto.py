@@ -12,11 +12,14 @@ from application.template_object.read.dto import (
 )
 from application.template_parameter.create.dto import (
     TemplateParameterCreatedDTO,
-    TemplateParameterDataCreateRequestDTO,
 )
 from application.template_parameter.read.dto import (
     TemplateParameterRequestDTO,
     TemplateParameterSearchDTO,
+)
+from application.template_parameter.update.dto import (
+    TemplateParameterDataUpdateRequestDTO,
+    TemplateParameterUpdateDTO,
 )
 
 
@@ -35,8 +38,8 @@ class TemplateParameterData(BaseModel):
     constraint: str | None = Field(default=None)
     required: bool = Field(default=False)
 
-    def to_create_request_dto(self) -> TemplateParameterDataCreateRequestDTO:
-        return TemplateParameterDataCreateRequestDTO(
+    def to_create_request_dto(self) -> TemplateParameterDataUpdateRequestDTO:
+        return TemplateParameterDataUpdateRequestDTO(
             parameter_type_id=self.parameter_type_id,
             value=self.value,
             constraint=self.constraint,
@@ -158,7 +161,9 @@ class TemplateResponseDate(BaseModel):
     version: int
 
     @classmethod
-    def from_dto(cls, dto: TemplateResponseDataDTO) -> "TemplateResponseDate":
+    def from_application_dto(
+        cls, dto: TemplateResponseDataDTO
+    ) -> "TemplateResponseDate":
         return cls(
             id=dto.id,
             name=dto.name,
@@ -173,3 +178,42 @@ class TemplateResponseDate(BaseModel):
 
 class TemplateResponse(BaseModel):
     data: list[TemplateResponseDate]
+
+
+class TemplateParameterUpdateInput(BaseModel):
+    parameter_type_id: int = Field(gt=0)
+    value: str | None = None
+    constraint: str | None = None
+    required: bool = False
+
+    def to_application_dto(self) -> TemplateParameterDataUpdateRequestDTO:
+        return TemplateParameterDataUpdateRequestDTO(
+            parameter_type_id=self.parameter_type_id,
+            required=self.required,
+            value=self.value,
+            constraint=self.constraint,
+        )
+
+
+class TemplateParameterUpdateResponse(BaseModel):
+    id: int = Field(gt=0)
+    parameter_type_id: int = Field(gt=0)
+    value: str | None = None
+    constraint: str | None = None
+    required: bool = False
+    val_type: str
+    valid: bool | None = True
+
+    @classmethod
+    def from_application_dto(
+        cls, dto: TemplateParameterUpdateDTO
+    ) -> "TemplateParameterUpdateResponse":
+        return cls(
+            id=dto.id,
+            parameter_type_id=dto.parameter_type_id,
+            value=dto.value,
+            constraint=dto.constraint,
+            required=dto.required,
+            val_type=dto.val_type,
+            valid=dto.valid,
+        )

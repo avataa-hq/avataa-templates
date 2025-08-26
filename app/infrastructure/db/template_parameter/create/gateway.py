@@ -1,3 +1,5 @@
+from logging import getLogger
+
 from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +15,7 @@ from models import TemplateParameter
 class SQLTemplateParameterCreatorRepository(TemplateParameterCreator):
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
+        self.logger = getLogger(self.__class__.__name__)
 
     async def create_template_parameters(
         self, create_dtos: list[TemplateParameterCreate]
