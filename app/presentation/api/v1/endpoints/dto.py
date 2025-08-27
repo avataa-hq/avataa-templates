@@ -123,7 +123,9 @@ class TemplateObjectSearchResponse(BaseModel):
             id=dto.id,
             object_type_id=dto.object_type_id,
             required=dto.required,
-            children=dto.children,
+            children=[
+                cls.from_application_dto(child) for child in dto.children
+            ],
             valid=dto.valid,
             parameters=[
                 TemplateParameterSearchResponse.from_application_dto(param)

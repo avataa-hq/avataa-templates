@@ -7,5 +7,7 @@ class TemplateObjectFilter:
 
     parent_object_id: int | None = None
 
-    limit: int = 50
+    depth: int = 1
+
+    limit: int = 100
     offset: int = 0

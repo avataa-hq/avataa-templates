@@ -24,15 +24,16 @@ from application.template_parameter.update.exceptions import (
     TemplateParameterUpdaterApplicationException,
 )
 from application.template_parameter.update.interactors import (
+    BulkTemplateParameterUpdaterInteractor,
     TemplateParameterUpdaterInteractor,
 )
 from di import (
+    bulk_update_template_parameter_interactor,
     get_async_session,
     read_template_parameter_interactor,
     update_template_parameter_interactor,
 )
 from exceptions import TemplateParameterNotFound
-from presentation.api.v1.endpoints.consts import USER_REQUEST_MESSAGE
 from presentation.api.v1.endpoints.dto import (
     TemplateParameterSearchRequest,
     TemplateParameterSearchResponse,
@@ -65,15 +66,12 @@ async def get_template_object_parameters(
             for el in result
         ]
     except ValidationError as ex:
-        print(USER_REQUEST_MESSAGE, request)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
         )
     except TemplateParameterReaderApplicationException as ex:
-        print(USER_REQUEST_MESSAGE, request)
         raise HTTPException(status_code=ex.status_code, detail=ex.detail)
     except Exception as ex:
-        print(USER_REQUEST_MESSAGE, request)
         print(type(ex), ex)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
@@ -105,15 +103,41 @@ async def update_template_parameter(
         )
         return output
     except ValidationError as ex:
-        print(USER_REQUEST_MESSAGE, parameter_id, parameter_data)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
         )
     except TemplateParameterUpdaterApplicationException as ex:
-        print(USER_REQUEST_MESSAGE, parameter_id, parameter_data)
         raise HTTPException(status_code=ex.status_code, detail=ex.detail)
     except Exception as ex:
-        print(USER_REQUEST_MESSAGE, parameter_id, parameter_data)
+        print(type(ex), ex)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
+        )
+
+
+@router.post(
+    "/parameters/",
+    status_code=status.HTTP_200_OK,
+    response_model=TemplateParameterUpdateResponse,
+)
+async def update_template_parameters(
+    request,
+    interactor: Annotated[
+        BulkTemplateParameterUpdaterInteractor,
+        Depends(bulk_update_template_parameter_interactor),
+    ],
+) -> list[TemplateParameterUpdateResponse]:
+    try:
+        updated_parameter = await interactor(request=[])
+        print(updated_parameter)
+        return []
+    except ValidationError as ex:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
+        )
+    except TemplateParameterUpdaterApplicationException as ex:
+        raise HTTPException(status_code=ex.status_code, detail=ex.detail)
+    except Exception as ex:
         print(type(ex), ex)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
