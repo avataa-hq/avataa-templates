@@ -1,6 +1,6 @@
 from logging import getLogger
 
-from sqlalchemy import select
+from sqlalchemy import BigInteger, Integer, bindparam, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.template_object.read.exceptions import (
@@ -44,6 +44,62 @@ class SQLTemplateObjectReaderRepository(TemplateObjectReader):
             raise TemplateObjectReaderApplicationException(
                 status_code=422, detail=GATEWAY_ERROR
             )
+
+    async def get_tree_by_filter(
+        self, db_filter: TemplateObjectFilter
+    ) -> list[TemplateObjectAggregate]:
+        output: list[TemplateObjectAggregate] = list()
+        cte_query = text("""
+        WITH RECURSIVE object_tree AS (
+            SELECT
+                id,
+                template_id,
+                parent_object_id,
+                object_type_id,
+                required,
+                valid,
+                0 as depth,
+                CAST(id AS TEXT) as path
+            FROM template_object
+            WHERE template_id = :template_id
+                    AND (:parent_id IS NULL AND parent_object_id IS NULL
+                         OR parent_object_id = :parent_id)
+
+            UNION ALL
+            SELECT
+                tob.id,
+                tob.template_id,
+                tob.parent_object_id,
+                tob.object_type_id,
+                tob.required,
+                tob.valid,
+                ot.depth + 1,
+                ot.path || '->' || CAST(tob.id AS TEXT)
+            FROM template_object tob
+            INNER JOIN object_tree ot ON tob.parent_object_id = ot.id
+            WHERE ot.depth < :max_depth - 1
+                AND ot.path NOT LIKE '%' || CAST(tob.id AS TEXT) || '%'
+            )
+        SELECT * FROM object_tree
+        ORDER BY depth, parent_object_id NULLS FIRST, id
+        """).bindparams(
+            bindparam("parent_id", type_=BigInteger),
+            bindparam("template_id", type_=Integer),
+            bindparam("max_depth", type_=Integer),
+        )
+        result = await self.session.execute(
+            cte_query,
+            {
+                "template_id": db_filter.template_id,
+                "parent_id": db_filter.parent_object_id,
+                "max_depth": db_filter.depth,
+            },
+        )
+
+        for db_el in result.fetchall():  # type: TemplateObject
+            template = sql_to_domain(db_el)
+            output.append(template)
+        return output
 
     async def exists(self, db_filter: TemplateObjectFilter) -> bool:
         base_query = select(1)

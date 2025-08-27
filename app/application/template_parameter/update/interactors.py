@@ -97,15 +97,87 @@ class TemplateParameterUpdaterInteractor(object):
             return result
 
         except TemplateParameterReaderApplicationException as ex:
+            await self.uow.rollback()
             raise TemplateParameterUpdaterApplicationException(
                 status_code=ex.status_code,
                 detail=ex.detail,
             )
         except TemplateParameterUpdaterApplicationException:
+            await self.uow.rollback()
             raise
         except Exception as ex:
+            await self.uow.rollback()
             self.logger.exception(ex)
             raise TemplateParameterUpdaterApplicationException(
                 status_code=422,
                 detail="Application Error.",
             )
+
+
+class BulkTemplateParameterUpdaterInteractor(object):
+    def __init__(
+        self,
+        tp_reader: TemplateParameterReader,
+        to_reader: TemplateObjectReader,
+        tp_updater: TemplateParameterUpdater,
+        tprm_validator: ParameterValidationInteractor,
+        uow: UoW,
+    ):
+        self._tp_reader = tp_reader
+        self._to_reader = to_reader
+        self._tp_updater = tp_updater
+        self._tprm_validator = tprm_validator
+        self.uow = uow
+        self.logger = getLogger(self.__class__.__name__)
+
+    async def __call__(self, request) -> list:
+        # Get all parameters
+        parameter_ids = [
+            update.template_parameter_id for update in request.updates
+        ]
+        parameters = await self._tp_reader.get_by_ids(parameter_ids)
+        print(parameters)
+
+        # Validate parameters
+        validation_data = [update for update in request.updates]
+        print(validation_data)
+        # validated_result = await self._tprm_validator(validation_data)
+        # print(validated_result)
+        return []
+
+    #     if validated_result.invalid_items and request.fail_on_first_error:
+    #         raise BulkUpdateValidationException(validated_result.errors)
+    #
+    #     # Update aggregates
+    #     for parameter, update_data in zip(parameters, request.updates):
+    #         try:
+    #             parameter.update_parameter_type(update_data.parameter_type_id)
+    #             parameter.set_value(update_data.value)
+    #             parameter.set_required_flag(update_data.required)
+    #             parameter.set_constraint(update_data.constraint)
+    #
+    #             updated_parameters.append(parameter)
+    #         except Exception as e:
+    #             if request.fail_on_first_error:
+    #                 raise
+    #             failed_updates.append({
+    #                 'parameter_id': update_data.template_parameter_id,
+    #                 'error': str(e)
+    #             })
+    #
+    #     # Bulk save
+    #     if updated_parameters:
+    #         await self._tp_updater.bulk_update(updated_parameters)
+    #         await self.uow.commit()
+    #
+    #     return BulkTemplateParameterUpdateDTO(
+    #         updated_parameters=[
+    #             TemplateParameterUpdateDTO.from_aggregate(p)
+    #             for p in updated_parameters
+    #         ],
+    #         failed_updates=failed_updates if failed_updates else None
+    #     )
+    #
+    # except Exception as ex:
+    #     await self.uow.rollback()
+    #     raise

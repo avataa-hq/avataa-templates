@@ -16,3 +16,11 @@ class TemplateParameterReader(Protocol):
     async def get_by_id(
         self, template_parameter_id: int
     ) -> TemplateParameterAggregate: ...
+
+    async def get_by_ids(
+        self, template_parameter_ids: list[int]
+    ) -> list[TemplateParameterAggregate]: ...
+
+    async def get_by_template_object_ids(
+        self, template_object_ids: list[int]
+    ) -> list[TemplateParameterAggregate]: ...

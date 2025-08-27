@@ -23,7 +23,6 @@ from exceptions import (
     InvalidHierarchy,
     TemplateObjectNotFound,
 )
-from presentation.api.v1.endpoints.consts import USER_REQUEST_MESSAGE
 from presentation.api.v1.endpoints.dto import (
     TemplateObjectSearchRequest,
     TemplateObjectSearchResponse,
@@ -53,20 +52,14 @@ async def get_template_objects(
 ) -> list[TemplateObjectSearchResponse]:
     try:
         result = await interactor(request=request.to_interactor_dto())
-        return [
-            TemplateObjectSearchResponse.from_application_dto(el)
-            for el in result
-        ]
+        return [TemplateObjectSearchResponse.from_application_dto(result)]
     except ValidationError as ex:
-        print(USER_REQUEST_MESSAGE, request)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
         )
     except TemplateObjectReaderApplicationException as ex:
-        print(USER_REQUEST_MESSAGE, request)
         raise HTTPException(status_code=ex.status_code, detail=ex.detail)
     except Exception as ex:
-        print(USER_REQUEST_MESSAGE, request)
         print(type(ex), ex)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)

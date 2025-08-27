@@ -36,7 +36,7 @@ async def test_search_template_object(
         required=True,
         valid=True,
     )
-    fake_to_repo.get_by_filter.return_value = [to]
+    fake_to_repo.get_tree_by_filter.return_value = [to]
     param_1 = TemplateParameterAggregate(
         id=1,
         template_object_id=TemplateObjectId(1),
@@ -77,7 +77,7 @@ async def test_search_template_object(
         required=True,
         valid=True,
     )
-    fake_tp_repo.get_by_filter.return_value = [
+    fake_tp_repo.get_by_template_object_ids.return_value = [
         param_1,
         param_2,
         param_3,
@@ -155,7 +155,7 @@ async def test_search_template_object_without_include(
         required=True,
         valid=True,
     )
-    fake_to_repo.get_by_filter.return_value = [to]
+    fake_to_repo.get_tree_by_filter.return_value = [to]
 
     request = {"template_id": 1, "depth": 1, "include_parameters": False}
     response = [

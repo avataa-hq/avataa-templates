@@ -18,6 +18,7 @@ from application.template_parameter.read.interactors import (
     TemplateParameterReaderInteractor,
 )
 from application.template_parameter.update.interactors import (
+    BulkTemplateParameterUpdaterInteractor,
     TemplateParameterUpdaterInteractor,
 )
 from database import get_session_factory
@@ -175,6 +176,30 @@ def update_template_parameter_interactor(
     ),
 ) -> TemplateParameterUpdaterInteractor:
     return TemplateParameterUpdaterInteractor(
+        tp_reader=tp_reader,
+        to_reader=to_reader,
+        tp_updater=tp_updater,
+        tprm_validator=tprm_validator,
+        uow=uow,
+    )
+
+
+def bulk_update_template_parameter_interactor(
+    uow: UoW = Depends(get_unit_of_work),
+    tp_reader: TemplateParameterReader = Depends(
+        get_template_parameter_reader_repository
+    ),
+    to_reader: TemplateObjectReader = Depends(
+        get_template_object_reader_repository
+    ),
+    tp_updater: TemplateParameterUpdater = Depends(
+        get_template_parameter_updater_repository
+    ),
+    tprm_validator: ParameterValidationInteractor = Depends(
+        get_template_parameter_validator_interactor
+    ),
+) -> BulkTemplateParameterUpdaterInteractor:
+    return BulkTemplateParameterUpdaterInteractor(
         tp_reader=tp_reader,
         to_reader=to_reader,
         tp_updater=tp_updater,

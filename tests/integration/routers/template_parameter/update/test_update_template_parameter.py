@@ -3,6 +3,9 @@ from unittest.mock import AsyncMock
 from httpx import AsyncClient
 import pytest
 
+from application.template_parameter.read.exceptions import (
+    TemplateParameterReaderApplicationException,
+)
 from config import setup_config
 from domain.shared.vo.template_object_id import TemplateObjectId
 from domain.template_parameter.aggregate import TemplateParameterAggregate
@@ -33,7 +36,7 @@ async def test_update_template_parameter(
         template_object_id=TemplateObjectId(template_parameter_id),
         parameter_type_id=ParameterTypeId(tprm_id),
         value=val,
-        required=True,
+        required=required_value,
         val_type=val_type_value,
         valid=True,
         constraint="",
@@ -57,3 +60,36 @@ async def test_update_template_parameter(
     result = await http_client.put(full_url, json=request)
     assert result.status_code == 200
     assert result.json() == response
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_incorrect_update_template_parameter(
+    http_client: AsyncClient,
+    url: str,
+    fake_tp_repo: AsyncMock,
+    fake_to_repo: AsyncMock,
+    fake_tp_update: AsyncMock,
+):
+    template_parameter_id = 1
+    val = "[8]"
+    required_value = False
+    full_url = f"{url}/{template_parameter_id}"
+    error_message = "Template Parameter not found."
+    error_code = 404
+    fake_tp_repo.get_by_id.side_effect = (
+        TemplateParameterReaderApplicationException(
+            status_code=error_code, detail=error_message
+        )
+    )
+    request = {
+        "parameter_type_id": 18,
+        "value": val,
+        "required": required_value,
+    }
+    response = {"detail": error_message}
+
+    result = await http_client.put(full_url, json=request)
+    assert result.status_code == error_code
+    assert result.json() == response
+    fake_tp_repo.get_by_id.assert_called_once()
+    fake_to_repo.get_object_type_by_id.assert_not_called()

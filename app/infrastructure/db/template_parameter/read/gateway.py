@@ -13,6 +13,7 @@ from domain.template_parameter.query import TemplateParameterReader
 from domain.template_parameter.vo.template_parameter_filter import (
     TemplateParameterFilter,
 )
+from infrastructure.db.shared.consts import GATEWAY_ERROR
 from infrastructure.db.template_parameter.read.mappers import (
     sql_to_domain,
     template_parameter_filter_to_sql_query,
@@ -42,7 +43,7 @@ class SQLTemplateParameterReaderRepository(TemplateParameterReader):
         except Exception as ex:
             self.logger.exception(ex)
             raise TemplateParameterReaderApplicationException(
-                status_code=422, detail="Gateway Error."
+                status_code=422, detail=GATEWAY_ERROR
             )
 
     async def get_by_id(
@@ -57,7 +58,7 @@ class SQLTemplateParameterReaderRepository(TemplateParameterReader):
             if template_param:
                 return sql_to_domain(template_param)
             else:
-                self.logger.info(
+                self.logger.debug(
                     "Template Parameter with id: %s not found",
                     template_parameter_id,
                 )
@@ -69,5 +70,50 @@ class SQLTemplateParameterReaderRepository(TemplateParameterReader):
         except Exception as ex:
             self.logger.exception(ex)
             raise TemplateParameterReaderApplicationException(
-                status_code=422, detail="Gateway Error."
+                status_code=422, detail=GATEWAY_ERROR
             )
+
+    async def get_by_ids(
+        self, template_parameter_ids: list[int]
+    ) -> list[TemplateParameterAggregate]:
+        """Add chunk if len template_parameter_ids  more than 500"""
+        if len(template_parameter_ids) > 500:
+            self.logger.warning("Too much size for template_parameter_ids")
+        output: list[TemplateParameterAggregate] = []
+        query = select(TemplateParameter).where(
+            TemplateParameter.id.in_(template_parameter_ids)
+        )
+        try:
+            result = await self.session.scalars(query)
+        except Exception as ex:
+            print(type(ex), ex)
+            raise TemplateParameterReaderApplicationException(
+                status_code=422, detail=GATEWAY_ERROR
+            )
+        all_template_parameters = result.all()
+        for tp in all_template_parameters:
+            template = sql_to_domain(tp)
+            output.append(template)
+        return output
+
+    async def get_by_template_object_ids(
+        self, template_object_ids: list[int]
+    ) -> list[TemplateParameterAggregate]:
+        if len(template_object_ids) > 500:
+            self.logger.warning("Too much size for template_object_ids")
+        output: list[TemplateParameterAggregate] = []
+        query = select(TemplateParameter).where(
+            TemplateParameter.template_object_id.in_(template_object_ids)
+        )
+        try:
+            result = await self.session.scalars(query)
+        except Exception as ex:
+            print(type(ex), ex)
+            raise TemplateParameterReaderApplicationException(
+                status_code=422, detail=GATEWAY_ERROR
+            )
+        all_template_parameters = result.all()
+        for tp in all_template_parameters:
+            template = sql_to_domain(tp)
+            output.append(template)
+        return output

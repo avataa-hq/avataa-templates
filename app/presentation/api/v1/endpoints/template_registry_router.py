@@ -24,7 +24,6 @@ from exceptions import (
     TPRMNotFoundInInventory,
     ValueConstraintException,
 )
-from presentation.api.v1.endpoints.consts import USER_REQUEST_MESSAGE
 from presentation.api.v1.endpoints.dto import (
     TemplateParameterCreateResponse,
     TemplateParameterData,
@@ -136,24 +135,26 @@ async def add_objects(
         List[TemplateObjectInput],
         Body(
             examples=[
-                {
-                    "object_type_id": 46181,
-                    "required": True,
-                    "parameters": [
-                        {
-                            "parameter_type_id": 135296,
-                            "value": "Value 1",
-                            "constraint": "Value 1",
-                            "required": True,
-                        },
-                    ],
-                },
-                {
-                    "object_type_id": 3,
-                    "required": False,
-                    "parameters": [],
-                    "children": [],
-                },
+                [
+                    {
+                        "object_type_id": 46181,
+                        "required": True,
+                        "parameters": [
+                            {
+                                "parameter_type_id": 135296,
+                                "value": "Value 1",
+                                "constraint": "Value 1",
+                                "required": True,
+                            },
+                        ],
+                    },
+                    {
+                        "object_type_id": 3,
+                        "required": False,
+                        "parameters": [],
+                        "children": [],
+                    },
+                ]
             ]
         ),
     ],
@@ -274,15 +275,12 @@ async def add_parameters(
             for el in result
         ]
     except ValidationError as ex:
-        print(USER_REQUEST_MESSAGE, parameters_data)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
         )
     except TemplateParameterCreatorApplicationException as ex:
-        print(USER_REQUEST_MESSAGE, parameters_data)
         raise HTTPException(status_code=ex.status_code, detail=ex.detail)
     except Exception as ex:
-        print(USER_REQUEST_MESSAGE, parameters_data)
         print(type(ex), ex)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)

@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from domain.shared.vo.object_type_id import ObjectTypeId
 from domain.shared.vo.template_id import TemplateId
@@ -15,6 +15,8 @@ class TemplateObjectAggregate(object):
     valid: bool
 
     parent_object_id: int | None = None
+
+    children: list["TemplateObjectAggregate"] = field(default_factory=list)
 
     @classmethod
     def from_db(cls, template_object: TemplateObject):
