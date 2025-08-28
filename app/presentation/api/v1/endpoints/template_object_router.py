@@ -41,7 +41,7 @@ router = APIRouter(tags=["template-object"])
 @router.get(
     "/objects",
     status_code=status.HTTP_200_OK,
-    response_model=list[TemplateObjectSearchResponse],
+    response_model=TemplateObjectSearchResponse,
 )
 async def get_template_objects(
     request: Annotated[TemplateObjectSearchRequest, Query()],
@@ -49,10 +49,10 @@ async def get_template_objects(
         TemplateObjectReaderInteractor,
         Depends(read_template_object_interactor),
     ],
-) -> list[TemplateObjectSearchResponse]:
+) -> TemplateObjectSearchResponse:
     try:
         result = await interactor(request=request.to_interactor_dto())
-        return [TemplateObjectSearchResponse.from_application_dto(result)]
+        return TemplateObjectSearchResponse.from_application_dto(result)
     except ValidationError as ex:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
