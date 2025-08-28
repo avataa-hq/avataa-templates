@@ -34,14 +34,14 @@ from domain.template_parameter.query import TemplateParameterReader
 class TemplateParameterCreatorInteractor(object):
     def __init__(
         self,
-        tp_repo_create: TemplateParameterCreator,
-        tp_repo_read: TemplateParameterReader,
+        tp_creator: TemplateParameterCreator,
+        tp_reader: TemplateParameterReader,
         to_repo: TemplateObjectReader,
         tprm_validator: ParameterValidationInteractor,
         uow: UoW,
     ):
-        self._tp_repo_create = tp_repo_create
-        self._tp_repo_read = tp_repo_read
+        self._tp_creator = tp_creator
+        self._tp_reader = tp_reader
         self._to_repo = to_repo
         self._tprm_validator = tprm_validator
         self.uow = uow
@@ -56,7 +56,7 @@ class TemplateParameterCreatorInteractor(object):
         template_parameter_exists = template_parameter_exists_from_dto(
             request=request
         )
-        already_exists = await self._tp_repo_read.exists(
+        already_exists = await self._tp_reader.exists(
             db_filter=template_parameter_exists
         )
         if already_exists:
@@ -103,10 +103,8 @@ class TemplateParameterCreatorInteractor(object):
                     val_type=el.val_type,
                 )
             )
-        created_parameters = (
-            await self._tp_repo_create.create_template_parameters(
-                create_dtos=create_dtos
-            )
+        created_parameters = await self._tp_creator.create_template_parameters(
+            create_dtos=create_dtos
         )
         await self.uow.commit()
         # Create user response

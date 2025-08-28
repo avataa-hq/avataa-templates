@@ -19,6 +19,12 @@ class TemplateParameterUpdateRequestDTO:
     data: TemplateParameterDataUpdateRequestDTO
 
 
+@dataclass(frozen=True, slots=True)
+class TemplateParameterBulkUpdateRequestDTO:
+    template_object_id: int
+    data: list[TemplateParameterDataUpdateRequestDTO]
+
+
 # From aggregate to router
 @dataclass(frozen=True, slots=True)
 class TemplateParameterUpdateDTO:

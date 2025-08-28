@@ -147,8 +147,8 @@ def create_template_parameter_interactor(
 ) -> TemplateParameterCreatorInteractor:
     return TemplateParameterCreatorInteractor(
         to_repo=to_repo,
-        tp_repo_create=tp_repo,
-        tp_repo_read=tp_repo_reader,
+        tp_creator=tp_repo,
+        tp_reader=tp_repo_reader,
         tprm_validator=tprm_validator,
         uow=uow,
     )

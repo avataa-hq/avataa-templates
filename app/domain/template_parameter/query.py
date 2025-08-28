@@ -14,7 +14,7 @@ from domain.template_parameter.vo.template_parameter_filter import (
 class TemplateParameterReader(Protocol):
     async def exists(self, db_filter: TemplateParameterExists) -> bool: ...
 
-    async def get_by_filter(
+    async def get_by_template_object_id(
         self, db_filter: TemplateParameterFilter
     ) -> list[TemplateParameterAggregate]: ...
 
@@ -22,8 +22,8 @@ class TemplateParameterReader(Protocol):
         self, template_parameter_id: int
     ) -> TemplateParameterAggregate: ...
 
-    async def get_by_ids(
-        self, template_parameter_ids: list[int]
+    async def get_by_filters(
+        self, db_filter: TemplateParameterExists
     ) -> list[TemplateParameterAggregate]: ...
 
     async def get_by_template_object_ids(
