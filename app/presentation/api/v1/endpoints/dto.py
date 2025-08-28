@@ -12,6 +12,7 @@ from application.template_object.read.dto import (
 )
 from application.template_parameter.create.dto import (
     TemplateParameterCreatedDTO,
+    TemplateParameterDataCreateRequestDTO,
 )
 from application.template_parameter.read.dto import (
     TemplateParameterRequestDTO,
@@ -38,8 +39,8 @@ class TemplateParameterData(BaseModel):
     constraint: str | None = Field(default=None)
     required: bool = Field(default=False)
 
-    def to_create_request_dto(self) -> TemplateParameterDataUpdateRequestDTO:
-        return TemplateParameterDataUpdateRequestDTO(
+    def to_create_request_dto(self) -> TemplateParameterDataCreateRequestDTO:
+        return TemplateParameterDataCreateRequestDTO(
             parameter_type_id=self.parameter_type_id,
             value=self.value,
             constraint=self.constraint,

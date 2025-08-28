@@ -19,7 +19,7 @@ def template_object_filter_to_sql_query(
     vo: TemplateObjectFilter, model: Type, query: Select[T]
 ) -> Select[T]:
     clauses = []
-    exclude_fields = ["limit", "offset"]
+    exclude_fields = ["limit", "offset", "depth"]
     for f in fields(vo):
         if f.name not in exclude_fields:
             value = getattr(vo, f.name)
