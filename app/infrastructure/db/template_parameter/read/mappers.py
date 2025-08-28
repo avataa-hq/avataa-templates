@@ -22,7 +22,7 @@ def template_parameter_filter_to_sql_query(
     model: Type,
     query: Select[tuple[TemplateParameter]],
 ) -> Select[tuple[TemplateParameter]]:
-    clauses: list[bool] = []
+    clauses = []
     exclude_fields = ["limit", "offset"]
     for f in fields(vo):
         if f.name not in exclude_fields:
@@ -39,7 +39,7 @@ def template_parameter_exists_to_sql_query(
     model: Type,
     query: Select[tuple[TemplateParameter]],
 ):
-    clauses: list[bool] = []
+    clauses = []
     for f in fields(vo):
         value = getattr(vo, f.name)
         if isinstance(value, list):
