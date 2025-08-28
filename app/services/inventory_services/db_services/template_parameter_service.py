@@ -44,7 +44,8 @@ class TemplateParameterService(object):
                     # Invalidate templates
                     templates = await self.template_repo.get_templates_by_id(
                         template_ids=[
-                            to.template_id.to_raw() for to in template_objects
+                            to.template_object_id.to_raw()
+                            for to in template_objects
                         ]
                     )
                     await self.template_repo.set_templates_invalid(

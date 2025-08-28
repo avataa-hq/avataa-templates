@@ -52,7 +52,7 @@ class TemplateParameterUpdaterInteractor(object):
                 )
             )
             template_object_filter = TemplateObjectFilter(
-                template_id=template_parameter.template_object_id.to_raw()
+                template_object_id=template_parameter.template_object_id.to_raw()
             )
             template_object_type_id = (
                 await self._to_reader.get_object_type_by_id(

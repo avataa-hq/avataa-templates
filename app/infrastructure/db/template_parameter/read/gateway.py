@@ -10,12 +10,16 @@ from domain.template_parameter.aggregate import (
     TemplateParameterAggregate,
 )
 from domain.template_parameter.query import TemplateParameterReader
+from domain.template_parameter.vo.template_parameter_exists import (
+    TemplateParameterExists,
+)
 from domain.template_parameter.vo.template_parameter_filter import (
     TemplateParameterFilter,
 )
 from infrastructure.db.shared.consts import GATEWAY_ERROR
 from infrastructure.db.template_parameter.read.mappers import (
     sql_to_domain,
+    template_parameter_exists_to_sql_query,
     template_parameter_filter_to_sql_query,
 )
 from models import TemplateParameter
@@ -25,6 +29,20 @@ class SQLTemplateParameterReaderRepository(TemplateParameterReader):
     def __init__(self, session: AsyncSession):
         self.session = session
         self.logger = getLogger(self.__class__.__name__)
+
+    async def exists(self, db_filter: TemplateParameterExists) -> bool:
+        base_query = select(1)
+        filtered_query = template_parameter_exists_to_sql_query(
+            db_filter, TemplateParameter, base_query
+        )
+        try:
+            result = await self.session.execute(filtered_query)
+            return result.scalar_one_or_none() is not None
+        except Exception as ex:
+            self.logger.exception(ex)
+            raise TemplateParameterReaderApplicationException(
+                status_code=422, detail=GATEWAY_ERROR
+            )
 
     async def get_by_filter(
         self, db_filter: TemplateParameterFilter
