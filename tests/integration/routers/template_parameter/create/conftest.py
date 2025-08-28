@@ -23,11 +23,13 @@ from di import (
     get_inventory_repository,
     get_template_object_reader_repository,
     get_template_parameter_creator_repository,
+    get_template_parameter_reader_repository,
     get_template_parameter_validator_interactor,
 )
 from domain.parameter_validation.query import TPRMReader
 from domain.template_object.query import TemplateObjectReader
 from domain.template_parameter.command import TemplateParameterCreator
+from domain.template_parameter.query import TemplateParameterReader
 from models import TemplateObject, TemplateParameter
 
 
@@ -191,8 +193,14 @@ def fake_to_repo() -> AsyncMock:
 
 
 @pytest.fixture
-def fake_tp_repo() -> AsyncMock:
+def fake_tp_repo_create() -> AsyncMock:
     repo = AsyncMock(spec=TemplateParameterCreator)
+    return repo
+
+
+@pytest.fixture
+def fake_tp_repo_read() -> AsyncMock:
+    repo = AsyncMock(spec=TemplateParameterReader)
     return repo
 
 
@@ -361,7 +369,8 @@ async def http_client(
     mock_grpc_function,
     mock_grpc_new,
     fake_to_repo,
-    fake_tp_repo,
+    fake_tp_repo_create,
+    fake_tp_repo_read,
     mock_trpm_validator,
 ):
     app.dependency_overrides[UoW] = lambda: mock_db
@@ -374,12 +383,16 @@ async def http_client(
         lambda: fake_to_repo
     )
     app.dependency_overrides[get_template_parameter_creator_repository] = (
-        lambda: fake_tp_repo
+        lambda: fake_tp_repo_create
+    )
+    app.dependency_overrides[get_template_parameter_reader_repository] = (
+        lambda: fake_tp_repo_read
     )
     app.dependency_overrides[create_template_parameter_interactor] = (
         lambda: TemplateParameterCreatorInteractor(
             to_repo=fake_to_repo,
-            tp_repo=fake_tp_repo,
+            tp_repo_create=fake_tp_repo_create,
+            tp_repo_read=fake_tp_repo_read,
             tprm_validator=mock_trpm_validator,
             uow=mock_db,
         )

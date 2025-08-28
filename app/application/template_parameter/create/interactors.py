@@ -10,6 +10,7 @@ from application.template_object.read.exceptions import (
 )
 from application.template_object.read.mapper import (
     template_object_filter_from_dto,
+    template_parameter_exists_from_dto,
 )
 from application.template_parameter.create.dto import (
     TemplateParameterCreatedDTO,
@@ -19,6 +20,7 @@ from application.template_parameter.create.dto import (
 from application.template_parameter.create.exceptions import (
     InvalidParameterValue,
     TemplateObjectNotFound,
+    TemplateParameterCreatorApplicationException,
 )
 from application.template_parameter.create.mapper import (
     template_parameter_create_from_dto,
@@ -26,17 +28,20 @@ from application.template_parameter.create.mapper import (
 )
 from domain.template_object.query import TemplateObjectReader
 from domain.template_parameter.command import TemplateParameterCreator
+from domain.template_parameter.query import TemplateParameterReader
 
 
 class TemplateParameterCreatorInteractor(object):
     def __init__(
         self,
-        tp_repo: TemplateParameterCreator,
+        tp_repo_create: TemplateParameterCreator,
+        tp_repo_read: TemplateParameterReader,
         to_repo: TemplateObjectReader,
         tprm_validator: ParameterValidationInteractor,
         uow: UoW,
     ):
-        self._tp_repo = tp_repo
+        self._tp_repo_create = tp_repo_create
+        self._tp_repo_read = tp_repo_read
         self._to_repo = to_repo
         self._tprm_validator = tprm_validator
         self.uow = uow
@@ -47,6 +52,19 @@ class TemplateParameterCreatorInteractor(object):
         self, request: TemplateParameterCreateRequestDTO
     ) -> list[TemplateParameterCreatedDTO]:
         create_dtos = list()
+        # Check if parameter already exist for this template object
+        template_parameter_exists = template_parameter_exists_from_dto(
+            request=request
+        )
+        already_exists = await self._tp_repo_read.exists(
+            db_filter=template_parameter_exists
+        )
+        if already_exists:
+            raise TemplateParameterCreatorApplicationException(
+                status_code=422,
+                detail="The template parameter(s) already exist(s).",
+            )
+
         # Get information about Template Object
         to_request = TemplateObjectRequestDTO(
             template_object_id=request.template_object_id,
@@ -85,8 +103,10 @@ class TemplateParameterCreatorInteractor(object):
                     val_type=el.val_type,
                 )
             )
-        created_parameters = await self._tp_repo.create_template_parameters(
-            create_dtos=create_dtos
+        created_parameters = (
+            await self._tp_repo_create.create_template_parameters(
+                create_dtos=create_dtos
+            )
         )
         await self.uow.commit()
         # Create user response

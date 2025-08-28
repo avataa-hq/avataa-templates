@@ -18,7 +18,8 @@ def url() -> str:
 async def test_create_template_parameter(
     http_client: AsyncClient,
     url: str,
-    fake_tp_repo: AsyncMock,
+    fake_tp_repo_create: AsyncMock,
+    fake_tp_repo_read: AsyncMock,
     fake_to_repo: AsyncMock,
 ):
     template_object_id = 1
@@ -35,7 +36,8 @@ async def test_create_template_parameter(
         valid=True,
         constraint=None,
     )
-    fake_tp_repo.create_template_parameters.return_value = [param_1]
+    fake_tp_repo_read.exists.return_value = False
+    fake_tp_repo_create.create_template_parameters.return_value = [param_1]
 
     fake_to_repo.get_object_type_by_id.return_value = 46_181
     request = [{"parameter_type_id": tprm_id, "value": val, "required": True}]
@@ -61,7 +63,8 @@ async def test_create_template_parameter_multiple_bool(
     http_client: AsyncClient,
     url: str,
     val: str,
-    fake_tp_repo: AsyncMock,
+    fake_tp_repo_create: AsyncMock,
+    fake_tp_repo_read: AsyncMock,
     fake_to_repo: AsyncMock,
 ):
     template_object_id = 1
@@ -77,7 +80,8 @@ async def test_create_template_parameter_multiple_bool(
         valid=True,
         constraint=None,
     )
-    fake_tp_repo.create_template_parameters.return_value = [param_1]
+    fake_tp_repo_read.exists.return_value = False
+    fake_tp_repo_create.create_template_parameters.return_value = [param_1]
     fake_to_repo.get_object_type_by_id.return_value = 46_181
 
     request = [{"parameter_type_id": tprm_id, "value": val, "required": False}]
@@ -94,4 +98,25 @@ async def test_create_template_parameter_multiple_bool(
     ]
     result = await http_client.post(full_url, json=request)
     assert result.status_code == 200
+    assert result.json() == response
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_create_template_parameter_with_already_exists_parameter(
+    http_client: AsyncClient,
+    url: str,
+    fake_tp_repo_create: AsyncMock,
+    fake_tp_repo_read: AsyncMock,
+    fake_to_repo: AsyncMock,
+):
+    template_object_id = 1
+    tprm_id = 135_299
+    val = "123"
+    full_url = f"{url}/{template_object_id}"
+    fake_tp_repo_read.exists.return_value = True
+
+    request = [{"parameter_type_id": tprm_id, "value": val, "required": True}]
+    response = {"detail": "The template parameter(s) already exist(s)."}
+    result = await http_client.post(full_url, json=request)
+    assert result.status_code == 422
     assert result.json() == response

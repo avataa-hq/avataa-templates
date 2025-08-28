@@ -90,7 +90,7 @@ class SQLTemplateObjectReaderRepository(TemplateObjectReader):
         result = await self.session.execute(
             cte_query,
             {
-                "template_id": db_filter.template_id,
+                "template_id": db_filter.template_object_id,
                 "parent_id": db_filter.parent_object_id,
                 "max_depth": db_filter.depth,
             },
@@ -118,12 +118,10 @@ class SQLTemplateObjectReaderRepository(TemplateObjectReader):
     async def get_object_type_by_id(
         self, db_filter: TemplateObjectFilter
     ) -> int:
-        base_query = select(TemplateObject.object_type_id)
-        filtered_query = template_object_filter_to_sql_query(
-            db_filter, TemplateObject, base_query
-        )
+        query = select(TemplateObject.object_type_id)
+        query = query.filter(TemplateObject.id == db_filter.template_object_id)
         try:
-            result = await self.session.execute(filtered_query)
+            result = await self.session.execute(query)
             object_type_id = result.scalar_one_or_none()
             if object_type_id:
                 return object_type_id

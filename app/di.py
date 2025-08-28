@@ -140,13 +140,15 @@ def create_template_parameter_interactor(
     tp_repo: TemplateParameterCreator = Depends(
         get_template_parameter_creator_repository
     ),
+    tp_repo_reader=Depends(get_template_parameter_reader_repository),
     tprm_validator: ParameterValidationInteractor = Depends(
         get_template_parameter_validator_interactor
     ),
 ) -> TemplateParameterCreatorInteractor:
     return TemplateParameterCreatorInteractor(
         to_repo=to_repo,
-        tp_repo=tp_repo,
+        tp_repo_create=tp_repo,
+        tp_repo_read=tp_repo_reader,
         tprm_validator=tprm_validator,
         uow=uow,
     )
