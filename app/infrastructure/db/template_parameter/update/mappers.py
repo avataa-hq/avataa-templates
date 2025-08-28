@@ -1,3 +1,5 @@
+from typing import Any
+
 from domain.shared.vo.template_object_id import TemplateObjectId
 from domain.template_parameter.aggregate import TemplateParameterAggregate
 from domain.template_parameter.vo.parameter_type_id import ParameterTypeId
@@ -16,6 +18,26 @@ def domain_to_sql(aggr: TemplateParameterAggregate) -> TemplateParameter:
     )
     output.id = aggr.id
     return output
+
+
+def domain_to_bulk_sql(
+    aggr: list[TemplateParameterAggregate],
+) -> list[dict[str, Any]]:
+    result = []
+    for parameter in aggr:
+        result.append(
+            {
+                "id": parameter.id,
+                "template_object_id": parameter.template_object_id.to_raw(),
+                "parameter_type_id": parameter.parameter_type_id.to_raw(),
+                "value": parameter.value,
+                "constraint": parameter.constraint,
+                "val_type": parameter.val_type,
+                "required": parameter.required,
+                "valid": parameter.valid,
+            }
+        )
+    return result
 
 
 def sql_to_domain(db_el: TemplateParameter) -> TemplateParameterAggregate:

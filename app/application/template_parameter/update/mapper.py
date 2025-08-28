@@ -3,7 +3,13 @@ from application.paramater_validation.dto import (
     TemplateParameterValidationRequestDTO,
 )
 from application.template_parameter.update.dto import (
+    TemplateParameterBulkUpdateRequestDTO,
     TemplateParameterDataUpdateRequestDTO,
+)
+from domain.shared.vo.template_object_id import TemplateObjectId
+from domain.template_parameter.vo.parameter_type_id import ParameterTypeId
+from domain.template_parameter.vo.template_parameter_exists import (
+    TemplateParameterExists,
 )
 
 
@@ -21,5 +27,16 @@ def template_parameter_to_validator(
                 constraint=el.constraint,
             )
             for el in data
+        ],
+    )
+
+
+def template_parameter_bulk_from_dto(
+    request: TemplateParameterBulkUpdateRequestDTO,
+) -> TemplateParameterExists:
+    return TemplateParameterExists(
+        template_object_id=TemplateObjectId(request.template_object_id),
+        parameter_type_id=[
+            ParameterTypeId(param.parameter_type_id) for param in request.data
         ],
     )

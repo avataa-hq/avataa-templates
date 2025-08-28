@@ -391,8 +391,8 @@ async def http_client(
     app.dependency_overrides[create_template_parameter_interactor] = (
         lambda: TemplateParameterCreatorInteractor(
             to_repo=fake_to_repo,
-            tp_repo_create=fake_tp_repo_create,
-            tp_repo_read=fake_tp_repo_read,
+            tp_creator=fake_tp_repo_create,
+            tp_reader=fake_tp_repo_read,
             tprm_validator=mock_trpm_validator,
             uow=mock_db,
         )

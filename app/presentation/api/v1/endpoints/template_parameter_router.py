@@ -35,6 +35,7 @@ from di import (
 )
 from exceptions import TemplateParameterNotFound
 from presentation.api.v1.endpoints.dto import (
+    TemplateParameterBulkUpdateRequest,
     TemplateParameterSearchRequest,
     TemplateParameterSearchResponse,
     TemplateParameterUpdateInput,
@@ -118,19 +119,24 @@ async def update_template_parameter(
 @router.post(
     "/parameters/",
     status_code=status.HTTP_200_OK,
-    response_model=TemplateParameterUpdateResponse,
+    response_model=list[TemplateParameterUpdateResponse],
 )
 async def update_template_parameters(
-    request,
+    request: TemplateParameterBulkUpdateRequest,
     interactor: Annotated[
         BulkTemplateParameterUpdaterInteractor,
         Depends(bulk_update_template_parameter_interactor),
     ],
 ) -> list[TemplateParameterUpdateResponse]:
     try:
-        updated_parameter = await interactor(request=[])
-        print(updated_parameter)
-        return []
+        updated_parameter = await interactor(
+            request=request.to_interactor_dto()
+        )
+        output = [
+            TemplateParameterUpdateResponse.from_application_dto(param)
+            for param in updated_parameter
+        ]
+        return output
     except ValidationError as ex:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()

@@ -13,6 +13,10 @@ class TemplateParameterCreator(Protocol):
 
 
 class TemplateParameterUpdater(Protocol):
-    async def update_template_parameters(
+    async def update_template_parameter(
         self, template_parameter: TemplateParameterAggregate
     ) -> TemplateParameterAggregate: ...
+
+    async def bulk_update_template_parameter(
+        self, template_parameters: list[TemplateParameterAggregate]
+    ) -> list[TemplateParameterAggregate]: ...
