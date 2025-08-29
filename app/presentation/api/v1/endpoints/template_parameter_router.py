@@ -41,6 +41,8 @@ from presentation.api.v1.endpoints.dto import (
     TemplateParameterUpdateInput,
     TemplateParameterUpdateResponse,
 )
+from presentation.security.security_data_models import UserData
+from presentation.security.security_factory import security
 from services.template_parameter_services import (
     TemplateParameterService,
 )
@@ -59,6 +61,7 @@ async def get_template_object_parameters(
         TemplateParameterReaderInteractor,
         Depends(read_template_parameter_interactor),
     ],
+    user_data: Annotated[UserData, Depends(security)],
 ) -> list[TemplateParameterSearchResponse]:
     try:
         result = await interactor(request=request.to_interactor_dto())
@@ -91,6 +94,7 @@ async def update_template_parameter(
         TemplateParameterUpdaterInteractor,
         Depends(update_template_parameter_interactor),
     ],
+    user_data: Annotated[UserData, Depends(security)],
 ) -> TemplateParameterUpdateResponse:
     try:
         updated_parameter = await interactor(
@@ -127,6 +131,7 @@ async def update_template_parameters(
         BulkTemplateParameterUpdaterInteractor,
         Depends(bulk_update_template_parameter_interactor),
     ],
+    user_data: Annotated[UserData, Depends(security)],
 ) -> list[TemplateParameterUpdateResponse]:
     try:
         updated_parameter = await interactor(
@@ -157,6 +162,7 @@ async def update_template_parameters(
 async def delete_template_parameter(
     parameter_id: int,
     db: Annotated[AsyncSession, Depends(get_async_session)],
+    user_data: Annotated[UserData, Depends(security)],
 ) -> Response:
     service = TemplateParameterService(db)
 

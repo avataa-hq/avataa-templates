@@ -34,6 +34,8 @@ from presentation.api.v1.endpoints.dto import (
     TemplateObjectSearchWithChildrenResponse,
     TemplateObjectSingleSearchRequest,
 )
+from presentation.security.security_data_models import UserData
+from presentation.security.security_factory import security
 from schemas.template_schemas import (
     TemplateObjectUpdateInput,
     TemplateObjectUpdateOutput,
@@ -56,6 +58,7 @@ async def get_template_object(
         TemplateObjectByIdInteractor,
         Depends(read_template_object_by_id_interactor),
     ],
+    user_data: Annotated[UserData, Depends(security)],
 ) -> TemplateObjectSearchResponse:
     try:
         result = await interactor(request=request.to_interactor_dto())
@@ -85,6 +88,7 @@ async def get_template_objects(
         TemplateObjectReaderInteractor,
         Depends(read_template_object_interactor),
     ],
+    user_data: Annotated[UserData, Depends(security)],
 ) -> list[TemplateObjectSearchWithChildrenResponse]:
     try:
         result = await interactor(request=request.to_interactor_dto())
@@ -120,6 +124,7 @@ async def update_template_object(
         ),
     ],
     db: Annotated[AsyncSession, Depends(get_async_session)],
+    user_data: Annotated[UserData, Depends(security)],
 ) -> TemplateObjectUpdateOutput:
     service = TemplateObjectService(db)
 
@@ -143,6 +148,7 @@ async def update_template_object(
 async def delete_template_object(
     object_id: int,
     db: Annotated[AsyncSession, Depends(get_async_session)],
+    user_data: Annotated[UserData, Depends(security)],
 ) -> Response:
     service = TemplateObjectService(db)
 
