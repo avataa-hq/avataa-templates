@@ -47,7 +47,7 @@ async def test_template_objects_invalid(
         test_session.add(obj)
     await test_session.flush()
     request = TemplateObjectRequestDTO(
-        template_object_id=1,
+        template_id=1,
         depth=1,
         include_parameters=False,
     )

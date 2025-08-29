@@ -16,7 +16,7 @@ def template_object_filter_from_dto(
     request: TemplateObjectRequestDTO,
 ) -> TemplateObjectFilter:
     return TemplateObjectFilter(
-        template_object_id=request.template_object_id,
+        template_object_id=request.template_id,
         parent_object_id=request.parent_id,
         depth=request.depth,
     )

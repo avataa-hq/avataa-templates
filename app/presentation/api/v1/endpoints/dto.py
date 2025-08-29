@@ -86,7 +86,7 @@ class TemplateParameterSearchResponse(BaseModel):
 
 
 class TemplateObjectSearchRequest(BaseModel):
-    template_object_id: int = Field(default=1, ge=1)
+    template_id: int = Field(default=1, ge=1)
     parent_id: int | None = Field(
         default=None, ge=1, description="Parent object ID (optional)"
     )
@@ -102,7 +102,7 @@ class TemplateObjectSearchRequest(BaseModel):
 
     def to_interactor_dto(self) -> TemplateObjectRequestDTO:
         return TemplateObjectRequestDTO(
-            template_object_id=self.template_object_id,
+            template_id=self.template_id,
             parent_id=self.parent_id,
             depth=self.depth,
             include_parameters=self.include_parameters,
@@ -111,6 +111,7 @@ class TemplateObjectSearchRequest(BaseModel):
 
 class TemplateObjectSearchResponse(BaseModel):
     id: int
+    template_id: int
     object_type_id: int
     required: bool
     parameters: list[TemplateParameterSearchResponse]
@@ -123,6 +124,7 @@ class TemplateObjectSearchResponse(BaseModel):
     ) -> "TemplateObjectSearchResponse":
         return cls(
             id=dto.id,
+            template_id=dto.template_id,
             object_type_id=dto.object_type_id,
             required=dto.required,
             children=[

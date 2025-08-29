@@ -29,9 +29,10 @@ async def test_search_template_object(
     fake_tp_repo: AsyncMock,
 ):
     tmo_id = 46_181
+    template_id = 1
     to = TemplateObjectAggregate(
         id=TemplateObjectId(1),
-        template_id=TemplateId(1),
+        template_id=TemplateId(template_id),
         object_type_id=ObjectTypeId(tmo_id),
         required=True,
         valid=True,
@@ -84,52 +85,59 @@ async def test_search_template_object(
         param_4,
     ]
 
-    request = {"template_id": 1, "depth": 1, "include_parameters": True}
-    response = {
-        "id": 1,
-        "object_type_id": tmo_id,
-        "required": True,
-        "parameters": [
-            {
-                "id": 1,
-                "parameter_type_id": 135296,
-                "value": "Value 1",
-                "constraint": "Value 1",
-                "required": True,
-                "val_type": "str",
-                "valid": True,
-            },
-            {
-                "id": 2,
-                "parameter_type_id": 135297,
-                "value": "[1, 2]",
-                "constraint": None,
-                "required": False,
-                "val_type": "mo_link",
-                "valid": True,
-            },
-            {
-                "id": 3,
-                "parameter_type_id": 135298,
-                "value": "1234567",
-                "constraint": None,
-                "required": False,
-                "val_type": "int",
-                "valid": True,
-            },
-            {
-                "id": 4,
-                "parameter_type_id": 135299,
-                "value": "123",
-                "constraint": None,
-                "required": True,
-                "val_type": "str",
-                "valid": True,
-            },
-        ],
-        "children": [],
-        "valid": True,
+    request = {
+        "template_id": template_id,
+        "depth": 1,
+        "include_parameters": True,
     }
+    response = [
+        {
+            "id": 1,
+            "object_type_id": tmo_id,
+            "required": True,
+            "parameters": [
+                {
+                    "id": 1,
+                    "parameter_type_id": 135296,
+                    "value": "Value 1",
+                    "constraint": "Value 1",
+                    "required": True,
+                    "val_type": "str",
+                    "valid": True,
+                },
+                {
+                    "id": 2,
+                    "parameter_type_id": 135297,
+                    "value": "[1, 2]",
+                    "constraint": None,
+                    "required": False,
+                    "val_type": "mo_link",
+                    "valid": True,
+                },
+                {
+                    "id": 3,
+                    "parameter_type_id": 135298,
+                    "value": "1234567",
+                    "constraint": None,
+                    "required": False,
+                    "val_type": "int",
+                    "valid": True,
+                },
+                {
+                    "id": 4,
+                    "parameter_type_id": 135299,
+                    "value": "123",
+                    "constraint": None,
+                    "required": True,
+                    "val_type": "str",
+                    "valid": True,
+                },
+            ],
+            "template_id": template_id,
+            "children": [],
+            "valid": True,
+        }
+    ]
 
     result = await http_client.get(url, params=request)
     assert result.status_code == 200
@@ -146,24 +154,32 @@ async def test_search_template_object_without_include(
     fake_tp_repo: AsyncMock,
 ):
     tmo_id = 46_181
+    template_id = 1
     to = TemplateObjectAggregate(
         id=TemplateObjectId(1),
-        template_id=TemplateId(1),
+        template_id=TemplateId(template_id),
         object_type_id=ObjectTypeId(tmo_id),
         required=True,
         valid=True,
     )
     fake_to_repo.get_tree_by_filter.return_value = [to]
 
-    request = {"template_id": 1, "depth": 1, "include_parameters": False}
-    response = {
-        "id": 1,
-        "object_type_id": tmo_id,
-        "required": True,
-        "parameters": [],
-        "children": [],
-        "valid": True,
+    request = {
+        "template_id": template_id,
+        "depth": 1,
+        "include_parameters": False,
     }
+    response = [
+        {
+            "id": 1,
+            "object_type_id": tmo_id,
+            "required": True,
+            "parameters": [],
+            "children": [],
+            "template_id": template_id,
+            "valid": True,
+        }
+    ]
 
     result = await http_client.get(url, params=request)
     assert result.status_code == 200

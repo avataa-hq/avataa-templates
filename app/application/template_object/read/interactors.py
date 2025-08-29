@@ -29,7 +29,7 @@ class TemplateObjectReaderInteractor(object):
 
     async def __call__(
         self, request: TemplateObjectRequestDTO
-    ) -> TemplateObjectSearchDTO:
+    ) -> list[TemplateObjectSearchDTO]:
         template_objects_filters = template_object_filter_from_dto(request)
         try:
             template_objects = await self._to_repository.get_tree_by_filter(
@@ -53,9 +53,12 @@ class TemplateObjectReaderInteractor(object):
                 parameters_by_object_id[obj_id].append(
                     TemplateParameterSearchDTO.from_aggregate(param)
                 )
-            result = TemplateObjectSearchDTO.from_tree_aggregate(
-                tree=tree, parameters=parameters_by_object_id
-            )
+            result = [
+                TemplateObjectSearchDTO.from_tree_aggregate(
+                    tree=el, parameters=parameters_by_object_id
+                )
+                for el in tree
+            ]
 
             return result
         except TemplateObjectReaderApplicationException as ex:
@@ -70,24 +73,24 @@ class TemplateObjectReaderInteractor(object):
     @staticmethod
     def _build_tree_from_flat_list(
         flat_objects: list[TemplateObjectAggregate],
-    ) -> TemplateObjectAggregate:
+    ) -> list[TemplateObjectAggregate]:
         by_parent: dict[int, list[TemplateObjectAggregate]] = defaultdict(list)
-        root: TemplateObjectAggregate | None = None
+        roots: list = []
 
-        for to in flat_objects:  # type: TemplateObjectAggregate
-            if to.parent_object_id is None:
-                root = to
+        for t_obj in flat_objects:
+            if t_obj.parent_object_id is None:
+                roots.append(t_obj)
             else:
-                by_parent[to.parent_object_id].append(to)
+                if t_obj.parent_object_id not in by_parent:
+                    by_parent[t_obj.parent_object_id] = []
+                by_parent[t_obj.parent_object_id].append(t_obj)
 
-        def assign_children(obj):
-            obj.children = by_parent.get(obj.id.to_raw(), [])
-            for child in obj.children:
+        def assign_children(to):
+            to.children = by_parent.get(to.id, [])
+            for child in to.children:
                 assign_children(child)
 
-        if not root:
-            raise TemplateObjectReaderApplicationException(
-                status_code=422, detail="No root objects found."
-            )
-        assign_children(root)
-        return root
+        for root in roots:
+            assign_children(root)
+
+        return roots

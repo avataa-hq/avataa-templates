@@ -12,7 +12,7 @@ from domain.template_parameter.aggregate import (
 # From router
 @dataclass(frozen=True, slots=True)
 class TemplateObjectRequestDTO:
-    template_object_id: int
+    template_id: int
     depth: int
     include_parameters: bool
 
@@ -23,6 +23,7 @@ class TemplateObjectRequestDTO:
 @dataclass(frozen=True, slots=True)
 class TemplateObjectSearchDTO:
     id: int
+    template_id: int
     object_type_id: int
     required: bool
     parameters: list[TemplateParameterSearchDTO]
@@ -40,6 +41,7 @@ class TemplateObjectSearchDTO:
     ) -> "TemplateObjectSearchDTO":
         return cls(
             id=aggregate.id.to_raw(),
+            template_id=aggregate.template_id.to_raw(),
             object_type_id=aggregate.object_type_id.to_raw(),
             required=aggregate.required,
             children=[],
@@ -65,6 +67,7 @@ class TemplateObjectSearchDTO:
 
         return cls(
             id=object_id,
+            template_id=tree.template_id.to_raw(),
             object_type_id=tree.object_type_id.to_raw(),
             required=tree.required,
             children=children,

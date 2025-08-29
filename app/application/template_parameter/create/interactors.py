@@ -67,7 +67,7 @@ class TemplateParameterCreatorInteractor(object):
 
         # Get information about Template Object
         to_request = TemplateObjectRequestDTO(
-            template_object_id=request.template_object_id,
+            template_id=request.template_object_id,
             depth=1,
             include_parameters=False,
         )
