@@ -162,7 +162,6 @@ class BulkTemplateParameterUpdaterInteractor(object):
                     status_code=422, detail=" ".join(validated_data.errors)
                 )
             # Update aggregates
-
             for parameter, update_data in zip(parameters, request.data):
                 parameter.set_value(update_data.value)
                 parameter.set_required_flag(update_data.required)

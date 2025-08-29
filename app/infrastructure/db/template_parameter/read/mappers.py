@@ -28,7 +28,7 @@ def template_parameter_filter_to_sql_query(
         if f.name not in exclude_fields:
             value = getattr(vo, f.name)
             if value is not None:
-                clauses.append(getattr(model, f.name) == value)
+                clauses.append(getattr(model, f.name) == value.to_raw())
     query.limit(vo.limit)
     query.offset(vo.offset)
     return query.where(*clauses)
