@@ -2,13 +2,16 @@ from collections import defaultdict
 from logging import getLogger
 
 from application.template_object.read.dto import (
+    TemplateObjectByIdRequestDTO,
     TemplateObjectRequestDTO,
     TemplateObjectSearchDTO,
+    TemplateObjectWithChildrenSearchDTO,
 )
 from application.template_object.read.exceptions import (
     TemplateObjectReaderApplicationException,
 )
 from application.template_object.read.mapper import (
+    template_object_by_id_from_dto,
     template_object_filter_from_dto,
 )
 from application.template_parameter.read.dto import TemplateParameterSearchDTO
@@ -25,11 +28,11 @@ class TemplateObjectReaderInteractor(object):
     ):
         self._to_repository = to_repo
         self._tp_repository = tp_repo
-        self.logger = getLogger("TemplateObjectReaderInteractor")
+        self.logger = getLogger(self.__class__.__name__)
 
     async def __call__(
         self, request: TemplateObjectRequestDTO
-    ) -> list[TemplateObjectSearchDTO]:
+    ) -> list[TemplateObjectWithChildrenSearchDTO]:
         template_objects_filters = template_object_filter_from_dto(request)
         try:
             template_objects = await self._to_repository.get_tree_by_filter(
@@ -54,7 +57,7 @@ class TemplateObjectReaderInteractor(object):
                     TemplateParameterSearchDTO.from_aggregate(param)
                 )
             result = [
-                TemplateObjectSearchDTO.from_tree_aggregate(
+                TemplateObjectWithChildrenSearchDTO.from_tree_aggregate(
                     tree=el, parameters=parameters_by_object_id
                 )
                 for el in tree
@@ -86,7 +89,7 @@ class TemplateObjectReaderInteractor(object):
                 by_parent[t_obj.parent_object_id].append(t_obj)
 
         def assign_children(to):
-            to.children = by_parent.get(to.id, [])
+            to.children = by_parent.get(to.id.to_raw(), [])
             for child in to.children:
                 assign_children(child)
 
@@ -94,3 +97,42 @@ class TemplateObjectReaderInteractor(object):
             assign_children(root)
 
         return roots
+
+
+class TemplateObjectByIdInteractor(object):
+    def __init__(
+        self,
+        to_repo: TemplateObjectReader,
+        tp_repo: TemplateParameterReader,
+    ):
+        self._to_repository = to_repo
+        self._tp_repository = tp_repo
+        self.logger = getLogger(self.__class__.__name__)
+
+    async def __call__(
+        self, request: TemplateObjectByIdRequestDTO
+    ) -> TemplateObjectSearchDTO:
+        template_objects_filters = template_object_by_id_from_dto(request)
+        try:
+            template_object = await self._to_repository.get_by_id(
+                template_objects_filters
+            )
+            if request.include_parameters:
+                template_parameters = (
+                    await self._tp_repository.get_by_template_object_ids(
+                        [template_object.id.to_raw()]
+                    )
+                )
+            else:
+                template_parameters = []
+            return TemplateObjectSearchDTO.from_aggregate(
+                template_object, template_parameters
+            )
+        except TemplateObjectReaderApplicationException as ex:
+            self.logger.error(ex)
+            raise
+        except Exception as ex:
+            self.logger.error(ex)
+            raise TemplateObjectReaderApplicationException(
+                status_code=422, detail="Application Error."
+            )

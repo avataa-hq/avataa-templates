@@ -7,8 +7,10 @@ from application.template.read.dto import (
     TemplateResponseDataDTO,
 )
 from application.template_object.read.dto import (
+    TemplateObjectByIdRequestDTO,
     TemplateObjectRequestDTO,
     TemplateObjectSearchDTO,
+    TemplateObjectWithChildrenSearchDTO,
 )
 from application.template_parameter.create.dto import (
     TemplateParameterCreatedDTO,
@@ -85,6 +87,20 @@ class TemplateParameterSearchResponse(BaseModel):
         return cls.model_validate(dto, by_alias=True)
 
 
+class TemplateObjectSingleSearchRequest(BaseModel):
+    id: int = Field(default=1, ge=1)
+    include_parameters: bool = Field(
+        default=False,
+        description="Include parameters in the response (default: False)",
+    )
+
+    def to_interactor_dto(self) -> TemplateObjectByIdRequestDTO:
+        return TemplateObjectByIdRequestDTO(
+            id=self.id,
+            include_parameters=self.include_parameters,
+        )
+
+
 class TemplateObjectSearchRequest(BaseModel):
     template_id: int = Field(default=1, ge=1)
     parent_id: int | None = Field(
@@ -115,13 +131,32 @@ class TemplateObjectSearchResponse(BaseModel):
     object_type_id: int
     required: bool
     parameters: list[TemplateParameterSearchResponse]
-    children: list
     valid: bool
 
     @classmethod
     def from_application_dto(
         cls, dto: TemplateObjectSearchDTO
     ) -> "TemplateObjectSearchResponse":
+        return cls(
+            id=dto.id,
+            template_id=dto.template_id,
+            object_type_id=dto.object_type_id,
+            required=dto.required,
+            valid=dto.valid,
+            parameters=[
+                TemplateParameterSearchResponse.from_application_dto(param)
+                for param in dto.parameters
+            ],
+        )
+
+
+class TemplateObjectSearchWithChildrenResponse(TemplateObjectSearchResponse):
+    children: list
+
+    @classmethod
+    def from_application_dto(
+        cls, dto: TemplateObjectWithChildrenSearchDTO
+    ) -> "TemplateObjectSearchWithChildrenResponse":
         return cls(
             id=dto.id,
             template_id=dto.template_id,

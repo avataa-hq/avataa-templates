@@ -9,6 +9,7 @@ from application.paramater_validation.interactors import (
 )
 from application.template.read.interactors import TemplateReaderInteractor
 from application.template_object.read.interactors import (
+    TemplateObjectByIdInteractor,
     TemplateObjectReaderInteractor,
 )
 from application.template_parameter.create.interactors import (
@@ -127,6 +128,19 @@ def read_template_object_interactor(
     ),
 ) -> TemplateObjectReaderInteractor:
     return TemplateObjectReaderInteractor(
+        to_repo=to_repository, tp_repo=tp_repository
+    )
+
+
+def read_template_object_by_id_interactor(
+    to_repository: TemplateObjectReader = Depends(
+        get_template_object_reader_repository
+    ),
+    tp_repository: TemplateParameterReader = Depends(
+        get_template_parameter_reader_repository
+    ),
+) -> TemplateObjectByIdInteractor:
+    return TemplateObjectByIdInteractor(
         to_repo=to_repository, tp_repo=tp_repository
     )
 
