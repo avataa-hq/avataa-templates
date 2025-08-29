@@ -28,6 +28,8 @@ from presentation.api.v1.endpoints.dto import (
     TemplateParameterCreateResponse,
     TemplateParameterData,
 )
+from presentation.security.security_data_models import UserData
+from presentation.security.security_factory import security
 from schemas.template_schemas import (
     TemplateInput,
     TemplateObjectInput,
@@ -87,6 +89,7 @@ async def create_template(
         ),
     ],
     db: Annotated[AsyncSession, Depends(get_async_session)],
+    user_data: Annotated[UserData, Depends(security)],
 ) -> TemplateOutput:
     service = TemplateRegistryService(db)
     try:
@@ -159,6 +162,7 @@ async def add_objects(
         ),
     ],
     db: Annotated[AsyncSession, Depends(get_async_session)],
+    user_data: Annotated[UserData, Depends(security)],
     parent_id: Optional[int] = None,
 ) -> List[TemplateObjectOutput]:
     service = TemplateRegistryService(db)
@@ -260,6 +264,7 @@ async def add_parameters(
         TemplateParameterCreatorInteractor,
         Depends(create_template_parameter_interactor),
     ],
+    user_data: Annotated[UserData, Depends(security)],
 ) -> list[TemplateParameterCreateResponse]:
     try:
         result = await interactor(

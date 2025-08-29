@@ -24,6 +24,8 @@ from presentation.api.v1.endpoints.dto import (
     TemplateResponse,
     TemplateResponseDate,
 )
+from presentation.security.security_data_models import UserData
+from presentation.security.security_factory import security
 from schemas.template_schemas import (
     SimpleTemplateOutput,
     TemplateUpdateInput,
@@ -37,6 +39,7 @@ router = APIRouter(tags=["template"])
 @router.get("/templates")
 async def get_templates(
     db: Annotated[AsyncSession, Depends(get_async_session)],
+    user_data: Annotated[UserData, Depends(security)],
     limit: Optional[int] = Query(
         None,
         ge=1,
@@ -62,6 +65,7 @@ async def get_templates_by_filter(
     interactor: Annotated[
         TemplateReaderInteractor, Depends(read_template_interactor)
     ],
+    user_data: Annotated[UserData, Depends(security)],
 ) -> TemplateResponse:
     try:
         result = await interactor(request=request.to_interactor_dto())
@@ -99,6 +103,7 @@ async def update_template(
         ),
     ],
     db: Annotated[AsyncSession, Depends(get_async_session)],
+    user_data: Annotated[UserData, Depends(security)],
 ) -> TemplateUpdateOutput:
     service = TemplateService(db)
 
@@ -122,6 +127,7 @@ async def update_template(
 async def delete_template(
     template_id: int,
     db: Annotated[AsyncSession, Depends(get_async_session)],
+    user_data: Annotated[UserData, Depends(security)],
 ) -> Response:
     service = TemplateService(db)
 
