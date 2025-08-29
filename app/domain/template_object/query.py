@@ -1,12 +1,19 @@
 from typing import Protocol
 
 from domain.template_object.aggregate import TemplateObjectAggregate
+from domain.template_object.vo.template_object_by_id_filter import (
+    TemplateObjectByIdFilter,
+)
 from domain.template_object.vo.template_object_filter import (
     TemplateObjectFilter,
 )
 
 
 class TemplateObjectReader(Protocol):
+    async def get_by_id(
+        self, template_object_id: TemplateObjectByIdFilter
+    ) -> TemplateObjectAggregate: ...
+
     async def get_by_filter(
         self, db_filter: TemplateObjectFilter
     ) -> list[TemplateObjectAggregate]: ...

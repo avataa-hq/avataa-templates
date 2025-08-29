@@ -1,8 +1,14 @@
-from application.template_object.read.dto import TemplateObjectRequestDTO
+from application.template_object.read.dto import (
+    TemplateObjectByIdRequestDTO,
+    TemplateObjectRequestDTO,
+)
 from application.template_parameter.create.dto import (
     TemplateParameterCreateRequestDTO,
 )
 from domain.shared.vo.template_object_id import TemplateObjectId
+from domain.template_object.vo.template_object_by_id_filter import (
+    TemplateObjectByIdFilter,
+)
 from domain.template_object.vo.template_object_filter import (
     TemplateObjectFilter,
 )
@@ -20,6 +26,12 @@ def template_object_filter_from_dto(
         parent_object_id=request.parent_id,
         depth=request.depth,
     )
+
+
+def template_object_by_id_from_dto(
+    request: TemplateObjectByIdRequestDTO,
+) -> TemplateObjectByIdFilter:
+    return TemplateObjectByIdFilter(id=TemplateObjectId(request.id))
 
 
 def template_parameter_exists_from_dto(

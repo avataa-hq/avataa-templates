@@ -19,6 +19,12 @@ class TemplateObjectRequestDTO:
     parent_id: int | None = None
 
 
+@dataclass(frozen=True, slots=True)
+class TemplateObjectByIdRequestDTO:
+    id: int
+    include_parameters: bool
+
+
 # From aggregate to router
 @dataclass(frozen=True, slots=True)
 class TemplateObjectSearchDTO:
@@ -28,10 +34,6 @@ class TemplateObjectSearchDTO:
     required: bool
     parameters: list[TemplateParameterSearchDTO]
     valid: bool
-
-    children: list["TemplateObjectSearchDTO"] = field(
-        default_factory=list
-    )  # Not implemented
 
     @classmethod
     def from_aggregate(
@@ -44,7 +46,6 @@ class TemplateObjectSearchDTO:
             template_id=aggregate.template_id.to_raw(),
             object_type_id=aggregate.object_type_id.to_raw(),
             required=aggregate.required,
-            children=[],
             valid=aggregate.valid,
             parameters=[
                 TemplateParameterSearchDTO.from_aggregate(param)
@@ -52,12 +53,19 @@ class TemplateObjectSearchDTO:
             ],
         )
 
+
+@dataclass(frozen=True, slots=True)
+class TemplateObjectWithChildrenSearchDTO(TemplateObjectSearchDTO):
+    children: list["TemplateObjectWithChildrenSearchDTO"] = field(
+        default_factory=list
+    )
+
     @classmethod
     def from_tree_aggregate(
         cls,
         tree: TemplateObjectAggregate,
         parameters: dict[int, list[TemplateParameterSearchDTO]],
-    ) -> "TemplateObjectSearchDTO":
+    ) -> "TemplateObjectWithChildrenSearchDTO":
         object_id = tree.id.to_raw()
         object_parameters = parameters.get(object_id, []) if parameters else []
         children = [

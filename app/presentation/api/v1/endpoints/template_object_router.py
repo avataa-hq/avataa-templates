@@ -16,9 +16,14 @@ from application.template_object.read.exceptions import (
     TemplateObjectReaderApplicationException,
 )
 from application.template_object.read.interactors import (
+    TemplateObjectByIdInteractor,
     TemplateObjectReaderInteractor,
 )
-from di import get_async_session, read_template_object_interactor
+from di import (
+    get_async_session,
+    read_template_object_by_id_interactor,
+    read_template_object_interactor,
+)
 from exceptions import (
     InvalidHierarchy,
     TemplateObjectNotFound,
@@ -26,6 +31,8 @@ from exceptions import (
 from presentation.api.v1.endpoints.dto import (
     TemplateObjectSearchRequest,
     TemplateObjectSearchResponse,
+    TemplateObjectSearchWithChildrenResponse,
+    TemplateObjectSingleSearchRequest,
 )
 from schemas.template_schemas import (
     TemplateObjectUpdateInput,
@@ -39,9 +46,38 @@ router = APIRouter(tags=["template-object"])
 
 
 @router.get(
+    "/object",
+    status_code=status.HTTP_200_OK,
+    response_model=TemplateObjectSearchResponse,
+)
+async def get_template_object(
+    request: Annotated[TemplateObjectSingleSearchRequest, Query()],
+    interactor: Annotated[
+        TemplateObjectByIdInteractor,
+        Depends(read_template_object_by_id_interactor),
+    ],
+) -> TemplateObjectSearchResponse:
+    try:
+        result = await interactor(request=request.to_interactor_dto())
+        return TemplateObjectSearchResponse.from_application_dto(result)
+
+    except ValidationError as ex:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
+        )
+    except TemplateObjectReaderApplicationException as ex:
+        raise HTTPException(status_code=ex.status_code, detail=ex.detail)
+    except Exception as ex:
+        print(type(ex), ex)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
+        )
+
+
+@router.get(
     "/objects",
     status_code=status.HTTP_200_OK,
-    response_model=list[TemplateObjectSearchResponse],
+    response_model=list[TemplateObjectSearchWithChildrenResponse],
 )
 async def get_template_objects(
     request: Annotated[TemplateObjectSearchRequest, Query()],
@@ -49,11 +85,11 @@ async def get_template_objects(
         TemplateObjectReaderInteractor,
         Depends(read_template_object_interactor),
     ],
-) -> list[TemplateObjectSearchResponse]:
+) -> list[TemplateObjectSearchWithChildrenResponse]:
     try:
         result = await interactor(request=request.to_interactor_dto())
         return [
-            TemplateObjectSearchResponse.from_application_dto(res)
+            TemplateObjectSearchWithChildrenResponse.from_application_dto(res)
             for res in result
         ]
     except ValidationError as ex:

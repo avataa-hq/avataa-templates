@@ -8,12 +8,16 @@ from application.template_object.read.exceptions import (
 )
 from domain.template_object.aggregate import TemplateObjectAggregate
 from domain.template_object.query import TemplateObjectReader
+from domain.template_object.vo.template_object_by_id_filter import (
+    TemplateObjectByIdFilter,
+)
 from domain.template_object.vo.template_object_filter import (
     TemplateObjectFilter,
 )
 from infrastructure.db.shared.consts import GATEWAY_ERROR
 from infrastructure.db.template_object.read.mappers import (
     sql_to_domain,
+    template_object_by_id_to_sql_query,
     template_object_filter_to_sql_query,
 )
 from models import TemplateObject
@@ -23,6 +27,34 @@ class SQLTemplateObjectReaderRepository(TemplateObjectReader):
     def __init__(self, session: AsyncSession):
         self.session = session
         self.logger = getLogger(self.__class__.__name__)
+
+    async def get_by_id(
+        self, template_object_id: TemplateObjectByIdFilter
+    ) -> TemplateObjectAggregate | None:
+        base_query = select(TemplateObject)
+        filtered_query = template_object_by_id_to_sql_query(
+            template_object_id, TemplateObject, base_query
+        )
+        try:
+            result = await self.session.execute(filtered_query)
+            template_param = result.scalar_one_or_none()
+            if template_param:
+                return sql_to_domain(template_param)
+            else:
+                self.logger.debug(
+                    "Template Object with id: %s not found",
+                    template_object_id.id.to_raw(),
+                )
+                raise TemplateObjectReaderApplicationException(
+                    status_code=404, detail="Template Object not found."
+                )
+        except TemplateObjectReaderApplicationException:
+            raise
+        except Exception as ex:
+            self.logger.exception(ex)
+            raise TemplateObjectReaderApplicationException(
+                status_code=422, detail=GATEWAY_ERROR
+            )
 
     async def get_by_filter(
         self, db_filter: TemplateObjectFilter
