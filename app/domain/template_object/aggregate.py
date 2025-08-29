@@ -6,7 +6,7 @@ from domain.shared.vo.template_object_id import TemplateObjectId
 from models import TemplateObject
 
 
-@dataclass
+@dataclass(kw_only=True, slots=True)
 class TemplateObjectAggregate(object):
     id: TemplateObjectId
     template_id: TemplateId
