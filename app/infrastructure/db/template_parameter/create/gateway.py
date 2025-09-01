@@ -23,8 +23,8 @@ class SQLTemplateParameterCreatorRepository(TemplateParameterCreator):
         output: list[TemplateParameterAggregate] = list()
         data = [
             {
-                "template_object_id": dto.template_object_id,
-                "parameter_type_id": dto.parameter_type_id,
+                "template_object_id": dto.template_object_id.to_raw(),
+                "parameter_type_id": dto.parameter_type_id.to_raw(),
                 "value": dto.value,
                 "constraint": dto.constraint,
                 "val_type": dto.val_type,

@@ -72,8 +72,8 @@ class TemplateParameterService:
         result = await self.db.execute(
             select(TemplateObject).filter_by(id=parameter.template_object_id)
         )
-        object = result.scalar_one()
-        object_type_id = object.object_type_id
+        t_object = result.scalar_one()
+        object_type_id = t_object.object_type_id
 
         template_registry_service = TemplateRegistryService(self.db)
         await template_registry_service.initialize_parameters_map(

@@ -5,6 +5,9 @@ from application.paramater_validation.dto import (
     TemplateParameterValidationResponseDTO,
     TemplateParameterWithTPRMData,
 )
+from application.paramater_validation.exceptions import (
+    ParameterValidationException,
+)
 from domain.parameter_validation.query import TPRMReader
 from domain.parameter_validation.vo.validation_filter import (
     ParameterValidationFilter,
@@ -28,6 +31,16 @@ class ParameterValidationInteractor(object):
         repo_filter = ParameterValidationFilter(tmo_id=request.object_type_id)
         # gRPC request
         result = await self._repository.get_all_tprms_by_tmo_id(repo_filter)
+        # Check correct data
+        request_list_of_parameters = [
+            p.parameter_type_id for p in request.parameter_to_validate
+        ]
+        if not set(request_list_of_parameters).issubset(result.keys()):
+            raise ParameterValidationException(
+                status_code=422,
+                detail=f"Inconsistent request parameters: {request_list_of_parameters}"
+                f" do not belong tmo {repo_filter.tmo_id}.",
+            )
         #  Check user data
         for el in request.parameter_to_validate:
             parameter_type_id: int = el.parameter_type_id

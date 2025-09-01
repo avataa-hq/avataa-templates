@@ -1,6 +1,9 @@
 from logging import getLogger
 
 from application.common.uow import UoW
+from application.paramater_validation.exceptions import (
+    ParameterValidationException,
+)
 from application.paramater_validation.interactors import (
     ParameterValidationInteractor,
 )
@@ -85,7 +88,15 @@ class TemplateParameterCreatorInteractor(object):
         inventory_request = template_parameter_to_validator(
             object_type_id, request.data
         )
-        validated_data = await self._tprm_validator(request=inventory_request)
+        try:
+            validated_data = await self._tprm_validator(
+                request=inventory_request
+            )
+        except ParameterValidationException as ex:
+            raise TemplateParameterCreatorApplicationException(
+                status_code=ex.status_code,
+                detail=ex.detail,
+            )
         if validated_data.invalid_items:
             raise InvalidParameterValue(
                 status_code=422, detail=" ".join(validated_data.errors)
