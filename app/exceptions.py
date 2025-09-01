@@ -71,9 +71,6 @@ class InvalidParameterValue(Exception):
         tprm_is_multiple: bool,
         value: str | None,
     ) -> None:
-        # self.parameter_type_id = parameter_type_id
-        # self.object_type_id = object_type_id
-        # self.value = value
         super().__init__(
             f"Invalid value '{value}' for parameter type (ID={parameter_type_id}, "
             f"type={tprm_val_type}, is_multiple={tprm_is_multiple}) "

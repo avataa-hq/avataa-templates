@@ -113,14 +113,14 @@ class TemplateObjectService:
         result = await self.db.execute(
             select(TemplateObject).filter_by(id=object_id)
         )
-        object = result.scalar_one_or_none()
+        t_object = result.scalar_one_or_none()
 
-        if not object:
+        if not t_object:
             raise TemplateObjectNotFound
 
         if (
             object_data.parent_object_id
-            and object_data.parent_object_id != object.parent_object_id
+            and object_data.parent_object_id != t_object.parent_object_id
         ):
             # if hierarchy is changing
             registry_service = TemplateRegistryService(self.db)
@@ -140,33 +140,33 @@ class TemplateObjectService:
             parent_object_type_id = parent_object.object_type_id
 
             registry_service.validate_object_type(
-                object_type_id=object.object_type_id,
+                object_type_id=t_object.object_type_id,
                 parent_object_type_id=parent_object_type_id,
             )
 
-        object.parent_object_id = object_data.parent_object_id
-        object.required = object_data.required
+        t_object.parent_object_id = object_data.parent_object_id
+        t_object.required = object_data.required
 
         await self.db.flush()
 
         return TemplateObjectUpdateOutput(
-            id=object.id,
-            object_type_id=object.object_type_id,
-            parent_object_id=object.parent_object_id,
-            required=object.required,
-            valid=object.valid,
+            id=t_object.id,
+            object_type_id=t_object.object_type_id,
+            parent_object_id=t_object.parent_object_id,
+            required=t_object.required,
+            valid=t_object.valid,
         )
 
     async def delete_template_object(self, object_id: int) -> None:
         result = await self.db.execute(
             select(TemplateObject).filter_by(id=object_id)
         )
-        object = result.scalar_one_or_none()
+        t_object = result.scalar_one_or_none()
 
-        if not object:
+        if not t_object:
             raise TemplateObjectNotFound
 
-        await self.db.delete(object)
+        await self.db.delete(t_object)
 
     async def commit_changes(self) -> None:
         await self.db.commit()
