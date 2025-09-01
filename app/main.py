@@ -1,9 +1,16 @@
 from contextlib import asynccontextmanager
 
+from dishka import make_async_container
+from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import setup_config
+from infrastructure.di.providers import (
+    DatabaseProvider,
+    InteractorProvider,
+    RepositoryProvider,
+)
 from infrastructure.grpc.config import cleanup_grpc_services, init_grpc_services
 from init_app import create_app
 from presentation.api.v1.endpoints import (
@@ -19,6 +26,7 @@ async def lifespan(app: FastAPI):
     init_grpc_services()
     yield
     await cleanup_grpc_services()
+    await app.state.dishka_container.close()
 
 
 app_title = setup_config().app.app_title
@@ -32,6 +40,13 @@ app = create_app(
     version=app_version,
     lifespan=lifespan,
 )
+container = make_async_container(
+    DatabaseProvider(),
+    RepositoryProvider(),
+    InteractorProvider(),
+)
+
+setup_dishka(container=container, app=app)
 
 app.add_middleware(
     CORSMiddleware,

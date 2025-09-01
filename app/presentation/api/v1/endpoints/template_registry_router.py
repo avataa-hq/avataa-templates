@@ -1,5 +1,7 @@
 from typing import Annotated, List, Optional
 
+from dishka import FromDishka
+from dishka.integrations.fastapi import inject
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,7 +15,7 @@ from application.template_parameter.create.exceptions import (
 from application.template_parameter.create.interactors import (
     TemplateParameterCreatorInteractor,
 )
-from di import create_template_parameter_interactor, get_async_session
+from di import get_async_session
 from exceptions import (
     InvalidHierarchy,
     InvalidParameterValue,
@@ -237,6 +239,7 @@ async def add_objects(
     status_code=200,
     response_model=list[TemplateParameterCreateResponse],
 )
+@inject
 async def add_parameters(
     template_object_id: int,
     parameters_data: Annotated[
@@ -260,10 +263,7 @@ async def add_parameters(
             ]
         ),
     ],
-    interactor: Annotated[
-        TemplateParameterCreatorInteractor,
-        Depends(create_template_parameter_interactor),
-    ],
+    interactor: FromDishka[TemplateParameterCreatorInteractor],
     user_data: Annotated[UserData, Depends(security)],
 ) -> list[TemplateParameterCreateResponse]:
     try:

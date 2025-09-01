@@ -8,21 +8,16 @@ import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from application.template_object.read.interactors import (
-    TemplateObjectByIdInteractor,
-    TemplateObjectReaderInteractor,
-)
+from application.template.read.interactors import TemplateReaderInteractor
 from config import setup_config
-from domain.template_object.query import TemplateObjectReader
-from domain.template_parameter.query import TemplateParameterReader
+from domain.template.query import TemplateReader
 
 
 @pytest.fixture
-# def app(mock_auth):
 def app():
     v1_prefix = f"{setup_config().app.prefix}/v{setup_config().app.app_version}"
     _app = FastAPI(root_path=v1_prefix)
-    from presentation.api.v1.endpoints.template_object_router import router
+    from presentation.api.v1.endpoints.template_router import router
 
     _app.include_router(router)
     return _app
@@ -30,10 +25,7 @@ def app():
 
 class MockFactory:
     def __init__(self):
-        self.template_object_reader_mock = AsyncMock(spec=TemplateObjectReader)
-        self.template_parameter_reader_mock = AsyncMock(
-            spec=TemplateParameterReader
-        )
+        self.template_reader_mock = AsyncMock(spec=TemplateReader)
 
 
 class MockDatabaseProvider(Provider):
@@ -49,30 +41,18 @@ class MockRepositoryProvider(Provider):
         self.mock_factory = mock_factory
 
     @provide(scope=Scope.REQUEST)
-    def get_template_object_reader_repo(
+    async def get_template_reader_repo(
         self, session: AsyncSession
-    ) -> TemplateObjectReader:
-        return self.mock_factory.template_object_reader_mock
-
-    @provide(scope=Scope.REQUEST)
-    def get_template_parameter_reader_repo(
-        self, session: AsyncSession
-    ) -> TemplateParameterReader:
-        return self.mock_factory.template_parameter_reader_mock
+    ) -> TemplateReader:
+        return self.mock_factory.template_reader_mock
 
 
 class MockInteractorProvider(Provider):
     @provide(scope=Scope.REQUEST)
-    def get_template_object_reader(
-        self, to_repo: TemplateObjectReader, tp_repo: TemplateParameterReader
-    ) -> TemplateObjectReaderInteractor:
-        return TemplateObjectReaderInteractor(to_repo=to_repo, tp_repo=tp_repo)
-
-    @provide(scope=Scope.REQUEST)
-    def get_template_object_by_id_reader(
-        self, to_repo: TemplateObjectReader, tp_repo: TemplateParameterReader
-    ) -> TemplateObjectByIdInteractor:
-        return TemplateObjectByIdInteractor(to_repo=to_repo, tp_repo=tp_repo)
+    def get_template_reader(
+        self, repo: TemplateReader
+    ) -> TemplateReaderInteractor:
+        return TemplateReaderInteractor(t_repo=repo)
 
 
 @pytest_asyncio.fixture
@@ -95,7 +75,6 @@ async def container(mock_factory):
 async def http_client(app, container):
     # app.dependency_overrides[oauth2_scheme] = lambda: mock_auth
     setup_dishka(container, app)
-
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:

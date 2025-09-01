@@ -1,12 +1,8 @@
-from unittest.mock import AsyncMock
-
 from httpx import AsyncClient
 import pytest
 
-from application.paramater_validation.exceptions import (
-    ParameterValidationException,
-)
 from config import setup_config
+from domain.parameter_validation.aggregate import InventoryTprmAggregate
 from domain.shared.vo.template_object_id import TemplateObjectId
 from domain.template_parameter.aggregate import TemplateParameterAggregate
 from domain.template_parameter.vo.parameter_type_id import ParameterTypeId
@@ -21,9 +17,7 @@ def url() -> str:
 async def test_create_template_parameter(
     http_client: AsyncClient,
     url: str,
-    fake_tp_repo_create: AsyncMock,
-    fake_tp_repo_read: AsyncMock,
-    fake_to_repo: AsyncMock,
+    mock_factory,
 ):
     template_object_id = 1
     tprm_id = 135_299
@@ -39,10 +33,56 @@ async def test_create_template_parameter(
         valid=True,
         constraint=None,
     )
-    fake_tp_repo_read.exists.return_value = False
-    fake_tp_repo_create.create_template_parameters.return_value = [param_1]
+    mock_factory.template_parameter_reader_mock.exists.return_value = False
+    mock_factory.template_parameter_creator_mock.create_template_parameters.return_value = [
+        param_1
+    ]
 
-    fake_to_repo.get_object_type_by_id.return_value = 46_181
+    mock_factory.template_object_reader_mock.get_object_type_by_id.return_value = 46_181
+    mock_factory.inventory_validator_mock.get_all_tprms_by_tmo_id.return_value = {
+        135296: InventoryTprmAggregate(
+            val_type="str",
+            required=True,
+            multiple=False,
+            id=135296,
+            constraint=None,
+        ),
+        135297: InventoryTprmAggregate(
+            val_type="mo_link",
+            required=False,
+            multiple=True,
+            id=135297,
+            constraint="46182",
+        ),
+        135298: InventoryTprmAggregate(
+            val_type="int",
+            required=False,
+            multiple=False,
+            id=135298,
+            constraint=None,
+        ),
+        135299: InventoryTprmAggregate(
+            val_type="str",
+            required=False,
+            multiple=False,
+            id=135299,
+            constraint=None,
+        ),
+        141046: InventoryTprmAggregate(
+            val_type="int",
+            required=False,
+            multiple=True,
+            id=141046,
+            constraint=None,
+        ),
+        141047: InventoryTprmAggregate(
+            val_type="bool",
+            required=False,
+            multiple=True,
+            id=141047,
+            constraint=None,
+        ),
+    }
     request = [{"parameter_type_id": tprm_id, "value": val, "required": True}]
     response = [
         {
@@ -66,9 +106,7 @@ async def test_create_template_parameter_multiple_bool(
     http_client: AsyncClient,
     url: str,
     val: str,
-    fake_tp_repo_create: AsyncMock,
-    fake_tp_repo_read: AsyncMock,
-    fake_to_repo: AsyncMock,
+    mock_factory,
 ):
     template_object_id = 1
     full_url = f"{url}/{template_object_id}"
@@ -83,9 +121,55 @@ async def test_create_template_parameter_multiple_bool(
         valid=True,
         constraint=None,
     )
-    fake_tp_repo_read.exists.return_value = False
-    fake_tp_repo_create.create_template_parameters.return_value = [param_1]
-    fake_to_repo.get_object_type_by_id.return_value = 46_181
+    mock_factory.inventory_validator_mock.get_all_tprms_by_tmo_id.return_value = {
+        135296: InventoryTprmAggregate(
+            val_type="str",
+            required=True,
+            multiple=False,
+            id=135296,
+            constraint=None,
+        ),
+        135297: InventoryTprmAggregate(
+            val_type="mo_link",
+            required=False,
+            multiple=True,
+            id=135297,
+            constraint="46182",
+        ),
+        135298: InventoryTprmAggregate(
+            val_type="int",
+            required=False,
+            multiple=False,
+            id=135298,
+            constraint=None,
+        ),
+        135299: InventoryTprmAggregate(
+            val_type="str",
+            required=False,
+            multiple=False,
+            id=135299,
+            constraint=None,
+        ),
+        141046: InventoryTprmAggregate(
+            val_type="int",
+            required=False,
+            multiple=True,
+            id=141046,
+            constraint=None,
+        ),
+        141047: InventoryTprmAggregate(
+            val_type="bool",
+            required=False,
+            multiple=True,
+            id=141047,
+            constraint=None,
+        ),
+    }
+    mock_factory.template_parameter_reader_mock.exists.return_value = False
+    mock_factory.template_parameter_creator_mock.create_template_parameters.return_value = [
+        param_1
+    ]
+    mock_factory.template_object_reader_mock.get_object_type_by_id.return_value = 46_181
 
     request = [{"parameter_type_id": tprm_id, "value": val, "required": False}]
     response = [
@@ -108,15 +192,13 @@ async def test_create_template_parameter_multiple_bool(
 async def test_create_template_parameter_with_already_exists_parameter(
     http_client: AsyncClient,
     url: str,
-    fake_tp_repo_create: AsyncMock,
-    fake_tp_repo_read: AsyncMock,
-    fake_to_repo: AsyncMock,
+    mock_factory,
 ):
     template_object_id = 1
     tprm_id = 135_299
     val = "123"
     full_url = f"{url}/{template_object_id}"
-    fake_tp_repo_read.exists.return_value = True
+    mock_factory.template_parameter_reader_mock.exists.return_value = True
 
     request = [{"parameter_type_id": tprm_id, "value": val, "required": True}]
     response = {"detail": "The template parameter(s) already exist(s)."}
@@ -129,17 +211,16 @@ async def test_create_template_parameter_with_already_exists_parameter(
 async def test_create_template_parameter_from_incorrect_tmo(
     http_client: AsyncClient,
     url: str,
-    fake_tp_repo_create: AsyncMock,
-    fake_tp_repo_read: AsyncMock,
-    fake_to_repo: AsyncMock,
-    mock_trpm_validator: AsyncMock,
+    mock_factory,
 ):
     val = "1"
     template_object_id = 1
     full_url = f"{url}/{template_object_id}"
     tprm_id = 100
+    inconsistent_tprm_id = tprm_id + 1
+    tmo_id = 46_181
     status_code = 422
-    detail_error = f"Inconsistent request parameters: {[tprm_id]} do not belong tmo {template_object_id}."
+    detail_error = f"Inconsistent request parameters: {[inconsistent_tprm_id]} do not belong tmo {tmo_id}."
 
     param_1 = TemplateParameterAggregate(
         id=1,
@@ -151,16 +232,21 @@ async def test_create_template_parameter_from_incorrect_tmo(
         valid=True,
         constraint=None,
     )
-    fake_tp_repo_read.exists.return_value = False
-    fake_tp_repo_create.create_template_parameters.return_value = [param_1]
-    fake_to_repo.get_object_type_by_id.return_value = 46_181
-    mock_trpm_validator.side_effect = ParameterValidationException(
-        status_code=status_code,
-        detail=detail_error,
-    )
+    mock_factory.template_parameter_reader_mock.exists.return_value = False
+    mock_factory.template_parameter_creator_mock.create_template_parameters.return_value = [
+        param_1
+    ]
+    mock_factory.template_object_reader_mock.get_object_type_by_id.return_value = tmo_id
+    mock_factory.inventory_validator_mock.get_all_tprms_by_tmo_id.return_value = {
+        tprm_id: []
+    }
 
     request = [
-        {"parameter_type_id": tprm_id + 1, "value": val, "required": False}
+        {
+            "parameter_type_id": inconsistent_tprm_id,
+            "value": val,
+            "required": False,
+        }
     ]
 
     result = await http_client.post(full_url, json=request)

@@ -1,5 +1,6 @@
 from typing import Annotated, List, Optional
 
+from dishka.integrations.fastapi import FromDishka, inject
 from fastapi import (
     APIRouter,
     Body,
@@ -14,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.template.read.exceptions import TemplateApplicationException
 from application.template.read.interactors import TemplateReaderInteractor
-from di import get_async_session, read_template_interactor
+from di import get_async_session
 from exceptions import (
     TemplateNotFound,
     TMOIdNotFoundInInventory,
@@ -60,11 +61,10 @@ async def get_templates(
 @router.post(
     "/search", status_code=status.HTTP_200_OK, response_model=TemplateResponse
 )
+@inject
 async def get_templates_by_filter(
     request: TemplateRequest,
-    interactor: Annotated[
-        TemplateReaderInteractor, Depends(read_template_interactor)
-    ],
+    interactor: FromDishka[TemplateReaderInteractor],
     user_data: Annotated[UserData, Depends(security)],
 ) -> TemplateResponse:
     try:

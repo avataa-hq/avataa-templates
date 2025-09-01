@@ -1,5 +1,3 @@
-from unittest.mock import AsyncMock
-
 from httpx import AsyncClient
 import pytest
 
@@ -23,9 +21,7 @@ def url() -> str:
 async def test_search_template_object(
     http_client: AsyncClient,
     url: str,
-    mock_db,
-    fake_to_repo: AsyncMock,
-    fake_tp_repo: AsyncMock,
+    mock_factory,
 ):
     # Assign
     tmo_id = 46_181
@@ -37,7 +33,7 @@ async def test_search_template_object(
         required=True,
         valid=True,
     )
-    fake_to_repo.get_by_id.return_value = to
+    mock_factory.template_object_reader_mock.get_by_id.return_value = to
     param_1 = TemplateParameterAggregate(
         id=1,
         template_object_id=TemplateObjectId(1),
@@ -78,7 +74,7 @@ async def test_search_template_object(
         required=True,
         valid=True,
     )
-    fake_tp_repo.get_by_template_object_ids.return_value = [
+    mock_factory.template_parameter_reader_mock.get_by_template_object_ids.return_value = [
         param_1,
         param_2,
         param_3,
@@ -146,9 +142,7 @@ async def test_search_template_object(
 async def test_search_template_object_without_include(
     http_client: AsyncClient,
     url: str,
-    mock_db,
-    fake_to_repo: AsyncMock,
-    fake_tp_repo: AsyncMock,
+    mock_factory,
 ):
     # Assign
     tmo_id = 46_181
@@ -160,7 +154,7 @@ async def test_search_template_object_without_include(
         required=True,
         valid=True,
     )
-    fake_to_repo.get_by_id.return_value = to
+    mock_factory.template_object_reader_mock.get_by_id.return_value = to
 
     request = {
         "id": template_id,

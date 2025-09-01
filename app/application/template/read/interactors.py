@@ -7,24 +7,32 @@ from application.template.read.dto import (
 )
 from application.template.read.exceptions import TemplateApplicationException
 from application.template.read.mapper import template_filter_from_dto
-from domain.template.aggregate import TemplateAggregate
 from domain.template.query import TemplateReader
 from domain.template.vo.template_filter import TemplateFilter
 
 
 class TemplateReaderInteractor(object):
-    def __init__(self, repository: TemplateReader):
-        self._repository = repository
-        self.logger = logging.getLogger("TemplateReaderInteractor")
+    def __init__(self, t_repo: TemplateReader):
+        self._repo = t_repo
+        self.logger = logging.getLogger(self.__class__.__name__)
 
     async def __call__(
         self, request: TemplateRequestDTO
     ) -> TemplateResponseDTO:
         template_filters: TemplateFilter = template_filter_from_dto(request)
         try:
-            templates: list[
-                TemplateAggregate
-            ] = await self._repository.get_template_by_filter(template_filters)
+            templates = await self._repo.get_template_by_filter(
+                template_filters
+            )
+            # Create user response
+            result = TemplateResponseDTO(
+                data=[
+                    TemplateResponseDataDTO.from_aggregate(el)
+                    for el in templates
+                ],
+            )
+            return result
+
         except TemplateApplicationException as ex:
             self.logger.error(ex)
             raise
@@ -33,11 +41,3 @@ class TemplateReaderInteractor(object):
             raise TemplateApplicationException(
                 status_code=422, detail="Application Error."
             )
-
-        # Create user response
-        result = TemplateResponseDTO(
-            data=[
-                TemplateResponseDataDTO.from_aggregate(el) for el in templates
-            ],
-        )
-        return result
