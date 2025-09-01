@@ -1,12 +1,18 @@
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock
 
+from dishka import Provider, Scope, make_async_container, provide
+from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 import pytest
+import pytest_asyncio
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from application.template_parameter.read.interactors import (
+    TemplateParameterReaderInteractor,
+)
 from config import setup_config
-from di import get_async_session, get_unit_of_work
-from models import TemplateParameter
+from domain.template_parameter.query import TemplateParameterReader
 
 
 @pytest.fixture
@@ -22,74 +28,60 @@ def app():
     return _app
 
 
-@pytest.fixture
-def mock_db():
-    fake_client = AsyncMock()
-    first_result = Mock()
-    first_result.scalar_one_or_none.return_value = {
-        "id": 1,
-        "template_id": 1,
-        "parent_object_id": None,
-        "object_type_id": 46181,
-        "required": True,
-        "valid": True,
-    }
+class MockFactory:
+    def __init__(self):
+        self.template_parameter_reader_mock = AsyncMock(
+            spec=TemplateParameterReader
+        )
 
-    session_scalars = Mock()
-    scalars_all = Mock()
-    param_1 = TemplateParameter(
-        template_object_id=1,
-        parameter_type_id=135_296,
-        value="Value 1",
-        constraint="Value 1",
-        val_type="str",
-        required=True,
-        valid=True,
+
+class MockDatabaseProvider(Provider):
+    @provide(scope=Scope.REQUEST)
+    def get_session(self) -> AsyncSession:
+        connection = AsyncMock(spec=AsyncSession)
+        return connection
+
+
+class MockRepositoryProvider(Provider):
+    def __init__(self, mock_factory: MockFactory):
+        super().__init__()
+        self.mock_factory = mock_factory
+
+    @provide(scope=Scope.REQUEST)
+    def get_template_parameter_reader_repo(
+        self, session: AsyncSession
+    ) -> TemplateParameterReader:
+        return self.mock_factory.template_parameter_reader_mock
+
+
+class MockInteractorProvider(Provider):
+    @provide(scope=Scope.REQUEST)
+    def get_template_parameter_reader(
+        self, tp_repo: TemplateParameterReader
+    ) -> TemplateParameterReaderInteractor:
+        return TemplateParameterReaderInteractor(tp_repo=tp_repo)
+
+
+@pytest_asyncio.fixture
+def mock_factory():
+    return MockFactory()
+
+
+@pytest_asyncio.fixture
+async def container(mock_factory):
+    container = make_async_container(
+        MockDatabaseProvider(),
+        MockRepositoryProvider(mock_factory),
+        MockInteractorProvider(),
     )
-    param_1.id = 1
-    param_2 = TemplateParameter(
-        template_object_id=1,
-        parameter_type_id=135_297,
-        value="[1, 2]",
-        constraint=None,
-        val_type="mo_link",
-        required=False,
-        valid=True,
-    )
-    param_2.id = 2
-    param_3 = TemplateParameter(
-        template_object_id=1,
-        parameter_type_id=135_298,
-        value="1234567",
-        constraint=None,
-        val_type="int",
-        required=False,
-        valid=True,
-    )
-    param_3.id = 3
-
-    scalars_all.all.return_value = [param_1, param_2, param_3]
-    session_scalars.scalars.return_value = scalars_all
-    fake_client.execute.side_effect = [first_result, session_scalars]
-    fake_client.scalars.return_value = scalars_all
-
-    return fake_client
-
-
-# @pytest.fixture
-# def mock_auth():
-#     mock_user_data = MagicMock()
-#     mock_user_data.user_id = "test_user_id"
-#     mock_user_data.username = "test_user"
-#
-#     return AsyncMock(return_value=mock_user_data)
+    yield container
+    await container.close()
 
 
 @pytest.fixture
-async def http_client(app, mock_db):
-    app.dependency_overrides[get_unit_of_work] = lambda: mock_db
-    app.dependency_overrides[get_async_session] = lambda: mock_db
+async def http_client(app, container):
     # app.dependency_overrides[oauth2_scheme] = lambda: mock_auth
+    setup_dishka(container, app)
 
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"

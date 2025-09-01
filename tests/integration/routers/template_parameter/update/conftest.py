@@ -1,36 +1,26 @@
-import datetime
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock
 
+from dishka import Provider, Scope, make_async_container, provide
+from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 import pytest
+import pytest_asyncio
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from application.common.uow import UoW
-from application.paramater_validation.dto import (
-    TemplateParameterValidationResponseDTO,
-    TemplateParameterWithTPRMData,
-)
+from application.common.uow import SQLAlchemyUoW
 from application.paramater_validation.interactors import (
     ParameterValidationInteractor,
 )
 from application.template_parameter.update.interactors import (
+    BulkTemplateParameterUpdaterInteractor,
     TemplateParameterUpdaterInteractor,
 )
 from config import setup_config
-from di import (
-    get_async_session,
-    get_inventory_repository,
-    get_template_object_reader_repository,
-    get_template_parameter_reader_repository,
-    get_template_parameter_updater_repository,
-    get_template_parameter_validator_interactor,
-    update_template_parameter_interactor,
-)
 from domain.parameter_validation.query import TPRMReader
 from domain.template_object.query import TemplateObjectReader
 from domain.template_parameter.command import TemplateParameterUpdater
 from domain.template_parameter.query import TemplateParameterReader
-from models import TemplateObject, TemplateParameter
 
 
 @pytest.fixture
@@ -46,277 +36,6 @@ def app():
     return _app
 
 
-@pytest.fixture
-def mock_grpc_function():
-    mock = AsyncMock()
-    mock.return_value = [
-        {
-            "constraint": None,
-            "modified_by": "",
-            "prm_link_filter": None,
-            "creation_date": datetime.datetime(2024, 10, 7, 12, 4, 10, 448541),
-            "description": None,
-            "group": None,
-            "modification_date": datetime.datetime(
-                2024, 10, 7, 14, 21, 19, 472005
-            ),
-            "name": "Professor's name",
-            "field_value": None,
-            "backward_link": None,
-            "val_type": "str",
-            "id": 135296,
-            "tmo_id": 46181,
-            "multiple": False,
-            "version": 2,
-            "required": True,
-            "created_by": "",
-            "returnable": False,
-        },
-        {
-            "constraint": "46182",
-            "modified_by": "",
-            "prm_link_filter": None,
-            "creation_date": datetime.datetime(2024, 10, 7, 12, 7, 13, 357795),
-            "description": None,
-            "group": None,
-            "modification_date": datetime.datetime(
-                2024, 10, 7, 12, 7, 13, 357799
-            ),
-            "name": "Courses",
-            "field_value": None,
-            "backward_link": None,
-            "val_type": "mo_link",
-            "id": 135297,
-            "tmo_id": 46181,
-            "multiple": True,
-            "version": 1,
-            "required": False,
-            "created_by": "",
-            "returnable": False,
-        },
-        {
-            "constraint": None,
-            "modified_by": "",
-            "prm_link_filter": None,
-            "creation_date": datetime.datetime(2024, 10, 7, 12, 10, 16, 274405),
-            "description": None,
-            "group": None,
-            "modification_date": datetime.datetime(
-                2024, 10, 7, 12, 10, 16, 274409
-            ),
-            "name": "Year of commencement of teaching",
-            "field_value": None,
-            "backward_link": None,
-            "val_type": "int",
-            "id": 135298,
-            "tmo_id": 46181,
-            "multiple": False,
-            "version": 1,
-            "required": False,
-            "created_by": "",
-            "returnable": False,
-        },
-        {
-            "constraint": None,
-            "modified_by": "",
-            "prm_link_filter": None,
-            "creation_date": datetime.datetime(2024, 10, 7, 12, 10, 40, 952324),
-            "description": None,
-            "group": None,
-            "modification_date": datetime.datetime(
-                2024, 10, 7, 12, 10, 40, 952326
-            ),
-            "name": "Year of birth",
-            "field_value": None,
-            "backward_link": None,
-            "val_type": "str",
-            "id": 135299,
-            "tmo_id": 46181,
-            "multiple": False,
-            "version": 1,
-            "required": False,
-            "created_by": "",
-            "returnable": False,
-        },
-        {
-            "returnable": True,
-            "modified_by": "test_client",
-            "constraint": None,
-            "creation_date": datetime.datetime(2025, 8, 19, 12, 8, 42, 928289),
-            "prm_link_filter": None,
-            "modification_date": datetime.datetime(
-                2025, 8, 19, 12, 8, 42, 928312
-            ),
-            "description": None,
-            "group": None,
-            "backward_link": None,
-            "name": "Results",
-            "field_value": None,
-            "tmo_id": 46181,
-            "val_type": "int",
-            "id": 141046,
-            "multiple": True,
-            "version": 1,
-            "required": False,
-            "created_by": "test_client",
-        },
-        {
-            "returnable": True,
-            "modified_by": "test_client",
-            "constraint": None,
-            "creation_date": datetime.datetime(2025, 8, 19, 12, 8, 42, 928290),
-            "prm_link_filter": None,
-            "modification_date": datetime.datetime(
-                2025, 8, 19, 12, 8, 42, 928313
-            ),
-            "description": None,
-            "group": None,
-            "backward_link": None,
-            "name": "Results",
-            "field_value": None,
-            "tmo_id": 46181,
-            "val_type": "bool",
-            "id": 141047,
-            "multiple": True,
-            "version": 1,
-            "required": False,
-            "created_by": "test_client",
-        },
-    ]
-    return mock
-
-
-@pytest.fixture
-def fake_to_repo() -> AsyncMock:
-    repo = AsyncMock(spec=TemplateObjectReader)
-    return repo
-
-
-@pytest.fixture
-def fake_tp_repo() -> AsyncMock:
-    repo = AsyncMock(spec=TemplateParameterReader)
-    return repo
-
-
-@pytest.fixture
-def fake_tp_update() -> AsyncMock:
-    repo = AsyncMock(spec=TemplateParameterUpdater)
-    return repo
-
-
-@pytest.fixture
-def mock_grpc_new():
-    repo = AsyncMock(spec=TPRMReader)
-    return repo
-
-
-@pytest.fixture
-def mock_trpm_validator():
-    tprm_1 = TemplateParameterWithTPRMData(
-        parameter_type_id=135296,
-        val_type="str",
-        required=True,
-        multiple=False,
-        constraint=None,
-        value="",
-    )
-    tprm_2 = TemplateParameterWithTPRMData(
-        parameter_type_id=135297,
-        val_type="mo_link",
-        required=False,
-        multiple=True,
-        constraint=None,
-        value="",
-    )
-    tprm_3 = TemplateParameterWithTPRMData(
-        parameter_type_id=135298,
-        val_type="int",
-        required=False,
-        multiple=False,
-        constraint=None,
-        value="",
-    )
-    tprm_4 = TemplateParameterWithTPRMData(
-        parameter_type_id=135299,
-        val_type="str",
-        required=False,
-        multiple=False,
-        constraint=None,
-        value="123",
-    )
-    tprm_5 = TemplateParameterWithTPRMData(
-        parameter_type_id=141046,
-        val_type="int",
-        required=False,
-        multiple=True,
-        constraint=None,
-        value="",
-    )
-    tprm_6 = TemplateParameterWithTPRMData(
-        parameter_type_id=141047,
-        val_type="bool",
-        required=False,
-        multiple=True,
-        constraint=None,
-        value="",
-    )
-    result = TemplateParameterValidationResponseDTO(
-        valid_items=[tprm_1, tprm_2, tprm_3, tprm_4, tprm_5, tprm_6],
-        invalid_items=[],
-        errors=[],
-    )
-    interactor = AsyncMock(spec=ParameterValidationInteractor)
-    interactor.return_value = result
-    return interactor
-
-
-@pytest.fixture
-def mock_db():
-    id_counter = 1
-
-    def mock_add(obj: TemplateParameter):
-        nonlocal id_counter
-        if not hasattr(obj, "id") or obj.id is None:
-            obj.id = id_counter
-            id_counter += 1
-        for field, value in obj.__table__.columns.items():
-            if getattr(obj, field) is None:
-                setattr(obj, field, "null")
-
-    execute_mock = AsyncMock()
-
-    result_mock = Mock()
-    templ_parameter = TemplateParameter(
-        template_object_id=1,
-        parameter_type_id=141_029,
-        value="[7]",
-        constraint=None,
-        val_type="int",
-        required=False,
-        valid=True,
-    )
-    templ_parameter.id = 1
-    templ_obj = TemplateObject(
-        template_id=1,
-        parent_object_id=None,
-        object_type_id=46181,
-        required=True,
-        valid=True,
-    )
-    templ_obj.id = 1
-    result_mock.scalar_one_or_none.return_value = templ_parameter
-    result_mock.scalar_one.return_value = templ_obj
-    execute_mock.return_value = result_mock
-
-    db = AsyncMock()
-    db.execute = execute_mock
-
-    db.add = Mock(side_effect=mock_add)
-    db.flush = AsyncMock()
-    db.refresh = AsyncMock()
-    return db
-
-
 # @pytest.fixture
 # def mock_auth():
 #     mock_user_data = MagicMock()
@@ -326,50 +45,122 @@ def mock_db():
 #     return AsyncMock(return_value=mock_user_data)
 
 
-@pytest.fixture
-async def http_client(
-    app,
-    mock_db,
-    mock_grpc_function,
-    mock_grpc_new,
-    fake_to_repo,
-    fake_tp_repo,
-    fake_tp_update,
-    mock_trpm_validator,
-):
-    app.dependency_overrides[UoW] = lambda: mock_db
-    app.dependency_overrides[get_async_session] = lambda: mock_db
-    app.dependency_overrides[get_inventory_repository] = lambda: mock_grpc_new
-    app.dependency_overrides[get_template_parameter_validator_interactor] = (
-        lambda: mock_trpm_validator
-    )
-    app.dependency_overrides[get_template_object_reader_repository] = (
-        lambda: fake_to_repo
-    )
-    app.dependency_overrides[get_template_parameter_reader_repository] = (
-        lambda: fake_tp_repo
-    )
-    app.dependency_overrides[get_template_parameter_updater_repository] = (
-        lambda: fake_tp_update
-    )
-
-    app.dependency_overrides[update_template_parameter_interactor] = (
-        lambda: TemplateParameterUpdaterInteractor(
-            tp_reader=fake_tp_repo,
-            to_reader=fake_to_repo,
-            tp_updater=fake_tp_update,
-            tprm_validator=mock_trpm_validator,
-            uow=mock_db,
+class MockFactory:
+    def __init__(self):
+        self.template_object_reader_mock = AsyncMock(spec=TemplateObjectReader)
+        self.template_parameter_reader_mock = AsyncMock(
+            spec=TemplateParameterReader
         )
-    )
+        self.template_parameter_updater_mock = AsyncMock(
+            spec=TemplateParameterUpdater
+        )
+        self.inventory_validator_mock = AsyncMock(spec=TPRMReader)
 
+
+class MockDatabaseProvider(Provider):
+    @provide(scope=Scope.REQUEST)
+    def get_session(self) -> AsyncSession:
+        connection = AsyncMock(spec=AsyncSession)
+        return connection
+
+    @provide(scope=Scope.REQUEST)
+    def get_uow(self, session: AsyncSession) -> SQLAlchemyUoW:
+        uow = AsyncMock(spec=SQLAlchemyUoW)
+        return uow
+
+
+class MockRepositoryProvider(Provider):
+    def __init__(self, mock_factory: MockFactory):
+        super().__init__()
+        self.mock_factory = mock_factory
+
+    @provide(scope=Scope.REQUEST)
+    def get_inventory_repo(self, session: AsyncSession) -> TPRMReader:
+        return self.mock_factory.inventory_validator_mock
+
+    @provide(scope=Scope.REQUEST)
+    def get_template_object_reader_repo(
+        self, session: AsyncSession
+    ) -> TemplateObjectReader:
+        return self.mock_factory.template_object_reader_mock
+
+    @provide(scope=Scope.REQUEST)
+    def get_template_parameter_reader_repo(
+        self, session: AsyncSession
+    ) -> TemplateParameterReader:
+        return self.mock_factory.template_parameter_reader_mock
+
+    @provide(scope=Scope.REQUEST)
+    def get_template_parameter_updater_repo(
+        self, session: AsyncSession
+    ) -> TemplateParameterUpdater:
+        return self.mock_factory.template_parameter_updater_mock
+
+
+class MockInteractorProvider(Provider):
+    @provide(scope=Scope.REQUEST)
+    def get_parameter_validator(
+        self, grpc_repo: TPRMReader
+    ) -> ParameterValidationInteractor:
+        return ParameterValidationInteractor(grpc_repo)
+
+    @provide(scope=Scope.REQUEST)
+    def get_template_parameter_updater(
+        self,
+        to_reader: TemplateObjectReader,
+        tp_reader: TemplateParameterReader,
+        tp_updater: TemplateParameterUpdater,
+        tprm_validator: ParameterValidationInteractor,
+        uow: SQLAlchemyUoW,
+    ) -> TemplateParameterUpdaterInteractor:
+        return TemplateParameterUpdaterInteractor(
+            tp_reader=tp_reader,
+            to_reader=to_reader,
+            tp_updater=tp_updater,
+            tprm_validator=tprm_validator,
+            uow=uow,
+        )
+
+    @provide(scope=Scope.REQUEST)
+    def bulk_update_template_parameter_interactor(
+        self,
+        to_reader: TemplateObjectReader,
+        tp_reader: TemplateParameterReader,
+        tp_updater: TemplateParameterUpdater,
+        tprm_validator: ParameterValidationInteractor,
+        uow: SQLAlchemyUoW,
+    ) -> BulkTemplateParameterUpdaterInteractor:
+        return BulkTemplateParameterUpdaterInteractor(
+            to_reader=to_reader,
+            tp_reader=tp_reader,
+            tp_updater=tp_updater,
+            tprm_validator=tprm_validator,
+            uow=uow,
+        )
+
+
+@pytest_asyncio.fixture
+def mock_factory():
+    return MockFactory()
+
+
+@pytest_asyncio.fixture
+async def container(mock_factory):
+    container = make_async_container(
+        MockDatabaseProvider(),
+        MockRepositoryProvider(mock_factory),
+        MockInteractorProvider(),
+    )
+    yield container
+    await container.close()
+
+
+@pytest.fixture
+async def http_client(app, container):
     # app.dependency_overrides[oauth2_scheme] = lambda: mock_auth
-    with patch(
-        "services.template_registry_services.get_all_tprms_for_special_tmo_id_channel_in",
-        mock_grpc_function,
-    ):
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as ac:
-            yield ac
+    setup_dishka(container, app)
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test"
+    ) as ac:
+        yield ac
     app.dependency_overrides.clear()

@@ -1,5 +1,7 @@
 from typing import Annotated
 
+from dishka import FromDishka
+from dishka.integrations.fastapi import inject
 from fastapi import (
     APIRouter,
     Body,
@@ -21,8 +23,6 @@ from application.template_object.read.interactors import (
 )
 from di import (
     get_async_session,
-    read_template_object_by_id_interactor,
-    read_template_object_interactor,
 )
 from exceptions import (
     InvalidHierarchy,
@@ -52,12 +52,10 @@ router = APIRouter(tags=["template-object"])
     status_code=status.HTTP_200_OK,
     response_model=TemplateObjectSearchResponse,
 )
+@inject
 async def get_template_object(
     request: Annotated[TemplateObjectSingleSearchRequest, Query()],
-    interactor: Annotated[
-        TemplateObjectByIdInteractor,
-        Depends(read_template_object_by_id_interactor),
-    ],
+    interactor: FromDishka[TemplateObjectByIdInteractor],
     user_data: Annotated[UserData, Depends(security)],
 ) -> TemplateObjectSearchResponse:
     try:
@@ -82,12 +80,10 @@ async def get_template_object(
     status_code=status.HTTP_200_OK,
     response_model=list[TemplateObjectSearchWithChildrenResponse],
 )
+@inject
 async def get_template_objects(
     request: Annotated[TemplateObjectSearchRequest, Query()],
-    interactor: Annotated[
-        TemplateObjectReaderInteractor,
-        Depends(read_template_object_interactor),
-    ],
+    interactor: FromDishka[TemplateObjectReaderInteractor],
     user_data: Annotated[UserData, Depends(security)],
 ) -> list[TemplateObjectSearchWithChildrenResponse]:
     try:

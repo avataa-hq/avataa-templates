@@ -1,5 +1,7 @@
 from typing import Annotated
 
+from dishka import FromDishka
+from dishka.integrations.fastapi import inject
 from fastapi import (
     APIRouter,
     Depends,
@@ -28,10 +30,7 @@ from application.template_parameter.update.interactors import (
     TemplateParameterUpdaterInteractor,
 )
 from di import (
-    bulk_update_template_parameter_interactor,
     get_async_session,
-    read_template_parameter_interactor,
-    update_template_parameter_interactor,
 )
 from exceptions import TemplateParameterNotFound
 from presentation.api.v1.endpoints.dto import (
@@ -55,12 +54,10 @@ router = APIRouter(tags=["template-parameter"])
     status_code=status.HTTP_200_OK,
     response_model=list[TemplateParameterSearchResponse],
 )
+@inject
 async def get_template_object_parameters(
     request: Annotated[TemplateParameterSearchRequest, Query()],
-    interactor: Annotated[
-        TemplateParameterReaderInteractor,
-        Depends(read_template_parameter_interactor),
-    ],
+    interactor: FromDishka[TemplateParameterReaderInteractor],
     user_data: Annotated[UserData, Depends(security)],
 ) -> list[TemplateParameterSearchResponse]:
     try:
@@ -87,13 +84,11 @@ async def get_template_object_parameters(
     status_code=status.HTTP_200_OK,
     response_model=TemplateParameterUpdateResponse,
 )
+@inject
 async def update_template_parameter(
     parameter_id: int,
     parameter_data: TemplateParameterUpdateInput,
-    interactor: Annotated[
-        TemplateParameterUpdaterInteractor,
-        Depends(update_template_parameter_interactor),
-    ],
+    interactor: FromDishka[TemplateParameterUpdaterInteractor],
     user_data: Annotated[UserData, Depends(security)],
 ) -> TemplateParameterUpdateResponse:
     try:
@@ -121,16 +116,14 @@ async def update_template_parameter(
 
 
 @router.post(
-    "/parameters/",
+    "/parameters",
     status_code=status.HTTP_200_OK,
     response_model=list[TemplateParameterUpdateResponse],
 )
+@inject
 async def update_template_parameters(
     request: TemplateParameterBulkUpdateRequest,
-    interactor: Annotated[
-        BulkTemplateParameterUpdaterInteractor,
-        Depends(bulk_update_template_parameter_interactor),
-    ],
+    interactor: FromDishka[BulkTemplateParameterUpdaterInteractor],
     user_data: Annotated[UserData, Depends(security)],
 ) -> list[TemplateParameterUpdateResponse]:
     try:

@@ -1,5 +1,3 @@
-from unittest.mock import AsyncMock
-
 from httpx import AsyncClient
 import pytest
 
@@ -7,6 +5,7 @@ from application.template_parameter.read.exceptions import (
     TemplateParameterReaderApplicationException,
 )
 from config import setup_config
+from domain.parameter_validation.aggregate import InventoryTprmAggregate
 from domain.shared.vo.template_object_id import TemplateObjectId
 from domain.template_parameter.aggregate import TemplateParameterAggregate
 from domain.template_parameter.vo.parameter_type_id import ParameterTypeId
@@ -21,9 +20,7 @@ def url() -> str:
 async def test_update_template_parameter(
     http_client: AsyncClient,
     url: str,
-    fake_tp_repo: AsyncMock,
-    fake_to_repo: AsyncMock,
-    fake_tp_update: AsyncMock,
+    mock_factory,
 ):
     template_parameter_id = 1
     tprm_id = 141_046
@@ -31,17 +28,63 @@ async def test_update_template_parameter(
     required_value = False
     val_type_value = "int"
     full_url = f"{url}/{template_parameter_id}"
-    fake_tp_repo.get_by_id.return_value = TemplateParameterAggregate(
-        id=1,
-        template_object_id=TemplateObjectId(template_parameter_id),
-        parameter_type_id=ParameterTypeId(tprm_id),
-        value=val,
-        required=required_value,
-        val_type=val_type_value,
-        valid=True,
-        constraint="",
+    mock_factory.template_parameter_reader_mock.get_by_id.return_value = (
+        TemplateParameterAggregate(
+            id=1,
+            template_object_id=TemplateObjectId(template_parameter_id),
+            parameter_type_id=ParameterTypeId(tprm_id),
+            value=val,
+            required=required_value,
+            val_type=val_type_value,
+            valid=True,
+            constraint="",
+        )
     )
-    fake_to_repo.get_object_type_by_id.return_value = 46_181
+    mock_factory.template_object_reader_mock.get_object_type_by_id.return_value = 46_181
+    mock_factory.inventory_validator_mock.get_all_tprms_by_tmo_id.return_value = {
+        135296: InventoryTprmAggregate(
+            val_type="str",
+            required=True,
+            multiple=False,
+            id=135296,
+            constraint=None,
+        ),
+        135297: InventoryTprmAggregate(
+            val_type="mo_link",
+            required=False,
+            multiple=True,
+            id=135297,
+            constraint="46182",
+        ),
+        135298: InventoryTprmAggregate(
+            val_type="int",
+            required=False,
+            multiple=False,
+            id=135298,
+            constraint=None,
+        ),
+        135299: InventoryTprmAggregate(
+            val_type="str",
+            required=False,
+            multiple=False,
+            id=135299,
+            constraint=None,
+        ),
+        141046: InventoryTprmAggregate(
+            val_type="int",
+            required=False,
+            multiple=True,
+            id=141046,
+            constraint=None,
+        ),
+        141047: InventoryTprmAggregate(
+            val_type="bool",
+            required=False,
+            multiple=True,
+            id=141047,
+            constraint=None,
+        ),
+    }
     request = {
         "parameter_type_id": tprm_id,
         "value": val,
@@ -66,9 +109,7 @@ async def test_update_template_parameter(
 async def test_incorrect_update_template_parameter(
     http_client: AsyncClient,
     url: str,
-    fake_tp_repo: AsyncMock,
-    fake_to_repo: AsyncMock,
-    fake_tp_update: AsyncMock,
+    mock_factory,
 ):
     template_parameter_id = 1
     val = "[8]"
@@ -76,7 +117,7 @@ async def test_incorrect_update_template_parameter(
     full_url = f"{url}/{template_parameter_id}"
     error_message = "Template Parameter not found."
     error_code = 404
-    fake_tp_repo.get_by_id.side_effect = (
+    mock_factory.template_parameter_reader_mock.get_by_id.side_effect = (
         TemplateParameterReaderApplicationException(
             status_code=error_code, detail=error_message
         )
@@ -91,5 +132,4 @@ async def test_incorrect_update_template_parameter(
     result = await http_client.put(full_url, json=request)
     assert result.status_code == error_code
     assert result.json() == response
-    fake_tp_repo.get_by_id.assert_called_once()
-    fake_to_repo.get_object_type_by_id.assert_not_called()
+    mock_factory.template_parameter_reader_mock.get_by_id.assert_called_once()

@@ -17,7 +17,7 @@ from domain.template.aggregate import TemplateAggregate
 async def test_template_reader_interactor_returns_expected_response():
     # Arrange
     mock_repo = AsyncMock()
-    interactor = TemplateReaderInteractor(repository=mock_repo)  # noqa
+    interactor = TemplateReaderInteractor(t_repo=mock_repo)  # noqa
 
     request = TemplateRequestDTO(
         name="test_name",

@@ -1,5 +1,3 @@
-from unittest.mock import AsyncMock
-
 from httpx import AsyncClient
 import pytest
 
@@ -23,10 +21,7 @@ def url() -> str:
 async def test_search_template_object(
     http_client: AsyncClient,
     url: str,
-    mock_db,
-    app,
-    fake_to_repo: AsyncMock,
-    fake_tp_repo: AsyncMock,
+    mock_factory,
 ):
     tmo_id = 46_181
     template_id = 1
@@ -37,7 +32,9 @@ async def test_search_template_object(
         required=True,
         valid=True,
     )
-    fake_to_repo.get_tree_by_filter.return_value = [to]
+    mock_factory.template_object_reader_mock.get_tree_by_filter.return_value = [
+        to
+    ]
     param_1 = TemplateParameterAggregate(
         id=1,
         template_object_id=TemplateObjectId(1),
@@ -78,7 +75,7 @@ async def test_search_template_object(
         required=True,
         valid=True,
     )
-    fake_tp_repo.get_by_template_object_ids.return_value = [
+    mock_factory.template_parameter_reader_mock.get_by_template_object_ids.return_value = [
         param_1,
         param_2,
         param_3,
@@ -142,16 +139,13 @@ async def test_search_template_object(
     result = await http_client.get(url, params=request)
     assert result.status_code == 200
     assert result.json() == response
-    app.dependency_overrides.clear()
 
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_search_template_object_without_include(
     http_client: AsyncClient,
     url: str,
-    mock_db,
-    fake_to_repo: AsyncMock,
-    fake_tp_repo: AsyncMock,
+    mock_factory,
 ):
     tmo_id = 46_181
     template_id = 1
@@ -162,7 +156,9 @@ async def test_search_template_object_without_include(
         required=True,
         valid=True,
     )
-    fake_to_repo.get_tree_by_filter.return_value = [to]
+    mock_factory.template_object_reader_mock.get_tree_by_filter.return_value = [
+        to
+    ]
 
     request = {
         "template_id": template_id,
