@@ -91,6 +91,24 @@ class SQLTemplateParameterReaderRepository(TemplateParameterReader):
                 status_code=422, detail=GATEWAY_ERROR
             )
 
+    async def get_by_ids(
+        self, template_parameter_ids: list[int]
+    ) -> list[TemplateParameterAggregate]:
+        query = select(TemplateParameter).where(
+            TemplateParameter.id.in_(template_parameter_ids)
+        )
+        try:
+            result = await self.session.scalars(query)
+            template_param = result.all()
+            return [sql_to_domain(tp) for tp in template_param]
+        except TemplateParameterReaderApplicationException:
+            raise
+        except Exception as ex:
+            self.logger.exception(ex)
+            raise TemplateParameterReaderApplicationException(
+                status_code=422, detail=GATEWAY_ERROR
+            )
+
     async def get_by_filters(
         self, db_filter: TemplateParameterExists
     ) -> list[TemplateParameterAggregate]:

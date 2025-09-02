@@ -27,8 +27,10 @@ async def test_bulk_update_template_parameters(
     val_2 = "Test"
     val_type_value_1 = "int"
     val_type_value_2 = "str"
+    template_parameter_id_1 = 1
+    template_parameter_id_2 = 2
     tp_1 = TemplateParameterAggregate(
-        id=1,
+        id=template_parameter_id_1,
         template_object_id=TemplateObjectId(template_object_id),
         parameter_type_id=ParameterTypeId(tprm_id_1),
         value=val_1,
@@ -38,7 +40,7 @@ async def test_bulk_update_template_parameters(
         constraint="",
     )
     tp_2 = TemplateParameterAggregate(
-        id=2,
+        id=template_parameter_id_2,
         template_object_id=TemplateObjectId(template_object_id),
         parameter_type_id=ParameterTypeId(tprm_id_2),
         value=val_2,
@@ -47,7 +49,7 @@ async def test_bulk_update_template_parameters(
         valid=True,
         constraint="",
     )
-    mock_factory.template_parameter_reader_mock.get_by_filters.return_value = [
+    mock_factory.template_parameter_reader_mock.get_by_ids.return_value = [
         tp_1,
         tp_2,
     ]
@@ -100,11 +102,13 @@ async def test_bulk_update_template_parameters(
         "template_object_id": template_object_id,
         "parameters": [
             {
+                "id": template_parameter_id_1,
                 "parameter_type_id": tprm_id_1,
                 "value": val_1,
                 "required": False,
             },
             {
+                "id": template_parameter_id_2,
                 "parameter_type_id": tprm_id_2,
                 "value": val_2,
                 "required": True,
@@ -113,7 +117,7 @@ async def test_bulk_update_template_parameters(
     }
     response = [
         {
-            "id": 1,
+            "id": template_parameter_id_1,
             "parameter_type_id": tprm_id_1,
             "value": val_1,
             "constraint": None,
@@ -122,7 +126,7 @@ async def test_bulk_update_template_parameters(
             "valid": True,
         },
         {
-            "id": 2,
+            "id": template_parameter_id_2,
             "parameter_type_id": tprm_id_2,
             "value": val_2,
             "constraint": None,
