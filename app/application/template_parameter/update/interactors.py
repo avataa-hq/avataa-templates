@@ -16,7 +16,6 @@ from application.template_parameter.update.exceptions import (
     TemplateParameterUpdaterApplicationException,
 )
 from application.template_parameter.update.mapper import (
-    template_parameter_bulk_from_dto,
     template_parameter_to_validator,
 )
 from domain.template_object.query import TemplateObjectReader
@@ -137,8 +136,9 @@ class BulkTemplateParameterUpdaterInteractor(object):
     ) -> list:
         try:
             # Get all parameters
-            parameter_filters = template_parameter_bulk_from_dto(request)
-            parameters = await self._tp_reader.get_by_filters(parameter_filters)
+            parameters = await self._tp_reader.get_by_ids(
+                [template.id for template in request.data]
+            )
             if len(request.data) != len(parameters):
                 raise TemplateParameterUpdaterApplicationException(
                     status_code=422, detail="Inconsistent parameters."

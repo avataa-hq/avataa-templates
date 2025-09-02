@@ -22,6 +22,10 @@ class TemplateParameterReader(Protocol):
         self, template_parameter_id: int
     ) -> TemplateParameterAggregate: ...
 
+    async def get_by_ids(
+        self, template_parameter_ids: list[int]
+    ) -> list[TemplateParameterAggregate]: ...
+
     async def get_by_filters(
         self, db_filter: TemplateParameterExists
     ) -> list[TemplateParameterAggregate]: ...

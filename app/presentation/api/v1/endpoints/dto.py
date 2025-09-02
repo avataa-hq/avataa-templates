@@ -22,6 +22,7 @@ from application.template_parameter.read.dto import (
 )
 from application.template_parameter.update.dto import (
     TemplateParameterBulkUpdateRequestDTO,
+    TemplateParameterDataBulkUpdateRequestDTO,
     TemplateParameterDataUpdateRequestDTO,
     TemplateParameterUpdateDTO,
 )
@@ -261,14 +262,16 @@ class TemplateParameterUpdateResponse(BaseModel):
 
 
 class TemplateParameterBulkUpdateData(BaseModel):
+    id: int = Field(ge=1)
     parameter_type_id: int = Field(ge=1)
     required: bool
 
     value: str | None = None
     constraint: str | None = None
 
-    def to_interactor_dto(self) -> TemplateParameterDataUpdateRequestDTO:
-        return TemplateParameterDataUpdateRequestDTO(
+    def to_interactor_dto(self) -> TemplateParameterDataBulkUpdateRequestDTO:
+        return TemplateParameterDataBulkUpdateRequestDTO(
+            id=self.id,
             parameter_type_id=self.parameter_type_id,
             required=self.required,
             value=self.value,
