@@ -28,7 +28,8 @@ class TemplateParameterService(object):
                     parameters=template_parameters
                 )
                 template_object_ids = [
-                    templ.template_id.to_raw() for templ in template_parameters
+                    templ.template_object_id.to_raw()
+                    for templ in template_parameters
                 ]
                 if template_object_ids:
                     # Invalidate objects

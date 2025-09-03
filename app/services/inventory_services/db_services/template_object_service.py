@@ -22,6 +22,8 @@ class TemplateObjectService(object):
                     tmo_ids=tmo_ids
                 )
             )
+            if not template_objects:
+                return
             await self.template_object_repo.set_template_objects_invalid(
                 template_objects=template_objects
             )

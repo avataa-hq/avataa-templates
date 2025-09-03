@@ -1,5 +1,4 @@
 from logging import getLogger
-from typing import Sequence
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,7 +15,7 @@ from services.inventory_services.protocols.utils import (
 class TemplateParameterRepo(object):
     def __init__(self, session: AsyncSession):
         self.session = session
-        self.logger = getLogger("Template Parameter Repo")
+        self.logger = getLogger(self.__class__.__name__)
 
     @handle_db_exceptions
     async def set_template_parameters_invalid(
@@ -33,15 +32,8 @@ class TemplateParameterRepo(object):
             .values(valid=False)
             .returning(TemplateParameter)
         )
-        result: Sequence[TemplateParameter] = (
-            await self.session.scalars(statement=stmt)
-        ).all()
-        if result:
-            return [
-                TemplateParameterAggregate.from_db(template)
-                for template in result
-            ]
-        return []
+        result = (await self.session.scalars(statement=stmt)).all()
+        return [TemplateParameterAggregate.from_db(tp) for tp in result]
 
     @handle_db_exceptions
     async def get_template_parameters_by_parameter_id(
@@ -53,12 +45,5 @@ class TemplateParameterRepo(object):
         stmt = select(TemplateParameter).where(
             TemplateParameter.parameter_type_id.in_(parameter_ids)
         )
-        result: Sequence[TemplateParameter] = (
-            await self.session.scalars(statement=stmt)
-        ).all()
-        if result:
-            return [
-                TemplateParameterAggregate.from_db(template)
-                for template in result
-            ]
-        return []
+        result = (await self.session.scalars(statement=stmt)).all()
+        return [TemplateParameterAggregate.from_db(tp) for tp in result]

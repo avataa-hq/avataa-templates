@@ -27,7 +27,8 @@ class SecurityFactory:
         authorization_url = security_config.keycloak_authorization_url
         refresh_url = authorization_url
         scopes = {
-            "profile": "Read claims that represent basic profile information"
+            "profile": "Read claims that represent basic profile information",
+            "openid": "OpenID Connect scope",
         }
 
         return Keycloak(
@@ -44,7 +45,8 @@ class SecurityFactory:
         authorization_url = security_config.keycloak_authorization_url
         refresh_url = authorization_url
         scopes = {
-            "profile": "Read claims that represent basic profile information"
+            "profile": "Read claims that represent basic profile information",
+            "openid": "OpenID Connect scope",
         }
         cache = UserInfoCache()
         cache_user_info_url = security_config.security_middleware_url
