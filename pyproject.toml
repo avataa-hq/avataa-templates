@@ -30,7 +30,7 @@ dev = [
     "types-cachetools==6.2.0.20250827",
 ]
 lint = [
-    "ruff==0.12.11",
+    "ruff==0.12.12",
 ]
 tests = [
     "httpx==0.28.1",

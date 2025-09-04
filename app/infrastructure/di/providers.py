@@ -1,5 +1,6 @@
 from typing import AsyncGenerator
 
+from confluent_kafka import Consumer
 from dishka import Provider, Scope, provide
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -45,6 +46,11 @@ from infrastructure.db.template_parameter.update.gateway import (
     SQLTemplateParameterUpdaterRepository,
 )
 from infrastructure.grpc.tprm.read.gateway import GrpcTPRMReaderRepository
+from services.inventory_services.db_services import (
+    TemplateObjectService,
+    TemplateParameterService,
+)
+from services.inventory_services.kafka.consumer.config import KafkaConfig
 
 
 class DatabaseProvider(Provider):
@@ -192,3 +198,58 @@ class InteractorProvider(Provider):
             tprm_validator=tprm_validator,
             uow=uow,
         )
+
+
+class KafkaServiceProvider(Provider):
+    @provide(scope=Scope.REQUEST)
+    def get_template_object_service(
+        self, session: AsyncSession
+    ) -> TemplateObjectService:
+        return TemplateObjectService(session=session)
+
+    @provide(scope=Scope.REQUEST)
+    def get_template_parameter_service(
+        self, session: AsyncSession
+    ) -> TemplateParameterService:
+        return TemplateParameterService(session=session)
+
+
+class KafkaProvider(Provider):
+    @provide(scope=Scope.APP)
+    async def get_kafka_consumer(self) -> AsyncGenerator[Consumer, None]:
+        config = KafkaConfig()
+
+        dump_set = {
+            "bootstrap_servers",
+            "group_id",
+            "auto_offset_reset",
+            "enable_auto_commit",
+        }
+        if config.secured:
+            dump_set.update(
+                {
+                    "sasl_mechanism",
+                    "method",
+                    "scope",
+                    "keycloak_client_id",
+                    "keycloak_client_secret",
+                    "keycloak_token_url",
+                }
+            )
+        consumer_config = config.get_config(
+            by_alias=True,
+            exclude_none=True,
+            include=dump_set,
+        )
+        consumer = Consumer(consumer_config)
+        consumer.subscribe([config.inventory_changes_topic])
+
+        print(
+            f"Kafka Consumer created for group: {consumer_config['group.id']}"
+        )
+
+        try:
+            yield consumer
+        finally:
+            print("Closing Kafka Consumer...")
+            consumer.close()
