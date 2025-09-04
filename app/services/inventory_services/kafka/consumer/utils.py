@@ -109,3 +109,47 @@ class InventoryChangesHandler(object):
             template_object_service=template_object_service,
             template_parameter_service=template_parameter_service,
         )
+
+
+class InventoryChangesConverter(object):
+    def __from_bytes_to_python_proto_model_msg(
+        self,
+    ) -> type[KafkaMessage]:
+        if not self.msg_instance_class_name:
+            raise NotImplementedError(
+                f"Proto model deserializer does not implemented"
+                f"for msg_class_name = '{self.msg_instance_class_name}'"
+            )
+        deserializer_model: Any = INVENTORY_CHANGES_PROTOBUF_DESERIALIZERS.get(
+            self.msg_instance_class_name, None
+        )
+        if deserializer_model:
+            deserializer_instance = deserializer_model()
+            deserializer_instance.ParseFromString(self.msg.value())
+            return deserializer_instance
+        else:
+            raise NotImplementedError(
+                f"Proto model deserializer does not implemented"
+                f"for msg_class_name = '{self.msg_instance_class_name}'"
+            )
+
+    @staticmethod
+    def __deserialize_to_dict(
+        deserializer_instance: type[KafkaMessage],
+        including_default_value_fields: bool = True,
+    ) -> dict[str, list[dict[str, str]]]:
+        return protobuf_kafka_msg_to_dict(
+            msg=deserializer_instance,
+            including_default_value_fields=including_default_value_fields,
+        )
+
+    def __call__(self, msg: KafkaMSGProtocol, key: str) -> dict:
+        self.msg = msg
+        self.msg_instance_class_name, self.msg_instance_event = key.split(":")
+        output = dict()
+        deserialized_msg = self.__from_bytes_to_python_proto_model_msg()
+        if deserialized_msg:
+            output = self.__deserialize_to_dict(
+                deserializer_instance=deserialized_msg
+            )
+        return output

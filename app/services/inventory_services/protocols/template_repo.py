@@ -1,5 +1,4 @@
 from logging import getLogger
-from typing import Sequence
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -32,33 +31,29 @@ class TemplateRepo(object):
             .values(valid=False)
             .returning(Template)
         )
-        result: Sequence[Template] = (
-            await self.session.scalars(statement=stmt)
-        ).all()
-        if result:
-            return [TemplateAggregate.from_db(template) for template in result]
-        return []
+        result = (await self.session.scalars(statement=stmt)).all()
+        return [TemplateAggregate.from_db(template) for template in result]
 
     @handle_db_exceptions
     async def get_templates_by_id(
         self, template_ids: list[int]
     ) -> list[TemplateAggregate]:
         stmt = select(Template).where(Template.id.in_(template_ids))
-        result: Sequence[Template] = (
-            await self.session.scalars(statement=stmt)
-        ).all()
-        if result:
-            return [TemplateAggregate.from_db(template) for template in result]
-        return []
+        result = (await self.session.scalars(statement=stmt)).all()
+        return [TemplateAggregate.from_db(template) for template in result]
 
     @handle_db_exceptions
     async def get_templates_by_tmo_ids(
         self, tmo_ids: list[int]
     ) -> list[TemplateAggregate]:
         stmt = select(Template).where(Template.object_type_id.in_(tmo_ids))
-        result: Sequence[Template] = (
-            await self.session.scalars(statement=stmt)
-        ).all()
-        if result:
-            return [TemplateAggregate.from_db(template) for template in result]
-        return []
+        result = (await self.session.scalars(statement=stmt)).all()
+        return [TemplateAggregate.from_db(template) for template in result]
+
+    @handle_db_exceptions
+    async def get_templates_by_ids(
+        self, ids: list[int]
+    ) -> list[TemplateAggregate]:
+        stmt = select(Template).where(Template.id.in_(ids))
+        result = (await self.session.scalars(statement=stmt)).all()
+        return [TemplateAggregate.from_db(template) for template in result]
