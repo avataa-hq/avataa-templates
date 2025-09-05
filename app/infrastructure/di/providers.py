@@ -50,7 +50,7 @@ from services.inventory_services.db_services import (
     TemplateObjectService,
     TemplateParameterService,
 )
-from services.inventory_services.kafka.consumer.config import KafkaConfig
+from services.inventory_services.kafka.consumer.config import get_config
 
 
 class DatabaseProvider(Provider):
@@ -217,7 +217,7 @@ class KafkaServiceProvider(Provider):
 class KafkaProvider(Provider):
     @provide(scope=Scope.APP)
     async def get_kafka_consumer(self) -> AsyncGenerator[Consumer, None]:
-        config = KafkaConfig()
+        config = get_config()
 
         dump_set = {
             "bootstrap_servers",

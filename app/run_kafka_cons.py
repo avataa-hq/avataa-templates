@@ -139,12 +139,12 @@ async def run_kafka_cons_inv() -> None:
     )
     message_batch: list[tuple[KafkaMSGProtocol, str]] = []
     batch_size = 100
+    loop = asyncio.get_running_loop()
     async with container() as di:
         consumer = await di.get(Consumer)
         if not await initialize_kafka_consumer(consumer):
             print("Failed to initialize Kafka consumer. Exiting...")
             return
-        loop = asyncio.get_running_loop()
         try:
             while True:
                 poll = functools.partial(consumer.poll, 3.0)
@@ -165,9 +165,14 @@ async def run_kafka_cons_inv() -> None:
                 message_batch.append((msg, key))
                 if len(message_batch) >= batch_size:
                     await process_batch_messages(message_batch, di)
-                    consumer.commit(asynchronous=False)
                     message_batch.clear()
+                consumer.commit(asynchronous=False)
         except (KeyboardInterrupt, asyncio.CancelledError):
+            if message_batch:
+                await process_batch_messages(message_batch, di)
+                print("Error processing final batch")
+                # send dead letter
+                message_batch.clear()
             print("Kafka consumer - end")
 
 

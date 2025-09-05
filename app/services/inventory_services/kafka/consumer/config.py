@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Any, Literal, Self
 from urllib.parse import urlunparse
 
@@ -15,32 +16,32 @@ class KafkaConfig(BaseSettings):
     secured: bool = Field(default=False)
     inventory_changes_topic: str = Field(default="inventory.changes")
     bootstrap_servers: str = Field(
-        "kafka",
+        default="kafka:9092",
         min_length=1,
         serialization_alias="bootstrap.servers",
         validation_alias="kafka_url",
     )
     group_id: str = Field(
-        "object-templates",
+        default="object-templates",
         min_length=1,
         serialization_alias="group.id",
     )
     auto_offset_reset: Literal["earliest", "latest", "none"] = Field(
-        "earliest",
+        default="earliest",
         serialization_alias="auto.offset.reset",
         validation_alias="kafka_consumer_offset",
     )
     enable_auto_commit: bool = Field(
-        False,
+        default=False,
         serialization_alias="enable.auto.commit",
     )
     sasl_mechanism: Literal["OAUTHBEARER", None] = Field(
-        None,
+        default=None,
         serialization_alias="sasl.mechanisms",
     )
     security_protocol_raw: Literal[
         "plaintext", "sasl_plaintext", "sasl_ssl", "ssl", None
-    ] = Field(None, validation_alias="kafka_security_protocol")
+    ] = Field(default=None, validation_alias="kafka_security_protocol")
 
     # Token config
     # KIP-1139 available in librdkafka 2.11.0 and above
@@ -113,3 +114,8 @@ class KafkaConfig(BaseSettings):
         return data
 
     model_config = SettingsConfigDict(env_prefix="kafka_")
+
+
+@lru_cache
+def get_config() -> KafkaConfig:
+    return KafkaConfig()
