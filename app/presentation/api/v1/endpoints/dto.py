@@ -12,6 +12,10 @@ from application.template_object.read.dto import (
     TemplateObjectSearchDTO,
     TemplateObjectWithChildrenSearchDTO,
 )
+from application.template_object.update.dto import (
+    TemplateObjectDataUpdateRequestDTO,
+    TemplateObjectUpdateDTO,
+)
 from application.template_parameter.create.dto import (
     TemplateParameterCreatedDTO,
     TemplateParameterDataCreateRequestDTO,
@@ -228,7 +232,7 @@ class TemplateParameterUpdateInput(BaseModel):
     constraint: str | None = None
     required: bool = False
 
-    def to_application_dto(self) -> TemplateParameterDataUpdateRequestDTO:
+    def to_interactor_dto(self) -> TemplateParameterDataUpdateRequestDTO:
         return TemplateParameterDataUpdateRequestDTO(
             parameter_type_id=self.parameter_type_id,
             required=self.required,
@@ -287,4 +291,43 @@ class TemplateParameterBulkUpdateRequest(BaseModel):
         return TemplateParameterBulkUpdateRequestDTO(
             template_object_id=self.template_object_id,
             data=[el.to_interactor_dto() for el in self.parameters],
+        )
+
+
+class TemplateObjectUpdateDataInput(BaseModel):
+    required: bool = False
+    parent_object_id: int | None = Field(default=None, ge=1)
+
+
+class TemplateObjectUpdateInp(BaseModel):
+    object_id: int = Field(ge=1)
+    object_data: TemplateObjectUpdateDataInput
+
+    def to_interactor_dto(self) -> TemplateObjectDataUpdateRequestDTO:
+        return TemplateObjectDataUpdateRequestDTO(
+            template_object_id=self.object_id,
+            required=self.object_data.required,
+            parent_object_id=self.object_data.parent_object_id,
+        )
+
+
+class TemplateObjectUpdateResponse(BaseModel):
+    id: int
+    template_id: int
+    object_type_id: int
+    required: bool
+    valid: bool
+    parent_object_id: int | None = Field(default=None)
+
+    @classmethod
+    def from_application_dto(
+        cls, dto: TemplateObjectUpdateDTO
+    ) -> "TemplateObjectUpdateResponse":
+        return cls(
+            id=dto.id,
+            template_id=dto.template_id,
+            object_type_id=dto.object_type_id,
+            required=dto.required,
+            valid=dto.valid,
+            parent_object_id=dto.parent_object_id,
         )

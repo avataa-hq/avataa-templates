@@ -18,7 +18,7 @@ from models import TemplateParameter
 
 class SQLTemplateParameterUpdaterRepository(TemplateParameterUpdater):
     def __init__(self, session: AsyncSession):
-        self.session = session
+        self._session = session
         self.logger = getLogger(self.__class__.__name__)
 
     async def update_template_parameter(
@@ -26,7 +26,8 @@ class SQLTemplateParameterUpdaterRepository(TemplateParameterUpdater):
     ) -> TemplateParameterAggregate:
         db_model = domain_to_sql(template_parameter)
         try:
-            await self.session.merge(db_model)
+            await self._session.merge(db_model)
+            return template_parameter
         except SQLAlchemyError as ex:
             self.logger.exception(ex)
             raise TemplateParameterUpdaterApplicationException(
@@ -37,14 +38,14 @@ class SQLTemplateParameterUpdaterRepository(TemplateParameterUpdater):
             raise TemplateParameterUpdaterApplicationException(
                 status_code=422, detail="Gateway Error."
             )
-        return template_parameter
 
     async def bulk_update_template_parameter(
         self, template_parameters: list[TemplateParameterAggregate]
     ) -> list[TemplateParameterAggregate]:
         update_data = domain_to_bulk_sql(template_parameters)
         try:
-            await self.session.execute(update(TemplateParameter), update_data)
+            await self._session.execute(update(TemplateParameter), update_data)
+            return template_parameters
         except SQLAlchemyError as ex:
             self.logger.exception(ex)
             raise TemplateParameterUpdaterApplicationException(
@@ -55,4 +56,3 @@ class SQLTemplateParameterUpdaterRepository(TemplateParameterUpdater):
             raise TemplateParameterUpdaterApplicationException(
                 status_code=422, detail="Gateway Error."
             )
-        return template_parameters

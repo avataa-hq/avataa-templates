@@ -25,7 +25,7 @@ def template_to_sql_query(
     return query.where(*clauses)
 
 
-def postgres_to_domain(template: Template) -> TemplateAggregate:
+def sql_to_domain(template: Template) -> TemplateAggregate:
     return TemplateAggregate(
         id=TemplateId(template.id),
         name=template.name,

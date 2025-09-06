@@ -1,9 +1,6 @@
 from logging import getLogger
 
 from application.common.uow import UoW
-from application.paramater_validation.interactors import (
-    ParameterValidationInteractor,
-)
 from application.template_parameter.read.exceptions import (
     TemplateParameterReaderApplicationException,
 )
@@ -17,6 +14,9 @@ from application.template_parameter.update.exceptions import (
 )
 from application.template_parameter.update.mapper import (
     template_parameter_to_validator,
+)
+from application.tprm_validation.interactors import (
+    ParameterValidationInteractor,
 )
 from domain.template_object.query import TemplateObjectReader
 from domain.template_object.vo.template_object_filter import (
@@ -40,7 +40,7 @@ class TemplateParameterUpdaterInteractor(object):
         self._to_reader = to_reader
         self._tp_updater = tp_updater
         self._tprm_validator = tprm_validator
-        self.uow = uow
+        self._uow = uow
         self.logger = getLogger(self.__class__.__name__)
 
     async def __call__(
@@ -86,11 +86,11 @@ class TemplateParameterUpdaterInteractor(object):
                     template_parameter
                 )
             except TemplateParameterUpdaterApplicationException as ex:
-                await self.uow.rollback()
+                await self._uow.rollback()
                 raise TemplateParameterUpdaterApplicationException(
                     status_code=ex.status_code, detail=ex.detail
                 )
-            await self.uow.commit()
+            await self._uow.commit()
             # Create user response
             result = TemplateParameterUpdateDTO.from_aggregate(
                 template_parameter
@@ -98,16 +98,16 @@ class TemplateParameterUpdaterInteractor(object):
             return result
 
         except TemplateParameterReaderApplicationException as ex:
-            await self.uow.rollback()
+            await self._uow.rollback()
             raise TemplateParameterUpdaterApplicationException(
                 status_code=ex.status_code,
                 detail=ex.detail,
             )
         except TemplateParameterUpdaterApplicationException:
-            await self.uow.rollback()
+            await self._uow.rollback()
             raise
         except Exception as ex:
-            await self.uow.rollback()
+            await self._uow.rollback()
             self.logger.exception(ex)
             raise TemplateParameterUpdaterApplicationException(
                 status_code=422,
@@ -128,7 +128,7 @@ class BulkTemplateParameterUpdaterInteractor(object):
         self._to_reader = to_reader
         self._tp_updater = tp_updater
         self._tprm_validator = tprm_validator
-        self.uow = uow
+        self._uow = uow
         self.logger = getLogger(self.__class__.__name__)
 
     async def __call__(
@@ -168,7 +168,7 @@ class BulkTemplateParameterUpdaterInteractor(object):
                 parameter.set_constraint(update_data.constraint)
             # Bulk save
             await self._tp_updater.bulk_update_template_parameter(parameters)
-            await self.uow.commit()
+            await self._uow.commit()
             # Create user response
             result = [
                 TemplateParameterUpdateDTO.from_aggregate(param)
@@ -176,10 +176,10 @@ class BulkTemplateParameterUpdaterInteractor(object):
             ]
             return result
         except TemplateParameterUpdaterApplicationException:
-            await self.uow.rollback()
+            await self._uow.rollback()
             raise
         except Exception as ex:
-            await self.uow.rollback()
+            await self._uow.rollback()
             print(type(ex), ex)
             raise TemplateParameterUpdaterApplicationException(
                 status_code=422,

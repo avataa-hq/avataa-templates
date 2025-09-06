@@ -1,9 +1,9 @@
-from application.paramater_validation.dto import (
-    TemplateParameterValidationDTO,
-    TemplateParameterValidationRequestDTO,
-)
 from application.template_parameter.create.dto import (
     TemplateParameterDataCreateRequestDTO,
+)
+from application.tprm_validation.dto import (
+    TemplateParameterValidationDTO,
+    TemplateParameterValidationRequestDTO,
 )
 from domain.shared.vo.template_object_id import TemplateObjectId
 from domain.template_parameter.vo.parameter_type_id import ParameterTypeId

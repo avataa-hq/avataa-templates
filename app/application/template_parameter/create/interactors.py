@@ -1,12 +1,6 @@
 from logging import getLogger
 
 from application.common.uow import UoW
-from application.paramater_validation.exceptions import (
-    ParameterValidationException,
-)
-from application.paramater_validation.interactors import (
-    ParameterValidationInteractor,
-)
 from application.template_object.read.dto import TemplateObjectRequestDTO
 from application.template_object.read.exceptions import (
     TemplateObjectReaderApplicationException,
@@ -28,6 +22,12 @@ from application.template_parameter.create.exceptions import (
 from application.template_parameter.create.mapper import (
     template_parameter_create_from_dto,
     template_parameter_to_validator,
+)
+from application.tprm_validation.exceptions import (
+    ParameterValidationException,
+)
+from application.tprm_validation.interactors import (
+    ParameterValidationInteractor,
 )
 from domain.template_object.query import TemplateObjectReader
 from domain.template_parameter.command import TemplateParameterCreator

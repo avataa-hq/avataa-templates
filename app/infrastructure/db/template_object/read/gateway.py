@@ -25,7 +25,7 @@ from models import TemplateObject
 
 class SQLTemplateObjectReaderRepository(TemplateObjectReader):
     def __init__(self, session: AsyncSession):
-        self.session = session
+        self._session = session
         self.logger = getLogger(self.__class__.__name__)
 
     async def get_by_id(
@@ -36,7 +36,7 @@ class SQLTemplateObjectReaderRepository(TemplateObjectReader):
             template_object_id, TemplateObject, base_query
         )
         try:
-            result = await self.session.execute(filtered_query)
+            result = await self._session.execute(filtered_query)
             template_param = result.scalar_one_or_none()
             if template_param:
                 return sql_to_domain(template_param)
@@ -48,8 +48,7 @@ class SQLTemplateObjectReaderRepository(TemplateObjectReader):
                 raise TemplateObjectReaderApplicationException(
                     status_code=404, detail="Template Object not found."
                 )
-        except TemplateObjectReaderApplicationException:
-            raise
+
         except Exception as ex:
             self.logger.exception(ex)
             raise TemplateObjectReaderApplicationException(
@@ -65,7 +64,7 @@ class SQLTemplateObjectReaderRepository(TemplateObjectReader):
             db_filter, TemplateObject, base_query
         )
         try:
-            result = await self.session.scalars(filtered_query)
+            result = await self._session.scalars(filtered_query)
             for db_el in result.all():  # type: TemplateObject
                 template = sql_to_domain(db_el)
                 output.append(template)
@@ -119,7 +118,7 @@ class SQLTemplateObjectReaderRepository(TemplateObjectReader):
             bindparam("template_id", type_=Integer),
             bindparam("max_depth", type_=Integer),
         )
-        result = await self.session.execute(
+        result = await self._session.execute(
             cte_query,
             {
                 "template_id": db_filter.template_object_id,
@@ -139,7 +138,7 @@ class SQLTemplateObjectReaderRepository(TemplateObjectReader):
             db_filter, TemplateObject, base_query
         ).limit(1)
         try:
-            result = await self.session.execute(filtered_query)
+            result = await self._session.execute(filtered_query)
             return result.scalar_one_or_none() is not None
         except Exception as ex:
             self.logger.exception(ex)
@@ -153,7 +152,7 @@ class SQLTemplateObjectReaderRepository(TemplateObjectReader):
         query = select(TemplateObject.object_type_id)
         query = query.filter(TemplateObject.id == db_filter.template_object_id)
         try:
-            result = await self.session.execute(query)
+            result = await self._session.execute(query)
             object_type_id = result.scalar_one_or_none()
             if object_type_id:
                 return object_type_id
@@ -161,8 +160,6 @@ class SQLTemplateObjectReaderRepository(TemplateObjectReader):
                 raise TemplateObjectReaderApplicationException(
                     status_code=404, detail="Template Object not found."
                 )
-        except TemplateObjectReaderApplicationException:
-            raise
         except Exception as ex:
             self.logger.exception(ex)
             raise TemplateObjectReaderApplicationException(
