@@ -95,7 +95,7 @@ async def update_template_parameter(
         updated_parameter = await interactor(
             request=TemplateParameterUpdateRequestDTO(
                 template_parameter_id=parameter_id,
-                data=parameter_data.to_application_dto(),
+                data=parameter_data.to_interactor_dto(),
             )
         )
         output = TemplateParameterUpdateResponse.from_application_dto(

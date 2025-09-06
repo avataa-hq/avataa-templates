@@ -1,15 +1,15 @@
 from logging import getLogger
 
-from application.paramater_validation.dto import (
+from application.tprm_validation.dto import (
     TemplateParameterValidationRequestDTO,
     TemplateParameterValidationResponseDTO,
     TemplateParameterWithTPRMData,
 )
-from application.paramater_validation.exceptions import (
+from application.tprm_validation.exceptions import (
     ParameterValidationException,
 )
-from domain.parameter_validation.query import TPRMReader
-from domain.parameter_validation.vo.validation_filter import (
+from domain.tprm_validation.query import TPRMReader
+from domain.tprm_validation.vo.validation_filter import (
     ParameterValidationFilter,
 )
 from utils.constraint_validators import validate_by_constraint

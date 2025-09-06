@@ -10,7 +10,7 @@ from domain.template_parameter.aggregate import (
 
 
 # From router
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class TemplateObjectRequestDTO:
     template_id: int
     depth: int
@@ -19,14 +19,14 @@ class TemplateObjectRequestDTO:
     parent_id: int | None = None
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class TemplateObjectByIdRequestDTO:
     id: int
     include_parameters: bool
 
 
 # From aggregate to router
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class TemplateObjectSearchDTO:
     id: int
     template_id: int
@@ -54,7 +54,7 @@ class TemplateObjectSearchDTO:
         )
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class TemplateObjectWithChildrenSearchDTO(TemplateObjectSearchDTO):
     children: list["TemplateObjectWithChildrenSearchDTO"] = field(
         default_factory=list

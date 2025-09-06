@@ -1,7 +1,7 @@
 from typing import Protocol
 
-from domain.parameter_validation.aggregate import InventoryTprmAggregate
-from domain.parameter_validation.vo.validation_filter import (
+from domain.tprm_validation.aggregate import InventoryTprmAggregate
+from domain.tprm_validation.vo.validation_filter import (
     ParameterValidationFilter,
 )
 

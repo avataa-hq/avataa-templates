@@ -1,11 +1,12 @@
+from logging import getLogger
 import pickle
 
 import grpc
 
 from application.template_parameter.create.exceptions import GrpcInventoryError
-from domain.parameter_validation.aggregate import InventoryTprmAggregate
-from domain.parameter_validation.query import TPRMReader
-from domain.parameter_validation.vo.validation_filter import (
+from domain.tprm_validation.aggregate import InventoryTprmAggregate
+from domain.tprm_validation.query import TPRMReader
+from domain.tprm_validation.vo.validation_filter import (
     ParameterValidationFilter,
 )
 from grpc_clients.inventory.protobuf.mo_info import (
@@ -19,6 +20,7 @@ from infrastructure.grpc.tprm.read.mappers import grpc_to_domain
 class GrpcTPRMReaderRepository(BaseGRPCRepository, TPRMReader):
     def __init__(self):
         super().__init__("inventory")
+        self.logger = getLogger(self.__class__.__name__)
 
     async def _get_stub(self) -> mo_info_pb2_grpc.InformerStub:
         channel = await self._get_channel()
@@ -42,7 +44,8 @@ class GrpcTPRMReaderRepository(BaseGRPCRepository, TPRMReader):
                 for el in data:
                     aggr = grpc_to_domain(el)
                     result[aggr.id] = aggr
+            return result
+
         except grpc.RpcError as ex:
             print(ex)
             raise GrpcInventoryError(status_code=422, detail="Inventory error.")
-        return result

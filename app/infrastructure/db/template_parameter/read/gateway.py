@@ -27,7 +27,7 @@ from models import TemplateParameter
 
 class SQLTemplateParameterReaderRepository(TemplateParameterReader):
     def __init__(self, session: AsyncSession):
-        self.session = session
+        self._session = session
         self.logger = getLogger(self.__class__.__name__)
 
     async def exists(self, db_filter: TemplateParameterExists) -> bool:
@@ -36,7 +36,7 @@ class SQLTemplateParameterReaderRepository(TemplateParameterReader):
             db_filter, TemplateParameter, base_query
         )
         try:
-            result = await self.session.execute(filtered_query)
+            result = await self._session.execute(filtered_query)
             return result.scalar_one_or_none() is not None
         except Exception as ex:
             self.logger.exception(ex)
@@ -53,7 +53,7 @@ class SQLTemplateParameterReaderRepository(TemplateParameterReader):
             db_filter, TemplateParameter, base_query
         )
         try:
-            result = await self.session.scalars(filtered_query)
+            result = await self._session.scalars(filtered_query)
             for db_el in result.all():  # type: TemplateParameter
                 template = sql_to_domain(db_el)
                 output.append(template)
@@ -71,7 +71,7 @@ class SQLTemplateParameterReaderRepository(TemplateParameterReader):
             TemplateParameter.id == template_parameter_id
         )
         try:
-            result = await self.session.execute(query)
+            result = await self._session.execute(query)
             template_param = result.scalar_one_or_none()
             if template_param:
                 return sql_to_domain(template_param)
@@ -83,8 +83,7 @@ class SQLTemplateParameterReaderRepository(TemplateParameterReader):
                 raise TemplateParameterReaderApplicationException(
                     status_code=404, detail="Template Parameter not found."
                 )
-        except TemplateParameterReaderApplicationException:
-            raise
+
         except Exception as ex:
             self.logger.exception(ex)
             raise TemplateParameterReaderApplicationException(
@@ -98,7 +97,7 @@ class SQLTemplateParameterReaderRepository(TemplateParameterReader):
             TemplateParameter.id.in_(template_parameter_ids)
         )
         try:
-            result = await self.session.scalars(query)
+            result = await self._session.scalars(query)
             template_param = result.all()
             return [sql_to_domain(tp) for tp in template_param]
         except TemplateParameterReaderApplicationException:
@@ -121,7 +120,7 @@ class SQLTemplateParameterReaderRepository(TemplateParameterReader):
             db_filter, TemplateParameter, base_query
         )
         try:
-            result = await self.session.scalars(filtered_query)
+            result = await self._session.scalars(filtered_query)
         except Exception as ex:
             print(type(ex), ex)
             raise TemplateParameterReaderApplicationException(
@@ -142,7 +141,7 @@ class SQLTemplateParameterReaderRepository(TemplateParameterReader):
             TemplateParameter.template_object_id.in_(template_object_ids)
         )
         try:
-            result = await self.session.scalars(query)
+            result = await self._session.scalars(query)
         except Exception as ex:
             print(type(ex), ex)
             raise TemplateParameterReaderApplicationException(

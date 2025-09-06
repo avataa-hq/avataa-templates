@@ -2,10 +2,10 @@ from httpx import AsyncClient
 import pytest
 
 from config import setup_config
-from domain.parameter_validation.aggregate import InventoryTprmAggregate
 from domain.shared.vo.template_object_id import TemplateObjectId
 from domain.template_parameter.aggregate import TemplateParameterAggregate
 from domain.template_parameter.vo.parameter_type_id import ParameterTypeId
+from domain.tprm_validation.aggregate import InventoryTprmAggregate
 
 
 @pytest.fixture(scope="session")
@@ -39,7 +39,7 @@ async def test_create_template_parameter(
     ]
 
     mock_factory.template_object_reader_mock.get_object_type_by_id.return_value = 46_181
-    mock_factory.inventory_validator_mock.get_all_tprms_by_tmo_id.return_value = {
+    mock_factory.inventory_tprm_validator_mock.get_all_tprms_by_tmo_id.return_value = {
         135296: InventoryTprmAggregate(
             val_type="str",
             required=True,
@@ -121,7 +121,7 @@ async def test_create_template_parameter_multiple_bool(
         valid=True,
         constraint=None,
     )
-    mock_factory.inventory_validator_mock.get_all_tprms_by_tmo_id.return_value = {
+    mock_factory.inventory_tprm_validator_mock.get_all_tprms_by_tmo_id.return_value = {
         135296: InventoryTprmAggregate(
             val_type="str",
             required=True,
@@ -237,7 +237,7 @@ async def test_create_template_parameter_from_incorrect_tmo(
         param_1
     ]
     mock_factory.template_object_reader_mock.get_object_type_by_id.return_value = tmo_id
-    mock_factory.inventory_validator_mock.get_all_tprms_by_tmo_id.return_value = {
+    mock_factory.inventory_tprm_validator_mock.get_all_tprms_by_tmo_id.return_value = {
         tprm_id: []
     }
 

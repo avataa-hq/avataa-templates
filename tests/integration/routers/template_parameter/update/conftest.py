@@ -9,18 +9,18 @@ import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.common.uow import SQLAlchemyUoW
-from application.paramater_validation.interactors import (
-    ParameterValidationInteractor,
-)
 from application.template_parameter.update.interactors import (
     BulkTemplateParameterUpdaterInteractor,
     TemplateParameterUpdaterInteractor,
 )
+from application.tprm_validation.interactors import (
+    ParameterValidationInteractor,
+)
 from config import setup_config
-from domain.parameter_validation.query import TPRMReader
 from domain.template_object.query import TemplateObjectReader
 from domain.template_parameter.command import TemplateParameterUpdater
 from domain.template_parameter.query import TemplateParameterReader
+from domain.tprm_validation.query import TPRMReader
 
 
 @pytest.fixture
@@ -54,7 +54,7 @@ class MockFactory:
         self.template_parameter_updater_mock = AsyncMock(
             spec=TemplateParameterUpdater
         )
-        self.inventory_validator_mock = AsyncMock(spec=TPRMReader)
+        self.inventory_tprm_validator_mock = AsyncMock(spec=TPRMReader)
 
 
 class MockDatabaseProvider(Provider):
@@ -75,25 +75,19 @@ class MockRepositoryProvider(Provider):
         self.mock_factory = mock_factory
 
     @provide(scope=Scope.REQUEST)
-    def get_inventory_repo(self, session: AsyncSession) -> TPRMReader:
-        return self.mock_factory.inventory_validator_mock
+    def get_tprm_inventory_repo(self) -> TPRMReader:
+        return self.mock_factory.inventory_tprm_validator_mock
 
     @provide(scope=Scope.REQUEST)
-    def get_template_object_reader_repo(
-        self, session: AsyncSession
-    ) -> TemplateObjectReader:
+    def get_template_object_reader_repo(self) -> TemplateObjectReader:
         return self.mock_factory.template_object_reader_mock
 
     @provide(scope=Scope.REQUEST)
-    def get_template_parameter_reader_repo(
-        self, session: AsyncSession
-    ) -> TemplateParameterReader:
+    def get_template_parameter_reader_repo(self) -> TemplateParameterReader:
         return self.mock_factory.template_parameter_reader_mock
 
     @provide(scope=Scope.REQUEST)
-    def get_template_parameter_updater_repo(
-        self, session: AsyncSession
-    ) -> TemplateParameterUpdater:
+    def get_template_parameter_updater_repo(self) -> TemplateParameterUpdater:
         return self.mock_factory.template_parameter_updater_mock
 
 

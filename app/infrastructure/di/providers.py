@@ -5,13 +5,13 @@ from dishka import Provider, Scope, provide
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.common.uow import SQLAlchemyUoW
-from application.paramater_validation.interactors import (
-    ParameterValidationInteractor,
-)
 from application.template.read.interactors import TemplateReaderInteractor
 from application.template_object.read.interactors import (
     TemplateObjectByIdInteractor,
     TemplateObjectReaderInteractor,
+)
+from application.template_object.update.interactors import (
+    TemplateObjectUpdaterInteractor,
 )
 from application.template_parameter.create.interactors import (
     TemplateParameterCreatorInteractor,
@@ -23,18 +23,27 @@ from application.template_parameter.update.interactors import (
     BulkTemplateParameterUpdaterInteractor,
     TemplateParameterUpdaterInteractor,
 )
+from application.tmo_validation.interactors import TMOValidationInteractor
+from application.tprm_validation.interactors import (
+    ParameterValidationInteractor,
+)
 from database import get_session_factory
-from domain.parameter_validation.query import TPRMReader
 from domain.template.query import TemplateReader
+from domain.template_object.command import TemplateObjectUpdater
 from domain.template_object.query import TemplateObjectReader
 from domain.template_parameter.command import (
     TemplateParameterCreator,
     TemplateParameterUpdater,
 )
 from domain.template_parameter.query import TemplateParameterReader
+from domain.tmo_validation.query import TMOReader
+from domain.tprm_validation.query import TPRMReader
 from infrastructure.db.template.read.gateway import SQLTemplateReaderRepository
 from infrastructure.db.template_object.read.gateway import (
     SQLTemplateObjectReaderRepository,
+)
+from infrastructure.db.template_object.update.gateway import (
+    SQLTemplateObjectUpdaterRepository,
 )
 from infrastructure.db.template_parameter.create.gateway import (
     SQLTemplateParameterCreatorRepository,
@@ -45,6 +54,7 @@ from infrastructure.db.template_parameter.read.gateway import (
 from infrastructure.db.template_parameter.update.gateway import (
     SQLTemplateParameterUpdaterRepository,
 )
+from infrastructure.grpc.tmo.read.gateway import GrpcTMOReaderRepository
 from infrastructure.grpc.tprm.read.gateway import GrpcTPRMReaderRepository
 from services.inventory_services.db_services import (
     TemplateObjectService,
@@ -74,8 +84,12 @@ class DatabaseProvider(Provider):
 class RepositoryProvider(Provider):
     ## Inventory Repo
     @provide(scope=Scope.REQUEST)
-    def get_inventory_repo(self) -> TPRMReader:
+    def get_tprm_inventory_repo(self) -> TPRMReader:
         return GrpcTPRMReaderRepository()
+
+    @provide(scope=Scope.REQUEST)
+    def get_tmo_inventory_repo(self) -> TMOReader:
+        return GrpcTMOReaderRepository()
 
     ## Template Repo
     @provide(scope=Scope.REQUEST)
@@ -88,6 +102,12 @@ class RepositoryProvider(Provider):
         self, session: AsyncSession
     ) -> TemplateObjectReader:
         return SQLTemplateObjectReaderRepository(session)
+
+    @provide(scope=Scope.REQUEST)
+    def get_template_object_updater_repo(
+        self, session: AsyncSession
+    ) -> TemplateObjectUpdater:
+        return SQLTemplateObjectUpdaterRepository(session)
 
     ## Template parameter Repo
     @provide(scope=Scope.REQUEST)
@@ -117,6 +137,12 @@ class InteractorProvider(Provider):
     ) -> ParameterValidationInteractor:
         return ParameterValidationInteractor(grpc_repo)
 
+    @provide(scope=Scope.REQUEST)
+    def get_tmo_validator(
+        self, grpc_repo: TMOReader
+    ) -> TMOValidationInteractor:
+        return TMOValidationInteractor(grpc_repo)
+
     ## Template Interactor
     @provide(scope=Scope.REQUEST)
     def get_template_reader(
@@ -140,6 +166,21 @@ class InteractorProvider(Provider):
         tp_repo: TemplateParameterReader,
     ) -> TemplateObjectByIdInteractor:
         return TemplateObjectByIdInteractor(to_repo=to_repo, tp_repo=tp_repo)
+
+    @provide(scope=Scope.REQUEST)
+    def get_template_object_updater(
+        self,
+        tmo_validator: TMOValidationInteractor,
+        to_reader: TemplateObjectReader,
+        to_updater: TemplateObjectUpdater,
+        uow: SQLAlchemyUoW,
+    ) -> TemplateObjectUpdaterInteractor:
+        return TemplateObjectUpdaterInteractor(
+            tmo_validator=tmo_validator,
+            to_reader=to_reader,
+            to_updater=to_updater,
+            uow=uow,
+        )
 
     ## Template Parameter Interactor
     @provide(scope=Scope.REQUEST)

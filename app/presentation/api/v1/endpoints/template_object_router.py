@@ -21,11 +21,16 @@ from application.template_object.read.interactors import (
     TemplateObjectByIdInteractor,
     TemplateObjectReaderInteractor,
 )
+from application.template_object.update.exceptions import (
+    TemplateObjectUpdaterApplicationException,
+)
+from application.template_object.update.interactors import (
+    TemplateObjectUpdaterInteractor,
+)
 from di import (
     get_async_session,
 )
 from exceptions import (
-    InvalidHierarchy,
     TemplateObjectNotFound,
 )
 from presentation.api.v1.endpoints.dto import (
@@ -33,13 +38,12 @@ from presentation.api.v1.endpoints.dto import (
     TemplateObjectSearchResponse,
     TemplateObjectSearchWithChildrenResponse,
     TemplateObjectSingleSearchRequest,
+    TemplateObjectUpdateDataInput,
+    TemplateObjectUpdateInp,
+    TemplateObjectUpdateResponse,
 )
 from presentation.security.security_data_models import UserData
 from presentation.security.security_factory import security
-from schemas.template_schemas import (
-    TemplateObjectUpdateInput,
-    TemplateObjectUpdateOutput,
-)
 from services.template_object_services import (
     TemplateObjectService,
 )
@@ -105,11 +109,16 @@ async def get_template_objects(
         )
 
 
-@router.put("/objects/{parameter_id}")
+@router.put(
+    "/objects/{object_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=TemplateObjectUpdateResponse,
+)
+@inject
 async def update_template_object(
     object_id: int,
     object_data: Annotated[
-        TemplateObjectUpdateInput,
+        TemplateObjectUpdateDataInput,
         Body(
             examples=[
                 {
@@ -119,22 +128,31 @@ async def update_template_object(
             ]
         ),
     ],
-    db: Annotated[AsyncSession, Depends(get_async_session)],
+    interactor: FromDishka[TemplateObjectUpdaterInteractor],
     user_data: Annotated[UserData, Depends(security)],
-) -> TemplateObjectUpdateOutput:
-    service = TemplateObjectService(db)
-
+) -> TemplateObjectUpdateResponse:
     try:
-        obj = await service.update_template_object(
-            object_data=object_data,
-            object_id=object_id,
+        updated_object = await interactor(
+            request=TemplateObjectUpdateInp(
+                object_id=object_id,
+                object_data=object_data,
+            ).to_interactor_dto()
         )
-    except TemplateObjectNotFound as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except InvalidHierarchy as e:
-        raise HTTPException(status_code=422, detail=str(e))
-    await service.commit_changes()
-    return obj
+        output = TemplateObjectUpdateResponse.from_application_dto(
+            updated_object
+        )
+        return output
+    except ValidationError as ex:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
+        )
+    except TemplateObjectUpdaterApplicationException as ex:
+        raise HTTPException(status_code=ex.status_code, detail=ex.detail)
+    except Exception as ex:
+        print(type(ex), ex)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
+        )
 
 
 @router.delete(
