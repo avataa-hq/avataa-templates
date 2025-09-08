@@ -5,7 +5,8 @@ from domain.template_parameter.aggregate import TemplateParameterAggregate
 
 # From router
 @dataclass(frozen=True, slots=True, kw_only=True)
-class TemplateParameterDataUpdateRequestDTO:
+class TemplateParameterUpdateRequestDTO:
+    id: int
     parameter_type_id: int
     required: bool
 
@@ -14,22 +15,9 @@ class TemplateParameterDataUpdateRequestDTO:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class TemplateParameterDataBulkUpdateRequestDTO(
-    TemplateParameterDataUpdateRequestDTO
-):
-    id: int
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
-class TemplateParameterUpdateRequestDTO:
-    template_parameter_id: int
-    data: TemplateParameterDataUpdateRequestDTO
-
-
-@dataclass(frozen=True, slots=True, kw_only=True)
 class TemplateParameterBulkUpdateRequestDTO:
     template_object_id: int
-    data: list[TemplateParameterDataBulkUpdateRequestDTO]
+    data: list[TemplateParameterUpdateRequestDTO]
 
 
 # From aggregate to router
