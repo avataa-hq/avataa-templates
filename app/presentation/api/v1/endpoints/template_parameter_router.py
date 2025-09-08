@@ -19,9 +19,6 @@ from application.template_parameter.read.exceptions import (
 from application.template_parameter.read.interactors import (
     TemplateParameterReaderInteractor,
 )
-from application.template_parameter.update.dto import (
-    TemplateParameterUpdateRequestDTO,
-)
 from application.template_parameter.update.exceptions import (
     TemplateParameterUpdaterApplicationException,
 )
@@ -93,10 +90,7 @@ async def update_template_parameter(
 ) -> TemplateParameterUpdateResponse:
     try:
         updated_parameter = await interactor(
-            request=TemplateParameterUpdateRequestDTO(
-                template_parameter_id=parameter_id,
-                data=parameter_data.to_interactor_dto(),
-            )
+            request=parameter_data.to_interactor_dto(parameter_id),
         )
         output = TemplateParameterUpdateResponse.from_application_dto(
             updated_parameter

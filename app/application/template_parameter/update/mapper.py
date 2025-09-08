@@ -1,6 +1,6 @@
 from application.template_parameter.update.dto import (
     TemplateParameterBulkUpdateRequestDTO,
-    TemplateParameterDataUpdateRequestDTO,
+    TemplateParameterUpdateRequestDTO,
 )
 from application.tprm_validation.dto import (
     TemplateParameterValidationDTO,
@@ -15,7 +15,7 @@ from domain.template_parameter.vo.template_parameter_exists import (
 
 def template_parameter_to_validator(
     obj_type_id: int,
-    data: list[TemplateParameterDataUpdateRequestDTO],
+    data: list[TemplateParameterUpdateRequestDTO],
 ) -> TemplateParameterValidationRequestDTO:
     return TemplateParameterValidationRequestDTO(
         object_type_id=obj_type_id,

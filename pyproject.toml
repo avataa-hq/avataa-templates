@@ -26,7 +26,7 @@ dev = [
     "grpcio-tools>=1.64.1",
     "mypy==1.17.1",
     "pre-commit>=4.3.0",
-    "ty>=0.0.1a19",
+    "ty>=0.0.1a20",
     "types-cachetools==6.2.0.20250827",
 ]
 lint = [
