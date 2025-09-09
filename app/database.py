@@ -29,9 +29,13 @@ class Base(DeclarativeBase, MappedAsDataclass):
 
 @lru_cache()
 def get_engine() -> AsyncEngine:
+    echo_value = True
+    if setup_config().app.logging > 20:
+        echo_value = False
+
     engine = create_async_engine(
         url=setup_config().DATABASE_URL.unicode_string(),
-        echo=True,
+        echo=echo_value,
         max_overflow=15,
         pool_size=15,
         pool_pre_ping=True,

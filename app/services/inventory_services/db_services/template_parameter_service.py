@@ -15,7 +15,7 @@ class TemplateParameterService(object):
         self.template_object_repo = TemplateObjectRepo(session=session)
         self.template_parameter_repo = TemplateParameterRepo(session=session)
 
-        self.logger = getLogger("Template Parameter Service")
+        self.logger = getLogger(self.__class__.__name__)
 
     async def set_template_parameter_invalid(self, tprm_ids: list[int]) -> None:
         try:

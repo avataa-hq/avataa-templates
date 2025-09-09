@@ -15,7 +15,7 @@ from services.inventory_services.protocols.utils import (
 class TemplateRepo(object):
     def __init__(self, session: AsyncSession):
         self.session = session
-        self.logger = getLogger("Template Repo")
+        self.logger = getLogger(self.__class__.__name__)
 
     @handle_db_exceptions
     async def set_templates_invalid(

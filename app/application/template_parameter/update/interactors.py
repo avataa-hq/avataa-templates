@@ -73,10 +73,38 @@ class TemplateParameterUpdaterInteractor(object):
                     status_code=422, detail=" ".join(validated_data.errors)
                 )
             # Update Aggregate
-            template_parameter.update_parameter_type(request.parameter_type_id)
-            template_parameter.set_value(request.value)
-            template_parameter.set_required_flag(request.required)
-            template_parameter.set_constraint(request.constraint)
+            if (
+                template_parameter.parameter_type_id
+                != validated_data.valid_items[0].parameter_type_id
+            ):
+                template_parameter.update_parameter_type(
+                    validated_data.valid_items[0].parameter_type_id
+                )
+            if (
+                validated_data.valid_items[0].value
+                and template_parameter.value
+                != validated_data.valid_items[0].value
+            ):
+                # Auto update to Valid field
+                template_parameter.set_value(
+                    validated_data.valid_items[0].value
+                )
+            if (
+                validated_data.valid_items[0].required
+                and template_parameter.required
+                != validated_data.valid_items[0].required
+            ):
+                template_parameter.set_required_flag(
+                    validated_data.valid_items[0].required
+                )
+            if (
+                validated_data.valid_items[0].constraint
+                and template_parameter.constraint
+                != validated_data.valid_items[0].constraint
+            ):
+                template_parameter.set_constraint(
+                    validated_data.valid_items[0].constraint
+                )
 
             # Update in DB
             try:
@@ -89,6 +117,8 @@ class TemplateParameterUpdaterInteractor(object):
                     status_code=ex.status_code, detail=ex.detail
                 )
             await self._uow.commit()
+            # Update TemplateObject valid
+
             # Create user response
             result = TemplateParameterUpdateDTO.from_aggregate(
                 template_parameter
@@ -155,15 +185,33 @@ class BulkTemplateParameterUpdaterInteractor(object):
                 obj_type_id=template_object_type_id, data=request.data
             )
             validated_data = await self._tprm_validator(request=validation_data)
-            if validated_data.invalid_items:
+            if validated_data.invalid_items or len(
+                validated_data.valid_items
+            ) != len(request.data):
                 raise TemplateParameterUpdaterApplicationException(
                     status_code=422, detail=" ".join(validated_data.errors)
                 )
             # Update aggregates
-            for parameter, update_data in zip(parameters, request.data):
-                parameter.set_value(update_data.value)
-                parameter.set_required_flag(update_data.required)
-                parameter.set_constraint(update_data.constraint)
+            for parameter, update_data in zip(
+                parameters, validated_data.valid_items
+            ):
+                if parameter.parameter_type_id != update_data.parameter_type_id:
+                    parameter.update_parameter_type(
+                        update_data.parameter_type_id
+                    )
+                if update_data.value and update_data.value != parameter.value:
+                    # Auto update to Valid field
+                    parameter.set_value(update_data.value)
+                if (
+                    update_data.required
+                    and update_data.required != parameter.required
+                ):
+                    parameter.set_required_flag(update_data.required)
+                if (
+                    update_data.constraint
+                    and update_data.constraint != parameter.constraint
+                ):
+                    parameter.set_constraint(update_data.constraint)
             # Bulk save
             await self._tp_updater.bulk_update_template_parameter(parameters)
             await self._uow.commit()
@@ -173,12 +221,13 @@ class BulkTemplateParameterUpdaterInteractor(object):
                 for param in parameters
             ]
             return result
-        except TemplateParameterUpdaterApplicationException:
+        except TemplateParameterUpdaterApplicationException as ex:
+            self.logger.exception(ex)
             await self._uow.rollback()
             raise
         except Exception as ex:
             await self._uow.rollback()
-            print(type(ex), ex)
+            self.logger.exception(ex)
             raise TemplateParameterUpdaterApplicationException(
                 status_code=422,
                 detail="Application Error.",
