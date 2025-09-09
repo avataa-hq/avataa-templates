@@ -13,6 +13,7 @@ from infrastructure.di.providers import (
 )
 from infrastructure.grpc.config import cleanup_grpc_services, init_grpc_services
 from init_app import create_app
+from logs import conf_logging
 from presentation.api.v1.endpoints import (
     template_object_router,
     template_parameter_router,
@@ -24,6 +25,7 @@ from presentation.api.v1.endpoints import (
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_grpc_services()
+    conf_logging(setup_config().app)
     yield
     await cleanup_grpc_services()
     await app.state.dishka_container.close()

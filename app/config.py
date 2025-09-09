@@ -23,6 +23,8 @@ class ApplicationSettings(BaseSettings):
     app_title: str = "Object Templates"
     prefix: str = f"/api/{app_title.replace(' ', '_').lower()}"
     app_version: str = "1"
+    logging: int = Field(default=20, ge=0, le=50, alias="logging")
+    log_with_time: bool = Field(default=False, alias="log_with_time")
 
     model_config = SettingsConfigDict(env_prefix="docs_")
 

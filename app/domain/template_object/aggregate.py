@@ -31,8 +31,6 @@ class TemplateObjectAggregate(object):
 
     def update_parent_object_id(self, parent_object_id: int | None) -> None:
         self.parent_object_id = parent_object_id
-        self.valid = True
 
     def update_required(self, required: bool) -> None:
         self.required = required
-        self.valid = True
