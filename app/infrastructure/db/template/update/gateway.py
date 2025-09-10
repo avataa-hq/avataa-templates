@@ -1,5 +1,6 @@
 from logging import getLogger
 
+from sqlalchemy import update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,9 +10,10 @@ from application.template.update.exceptions import (
 from domain.template.aggregate import TemplateAggregate
 from domain.template.command import TemplateUpdater
 from infrastructure.db.template.update.mappers import (
-    domain_to_sql,
+    domain_to_dict,
     sql_to_domain,
 )
+from models import Template
 
 
 class SQLTemplateUpdaterRepository(TemplateUpdater):
@@ -22,11 +24,14 @@ class SQLTemplateUpdaterRepository(TemplateUpdater):
     async def update_template(
         self, template: TemplateAggregate
     ) -> TemplateAggregate:
-        db_model = domain_to_sql(template)
+        db_dict = domain_to_dict(template)
+        query = update(Template)
+        query = query.where(Template.id == db_dict.get("id"))
+        query = query.values(**db_dict)
+        query = query.returning(Template)
         try:
-            db_model = await self._session.merge(db_model)
-            await self._session.flush()
-            await self._session.refresh(db_model)
+            result = await self._session.execute(query)
+            db_model = result.scalars().one()
             return sql_to_domain(db_model)
         except SQLAlchemyError as ex:
             self.logger.exception(ex)

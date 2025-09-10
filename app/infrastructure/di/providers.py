@@ -5,6 +5,7 @@ from dishka import Provider, Scope, provide
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.common.uow import SQLAlchemyUoW
+from application.inventory_changes.interactors import InventoryChangesInteractor
 from application.template.read.interactors import TemplateReaderInteractor
 from application.template.update.interactors import TemplateUpdaterInteractor
 from application.template_object.read.interactors import (
@@ -38,6 +39,7 @@ from domain.template_parameter.command import (
     TemplateParameterUpdater,
 )
 from domain.template_parameter.query import TemplateParameterReader
+from domain.template_parameter.service import TemplateParameterValidityService
 from domain.tmo_validation.query import TMOReader
 from domain.tprm_validation.query import TPRMReader
 from infrastructure.db.template.read.gateway import SQLTemplateReaderRepository
@@ -266,6 +268,27 @@ class InteractorProvider(Provider):
             uow=uow,
         )
 
+    @provide(scope=Scope.REQUEST)
+    def get_template_parameter_validity_service(
+        self,
+        t_reader: TemplateReader,
+        t_updater: TemplateUpdater,
+        tp_reader: TemplateParameterReader,
+        tp_updater: TemplateParameterUpdater,
+        to_reader: TemplateObjectReader,
+        to_updater: TemplateObjectUpdater,
+        uow: SQLAlchemyUoW,
+    ) -> TemplateParameterValidityService:
+        return TemplateParameterValidityService(
+            t_reader=t_reader,
+            t_updater=t_updater,
+            tp_reader=tp_reader,
+            tp_updater=tp_updater,
+            to_reader=to_reader,
+            to_updater=to_updater,
+            uow=uow,
+        )
+
 
 class KafkaServiceProvider(Provider):
     @provide(scope=Scope.REQUEST)
@@ -279,6 +302,21 @@ class KafkaServiceProvider(Provider):
         self, session: AsyncSession
     ) -> TemplateParameterService:
         return TemplateParameterService(session=session)
+
+    @provide(scope=Scope.REQUEST)
+    def get_inventory_changes_interactor(
+        self,
+        tp_validity_service: TemplateParameterValidityService,
+        to_service: TemplateObjectService,
+        tp_service: TemplateParameterService,
+        uow: SQLAlchemyUoW,
+    ) -> InventoryChangesInteractor:
+        return InventoryChangesInteractor(
+            tp_validity_service=tp_validity_service,
+            to_service=to_service,
+            tp_service=tp_service,
+            uow=uow,
+        )
 
 
 class KafkaProvider(Provider):

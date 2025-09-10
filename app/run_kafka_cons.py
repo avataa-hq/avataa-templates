@@ -1,18 +1,26 @@
 import asyncio
-from datetime import datetime
 import functools
 from time import sleep
+from typing import Any, Union
 
-from confluent_kafka import Consumer, KafkaError, KafkaException, TopicPartition
+from confluent_kafka import (
+    Consumer,
+    KafkaError,
+    KafkaException,
+    TopicPartition,
+    cimpl,
+)
 from confluent_kafka.admin import TopicMetadata
 from dishka import make_async_container
 
 from application.common.uow import SQLAlchemyUoW
-from database import get_session_factory
+from application.inventory_changes.interactors import InventoryChangesInteractor
 from infrastructure.di.providers import (
     DatabaseProvider,
+    InteractorProvider,
     KafkaProvider,
     KafkaServiceProvider,
+    RepositoryProvider,
 )
 from services.inventory_services.db_services import (
     TemplateObjectService,
@@ -21,82 +29,19 @@ from services.inventory_services.db_services import (
 from services.inventory_services.kafka.consumer.config import (
     KafkaConfig,
 )
+from services.inventory_services.kafka.consumer.custom_deserializer import (
+    PROTO_TYPES_SERIALIZERS,
+    SerializerType,
+)
 from services.inventory_services.kafka.consumer.msg_protocol import (
     KafkaMSGProtocol,
 )
+from services.inventory_services.kafka.consumer.protobuf import obj_pb2
 from services.inventory_services.kafka.consumer.utils import (
     InventoryChangesConverter,
-    InventoryChangesHandler,
 )
 
-
-async def run_kafka_cons_old() -> None:
-    kafka_config = KafkaConfig()
-
-    if not kafka_config.turn_on:
-        print("kafka turn off")
-        return
-    print("Kafka turn on")
-    loop = asyncio.get_running_loop()
-    dump_set = {
-        "bootstrap_servers",
-        "group_id",
-        "auto_offset_reset",
-        "enable_auto_commit",
-    }
-    if kafka_config.secured:
-        dump_set.update(
-            {
-                "sasl_mechanism",
-                "oauth_cb",
-            }
-        )
-    consumer_config = kafka_config.get_config(
-        by_alias=True,
-        exclude_none=True,
-        include=dump_set,
-    )
-    kafka_inventory_changes_consumer = Consumer(consumer_config)
-    try:
-        check_topic_existence(
-            consumer=kafka_inventory_changes_consumer,
-            topic=kafka_config.inventory_changes_topic,
-        )
-        kafka_inventory_changes_consumer.subscribe(
-            [kafka_config.inventory_changes_topic],
-            on_assign=on_assign,
-            on_revoke=on_revoke,
-            on_lost=on_lost,
-        )
-        while True:
-            poll = functools.partial(kafka_inventory_changes_consumer.poll, 3.0)
-            msg = await loop.run_in_executor(None, poll)
-            if msg is None:
-                continue
-            if not msg.key:
-                kafka_inventory_changes_consumer.commit(
-                    asynchronous=True, message=msg
-                )
-                continue
-            key = parse_key_message(msg.key())
-            if not is_relevant_message_type(key):
-                kafka_inventory_changes_consumer.commit(
-                    asynchronous=True, message=msg
-                )
-                print(f"{datetime.now()} Skip message {msg.offset()}")
-                continue
-            success = await process_single_message(message=msg, key=key)
-            if success:
-                kafka_inventory_changes_consumer.commit(
-                    asynchronous=True, message=msg
-                )
-            else:
-                print(
-                    f"Skipping message {msg.offset()} due to processing error"
-                )
-    except (KeyboardInterrupt, asyncio.CancelledError):
-        kafka_inventory_changes_consumer.close()
-        print("Kafka consumer - end")
+KafkaMessage = Union[obj_pb2.ListTMO, obj_pb2.ListTPRM]
 
 
 async def initialize_kafka_consumer(consumer: Consumer) -> bool:
@@ -135,43 +80,50 @@ async def initialize_kafka_consumer(consumer: Consumer) -> bool:
 
 async def run_kafka_cons_inv() -> None:
     container = make_async_container(
-        DatabaseProvider(), KafkaProvider(), KafkaServiceProvider()
+        DatabaseProvider(),
+        RepositoryProvider(),
+        InteractorProvider(),
+        KafkaProvider(),
+        KafkaServiceProvider(),
     )
-    message_batch: list[tuple[KafkaMSGProtocol, str]] = []
+    message_batch: list[tuple[dict, str, str]] = []
     batch_size = 100
     loop = asyncio.get_running_loop()
     async with container() as di:
         consumer = await di.get(Consumer)
+        interactor = await di.get(InventoryChangesInteractor)
         if not await initialize_kafka_consumer(consumer):
             print("Failed to initialize Kafka consumer. Exiting...")
             return
         try:
             while True:
-                poll = functools.partial(consumer.poll, 3.0)
+                poll = functools.partial(consumer.poll, 1.0)
                 msg = await loop.run_in_executor(None, poll)
 
                 if msg is None:
                     if message_batch:
-                        await process_batch_messages(message_batch, di)
+                        await interactor(message_batch)
                         message_batch.clear()
                     continue
                 if not msg.key():
                     consumer.commit(asynchronous=True)
                     continue
-                key = parse_key_message(msg.key())
-                if not is_relevant_message_type(key):
+                entity_type, operation = parse_key_message(msg.key())
+                if not is_relevant_message_type(entity_type, operation):
                     consumer.commit(asynchronous=True)
                     continue
-                message_batch.append((msg, key))
+                message_batch.append(
+                    (deserialize_msg(msg, entity_type), entity_type, operation)
+                )
                 if len(message_batch) >= batch_size:
-                    await process_batch_messages(message_batch, di)
+                    await interactor(message_batch)
                     message_batch.clear()
                 consumer.commit(asynchronous=False)
         except (KeyboardInterrupt, asyncio.CancelledError):
             if message_batch:
-                await process_batch_messages(message_batch, di)
-                print("Error processing final batch")
+                await interactor(message_batch)
                 # send dead letter
+                print("Error processing final batch")
                 message_batch.clear()
             print("Kafka consumer - end")
 
@@ -227,31 +179,36 @@ async def process_batch_messages(
     return True
 
 
-async def process_single_message(message: KafkaMSGProtocol, key: str) -> bool:
-    handler_inst = InventoryChangesHandler(kafka_msg=message, key=key)
-    session_factory = get_session_factory()
+def deserialize_msg(msg: cimpl.Message, key) -> dict:
+    deserializer = {
+        "TMO": obj_pb2.ListTMO,
+        "TPRM": obj_pb2.ListTPRM,
+    }
+    result = {}
+    deserializer_model = deserializer.get(key, None)
+    if deserializer_model:
+        deserializer_instance = deserializer_model()
+        deserializer_instance.ParseFromString(msg.value())
+        result["objects"] = [
+            {
+                field: __msg_f_serializer(getattr(item, field))
+                for field in item.DESCRIPTOR.fields_by_name.keys()
+            }
+            for item in deserializer_instance.objects
+        ]
 
-    async with session_factory() as session:
-        try:
-            uow = SQLAlchemyUoW(session)
-            template_object_service = TemplateObjectService(session=uow.session)
-            template_parameter_service = TemplateParameterService(
-                session=uow.session
-            )
+    return result
 
-            await handler_inst.process_the_message(
-                template_object_service=template_object_service,
-                template_parameter_service=template_parameter_service,
-            )
-            await uow.commit()
-            print(f"Successfully processed message: {message.offset()}")
-        except Exception as ex:
-            print(f"Error processing message  {message.offset()}: {ex}.")
-            await uow.rollback()
-            return False
-    if session.is_active:
-        await uow.rollback()
-    return True
+
+def __msg_f_serializer(value: Any) -> Any:
+    """Returns serialized proto msg field value into python type"""
+    serializer: SerializerType | None = PROTO_TYPES_SERIALIZERS.get(
+        type(value).__name__
+    )
+    if serializer:
+        return serializer(value)
+    else:
+        return value
 
 
 def on_assign(consumer: Consumer, partitions: list[TopicPartition]) -> None:
@@ -301,27 +258,30 @@ def check_topic_existence(consumer: Consumer, topic: str) -> None:
             sleep(60)
 
 
-def parse_key_message(key: bytes) -> str:
+def parse_key_message(key: bytes) -> tuple[str, str]:
     """Return 'TMO:delete' or empty string"""
-    result = ""
+    result = "", ""
     if key is None:
         return result
     decoded_msg_key = key.decode("utf-8")
     if decoded_msg_key.find(":") == -1:
         print("Message key is not correct for this MS.")
         return result
-    return decoded_msg_key
+    entity_type, operation = decoded_msg_key.split(":")
+    return entity_type, operation
 
 
-def is_relevant_message_type(key: str) -> bool:
+def is_relevant_message_type(entity_type: str, operation: str) -> bool:
     relevant: bool = False
-    allowed_keys: set[str] = {
-        "TMO:updated",
-        "TMO:deleted",
-        "TPRM:updated",
-        "TPRM:deleted",
+    allowed_entities: set[str] = {
+        "TMO",
+        "TPRM",
     }
-    if key in allowed_keys:
+    allowed_operations: set[str] = {
+        "deleted",
+        "updated",
+    }
+    if entity_type in allowed_entities and operation in allowed_operations:
         relevant = True
     return relevant
 

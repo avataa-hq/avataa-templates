@@ -20,6 +20,20 @@ def domain_to_sql(aggr: TemplateParameterAggregate) -> TemplateParameter:
     return output
 
 
+def domain_to_dict(aggr: TemplateParameterAggregate) -> dict:
+    output = {
+        "id": aggr.id,
+        "template_object_id": aggr.template_object_id.to_raw(),
+        "parameter_type_id": aggr.parameter_type_id.to_raw(),
+        "value": aggr.value,
+        "constraint": aggr.constraint,
+        "val_type": aggr.val_type,
+        "required": aggr.required,
+        "valid": aggr.valid,
+    }
+    return output
+
+
 def domain_to_bulk_sql(
     aggr: list[TemplateParameterAggregate],
 ) -> list[dict[str, Any]]:

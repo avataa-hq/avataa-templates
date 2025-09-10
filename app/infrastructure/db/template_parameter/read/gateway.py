@@ -47,17 +47,13 @@ class SQLTemplateParameterReaderRepository(TemplateParameterReader):
     async def get_by_template_object_id(
         self, db_filter: TemplateParameterFilter
     ) -> list[TemplateParameterAggregate]:
-        output: list[TemplateParameterAggregate] = list()
         base_query = select(TemplateParameter)
         filtered_query = template_parameter_filter_to_sql_query(
             db_filter, TemplateParameter, base_query
         )
         try:
             result = await self._session.scalars(filtered_query)
-            for db_el in result.all():  # type: TemplateParameter
-                template = sql_to_domain(db_el)
-                output.append(template)
-            return output
+            return [sql_to_domain(tp) for tp in result.all()]
         except Exception as ex:
             self.logger.exception(ex)
             raise TemplateParameterReaderApplicationException(
@@ -67,9 +63,8 @@ class SQLTemplateParameterReaderRepository(TemplateParameterReader):
     async def get_by_id(
         self, template_parameter_id: int
     ) -> TemplateParameterAggregate:
-        query = select(TemplateParameter).where(
-            TemplateParameter.id == template_parameter_id
-        )
+        query = select(TemplateParameter)
+        query = query.where(TemplateParameter.id == template_parameter_id)
         try:
             result = await self._session.execute(query)
             template_param = result.scalar_one_or_none()
@@ -93,13 +88,11 @@ class SQLTemplateParameterReaderRepository(TemplateParameterReader):
     async def get_by_ids(
         self, template_parameter_ids: list[int]
     ) -> list[TemplateParameterAggregate]:
-        query = select(TemplateParameter).where(
-            TemplateParameter.id.in_(template_parameter_ids)
-        )
+        query = select(TemplateParameter)
+        query = query.where(TemplateParameter.id.in_(template_parameter_ids))
         try:
             result = await self._session.scalars(query)
-            template_param = result.all()
-            return [sql_to_domain(tp) for tp in template_param]
+            return [sql_to_domain(tp) for tp in result.all()]
         except TemplateParameterReaderApplicationException:
             raise
         except Exception as ex:
@@ -114,41 +107,65 @@ class SQLTemplateParameterReaderRepository(TemplateParameterReader):
         """Add chunk if len template_parameter_ids  more than 500"""
         if len(db_filter.parameter_type_id) > 500:
             self.logger.warning("Too much size for template_parameter_ids")
-        output: list[TemplateParameterAggregate] = []
         base_query = select(TemplateParameter)
         filtered_query = template_parameter_exists_to_sql_query(
             db_filter, TemplateParameter, base_query
         )
         try:
             result = await self._session.scalars(filtered_query)
+            return [sql_to_domain(tp) for tp in result.all()]
         except Exception as ex:
-            print(type(ex), ex)
+            self.logger.exception(ex)
             raise TemplateParameterReaderApplicationException(
                 status_code=422, detail=GATEWAY_ERROR
             )
-        for tp in result.all():
-            template = sql_to_domain(tp)
-            output.append(template)
-        return output
 
     async def get_by_template_object_ids(
         self, template_object_ids: list[int]
     ) -> list[TemplateParameterAggregate]:
         if len(template_object_ids) > 500:
             self.logger.warning("Too much size for template_object_ids")
-        output: list[TemplateParameterAggregate] = []
-        query = select(TemplateParameter).where(
+        query = select(TemplateParameter)
+        query = query.where(
             TemplateParameter.template_object_id.in_(template_object_ids)
         )
         try:
             result = await self._session.scalars(query)
+            return [sql_to_domain(tp) for tp in result.all()]
         except Exception as ex:
-            print(type(ex), ex)
+            self.logger.exception(ex)
             raise TemplateParameterReaderApplicationException(
                 status_code=422, detail=GATEWAY_ERROR
             )
-        all_template_parameters = result.all()
-        for tp in all_template_parameters:
-            template = sql_to_domain(tp)
-            output.append(template)
-        return output
+
+    async def get_by_parameter_type_id(
+        self, parameter_type_id: int
+    ) -> list[TemplateParameterAggregate]:
+        query = select(TemplateParameter)
+        query = query.where(
+            TemplateParameter.parameter_type_id == parameter_type_id
+        )
+        try:
+            result = await self._session.scalars(query)
+            return [sql_to_domain(tp) for tp in result.all()]
+        except Exception as ex:
+            self.logger.exception(ex)
+            raise TemplateParameterReaderApplicationException(
+                status_code=422, detail=GATEWAY_ERROR
+            )
+
+    async def get_template_object_id_by_parameter_type_id(
+        self, parameter_type_id: int
+    ) -> list[int]:
+        query = select(TemplateParameter.template_object_id)
+        query = query.where(
+            TemplateParameter.parameter_type_id == parameter_type_id
+        )
+        try:
+            result = await self._session.execute(query)
+            return list(result.scalars().all())
+        except Exception as ex:
+            self.logger.exception(ex)
+            raise TemplateParameterReaderApplicationException(
+                status_code=422, detail=GATEWAY_ERROR
+            )

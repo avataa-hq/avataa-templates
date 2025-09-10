@@ -11,7 +11,7 @@ from domain.template_parameter.aggregate import TemplateParameterAggregate
 from domain.template_parameter.command import TemplateParameterUpdater
 from infrastructure.db.template_parameter.update.mappers import (
     domain_to_bulk_sql,
-    domain_to_sql,
+    domain_to_dict,
 )
 from models import TemplateParameter
 
@@ -24,9 +24,12 @@ class SQLTemplateParameterUpdaterRepository(TemplateParameterUpdater):
     async def update_template_parameter(
         self, template_parameter: TemplateParameterAggregate
     ) -> TemplateParameterAggregate:
-        db_model = domain_to_sql(template_parameter)
+        db_dict = domain_to_dict(template_parameter)
+        query = update(TemplateParameter)
+        query = query.where(TemplateParameter.id == db_dict.get("id"))
+        query = query.values(**db_dict)
         try:
-            await self._session.merge(db_model)
+            await self._session.execute(query)
             return template_parameter
         except SQLAlchemyError as ex:
             self.logger.exception(ex)

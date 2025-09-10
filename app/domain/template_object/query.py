@@ -14,6 +14,10 @@ class TemplateObjectReader(Protocol):
         self, template_object_id: TemplateObjectByIdFilter
     ) -> TemplateObjectAggregate: ...
 
+    async def get_by_ids(
+        self, template_object_ids: list[int]
+    ) -> list[TemplateObjectAggregate]: ...
+
     async def get_by_filter(
         self, db_filter: TemplateObjectFilter
     ) -> list[TemplateObjectAggregate]: ...
@@ -27,3 +31,7 @@ class TemplateObjectReader(Protocol):
     async def get_object_type_by_id(
         self, db_filter: TemplateObjectFilter
     ) -> int: ...
+
+    async def get_validity_by_template_id(
+        self, template_id: int
+    ) -> list[bool]: ...

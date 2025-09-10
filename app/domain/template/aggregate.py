@@ -42,9 +42,8 @@ class TemplateAggregate:
         if new_object_type_id != self.object_type_id:
             self.object_type_id = ObjectTypeId(new_object_type_id)
 
-    def update_valid(self):
-        if not self.valid:
-            self.valid = True
+    def set_valid(self, valid: bool):
+        self.valid = valid
 
     def update_version(self):
         self.version += 1

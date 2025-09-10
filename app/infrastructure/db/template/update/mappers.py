@@ -16,6 +16,18 @@ def domain_to_sql(aggr: TemplateAggregate) -> Template:
     return output
 
 
+def domain_to_dict(aggr: TemplateAggregate) -> dict:
+    output = {
+        "id": aggr.id.to_raw(),
+        "name": aggr.name,
+        "owner": aggr.owner,
+        "object_type_id": aggr.object_type_id.to_raw(),
+        "version": aggr.version,
+        "valid": aggr.valid,
+    }
+    return output
+
+
 def sql_to_domain(db_model: Template) -> TemplateAggregate:
     return TemplateAggregate(
         id=TemplateId(db_model.id),

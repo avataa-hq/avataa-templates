@@ -34,3 +34,6 @@ class TemplateObjectAggregate(object):
 
     def update_required(self, required: bool) -> None:
         self.required = required
+
+    def set_valid(self, valid: bool) -> None:
+        self.valid = valid

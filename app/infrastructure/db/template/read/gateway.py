@@ -28,15 +28,11 @@ class SQLTemplateReaderRepository(TemplateReader):
     async def get_template_by_filter(
         self, db_filter: TemplateFilter
     ) -> list[TemplateAggregate]:
-        output: list[TemplateAggregate] = list()
         query = select(Template)
+        query = template_to_sql_query(db_filter, Template, query)
         try:
-            query = template_to_sql_query(db_filter, Template, query)
-            result = await self._session.execute(query)
-            for db_el in result.scalars().all():  # type: Template
-                template = sql_to_domain(db_el)
-                output.append(template)
-            return output
+            result = await self._session.scalars(query)
+            return [sql_to_domain(t) for t in result.all()]
         except Exception as ex:
             self.logger.exception(ex)
             raise TemplateReaderApplicationException(
@@ -61,6 +57,20 @@ class SQLTemplateReaderRepository(TemplateReader):
                 )
         except TemplateReaderApplicationException:
             raise
+        except Exception as ex:
+            self.logger.exception(ex)
+            raise TemplateReaderApplicationException(
+                status_code=422, detail=GATEWAY_ERROR
+            )
+
+    async def get_by_ids(
+        self, template_ids: list[int]
+    ) -> list[TemplateAggregate]:
+        query = select(Template)
+        query = query.where(Template.id.in_(template_ids))
+        try:
+            result = await self._session.scalars(query)
+            return [sql_to_domain(to) for to in result.all()]
         except Exception as ex:
             self.logger.exception(ex)
             raise TemplateReaderApplicationException(
