@@ -55,21 +55,30 @@ class SQLTemplateObjectReaderRepository(TemplateObjectReader):
                 status_code=422, detail=GATEWAY_ERROR
             )
 
+    async def get_by_ids(
+        self, template_object_ids: list[int]
+    ) -> list[TemplateObjectAggregate]:
+        query = select(TemplateObject)
+        query = query.where(TemplateObject.id.in_(template_object_ids))
+        try:
+            result = await self._session.scalars(query)
+            return [sql_to_domain(to) for to in result.all()]
+        except Exception as ex:
+            self.logger.exception(ex)
+            raise TemplateObjectReaderApplicationException(
+                status_code=422, detail=GATEWAY_ERROR
+            )
+
     async def get_by_filter(
         self, db_filter: TemplateObjectFilter
     ) -> list[TemplateObjectAggregate]:
-        output: list[TemplateObjectAggregate] = list()
         base_query = select(TemplateObject)
         filtered_query = template_object_filter_to_sql_query(
             db_filter, TemplateObject, base_query
         )
         try:
             result = await self._session.scalars(filtered_query)
-            for db_el in result.all():  # type: TemplateObject
-                template = sql_to_domain(db_el)
-                output.append(template)
-            return output
-
+            return [sql_to_domain(to) for to in result.all()]
         except Exception as ex:
             self.logger.exception(ex)
             raise TemplateObjectReaderApplicationException(
@@ -150,7 +159,7 @@ class SQLTemplateObjectReaderRepository(TemplateObjectReader):
         self, db_filter: TemplateObjectFilter
     ) -> int:
         query = select(TemplateObject.object_type_id)
-        query = query.filter(TemplateObject.id == db_filter.template_object_id)
+        query = query.where(TemplateObject.id == db_filter.template_object_id)
         try:
             result = await self._session.execute(query)
             object_type_id = result.scalar_one_or_none()
@@ -160,6 +169,18 @@ class SQLTemplateObjectReaderRepository(TemplateObjectReader):
                 raise TemplateObjectReaderApplicationException(
                     status_code=404, detail="Template Object not found."
                 )
+        except Exception as ex:
+            self.logger.exception(ex)
+            raise TemplateObjectReaderApplicationException(
+                status_code=422, detail=GATEWAY_ERROR
+            )
+
+    async def get_validity_by_template_id(self, template_id: int) -> list[bool]:
+        query = select(TemplateObject.valid)
+        query = query.where(TemplateObject.template_id == template_id)
+        try:
+            result = await self._session.execute(query)
+            return list(result.scalars().all())
         except Exception as ex:
             self.logger.exception(ex)
             raise TemplateObjectReaderApplicationException(

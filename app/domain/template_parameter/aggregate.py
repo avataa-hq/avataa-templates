@@ -57,3 +57,6 @@ class TemplateParameterAggregate:
 
     def set_constraint(self, constraint: str) -> None:
         self.constraint = constraint
+
+    def set_valid(self, valid: bool) -> None:
+        self.valid = valid
