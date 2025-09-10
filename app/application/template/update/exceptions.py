@@ -1,4 +1,4 @@
-class TemplateReaderApplicationException(Exception):
+class TemplateUpdaterApplicationException(Exception):
     def __init__(self, detail: str, status_code: int):
         super().__init__(detail)
         self.status_code = status_code
@@ -10,4 +10,4 @@ class TemplateReaderApplicationException(Exception):
         return self.detail
 
 
-__all__ = ["TemplateReaderApplicationException"]
+__all__ = ["TemplateUpdaterApplicationException"]

@@ -13,12 +13,15 @@ class TMOValidationInteractor(object):
     async def __call__(self, request: TemplateObjectValidationRequestDTO):
         full_data = await self._repo.get_all_tmo_data()
         checker = {el.id: el.parent_id for el in full_data}
-        if request.parent_object_type_id not in checker:
+        if request.object_type_id not in checker:
             raise TMOValidationException(
-                status_code=404, detail="Parent object type not found."
+                status_code=404,
+                detail=f"TMO id {request.object_type_id} not found in inventory.",
             )
-        expected_parent_id = checker[request.object_type_id]
-        if expected_parent_id != request.parent_object_type_id:
-            raise TMOValidationException(
-                status_code=422, detail="Incorrect parent object type."
-            )
+        # Check only for TO update
+        if request.parent_object_type_id:
+            expected_parent_id = checker[request.object_type_id]
+            if expected_parent_id != request.parent_object_type_id:
+                raise TMOValidationException(
+                    status_code=422, detail="Incorrect parent object type."
+                )

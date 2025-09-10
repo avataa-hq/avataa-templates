@@ -3,7 +3,9 @@ from logging import getLogger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from application.template.read.exceptions import TemplateApplicationException
+from application.template.read.exceptions import (
+    TemplateReaderApplicationException,
+)
 from domain.template.aggregate import TemplateAggregate
 from domain.template.query import TemplateReader
 from domain.template.vo.template_filter import TemplateFilter
@@ -37,7 +39,7 @@ class SQLTemplateReaderRepository(TemplateReader):
             return output
         except Exception as ex:
             self.logger.exception(ex)
-            raise TemplateApplicationException(
+            raise TemplateReaderApplicationException(
                 status_code=400,
                 detail=GATEWAY_ERROR,
             )
@@ -54,12 +56,13 @@ class SQLTemplateReaderRepository(TemplateReader):
                     "Template with id: %s not found",
                     template_id,
                 )
-                raise TemplateApplicationException(
+                raise TemplateReaderApplicationException(
                     status_code=404, detail="Template not found."
                 )
-
+        except TemplateReaderApplicationException:
+            raise
         except Exception as ex:
             self.logger.exception(ex)
-            raise TemplateApplicationException(
+            raise TemplateReaderApplicationException(
                 status_code=422, detail=GATEWAY_ERROR
             )

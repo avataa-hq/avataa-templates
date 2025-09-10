@@ -39,7 +39,6 @@ from presentation.api.v1.endpoints.dto import (
     TemplateObjectSearchWithChildrenResponse,
     TemplateObjectSingleSearchRequest,
     TemplateObjectUpdateDataInput,
-    TemplateObjectUpdateInp,
     TemplateObjectUpdateResponse,
 )
 from presentation.security.security_data_models import UserData
@@ -132,15 +131,10 @@ async def update_template_object(
     user_data: Annotated[UserData, Depends(security)],
 ) -> TemplateObjectUpdateResponse:
     try:
-        updated_object = await interactor(
-            request=TemplateObjectUpdateInp(
-                object_id=object_id,
-                object_data=object_data,
-            ).to_interactor_dto()
+        result = await interactor(
+            request=object_data.to_interactor_dto(object_id=object_id)
         )
-        output = TemplateObjectUpdateResponse.from_application_dto(
-            updated_object
-        )
+        output = TemplateObjectUpdateResponse.from_application_dto(result)
         return output
     except ValidationError as ex:
         raise HTTPException(

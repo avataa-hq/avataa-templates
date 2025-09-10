@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.common.uow import SQLAlchemyUoW
 from application.template.read.interactors import TemplateReaderInteractor
+from application.template.update.interactors import TemplateUpdaterInteractor
 from application.template_object.read.interactors import (
     TemplateObjectByIdInteractor,
     TemplateObjectReaderInteractor,
@@ -28,6 +29,7 @@ from application.tprm_validation.interactors import (
     ParameterValidationInteractor,
 )
 from database import get_session_factory
+from domain.template.command import TemplateUpdater
 from domain.template.query import TemplateReader
 from domain.template_object.command import TemplateObjectUpdater
 from domain.template_object.query import TemplateObjectReader
@@ -39,6 +41,9 @@ from domain.template_parameter.query import TemplateParameterReader
 from domain.tmo_validation.query import TMOReader
 from domain.tprm_validation.query import TPRMReader
 from infrastructure.db.template.read.gateway import SQLTemplateReaderRepository
+from infrastructure.db.template.update.gateway import (
+    SQLTemplateUpdaterRepository,
+)
 from infrastructure.db.template_object.read.gateway import (
     SQLTemplateObjectReaderRepository,
 )
@@ -96,6 +101,12 @@ class RepositoryProvider(Provider):
     def get_template_reader_repo(self, session: AsyncSession) -> TemplateReader:
         return SQLTemplateReaderRepository(session)
 
+    @provide(scope=Scope.REQUEST)
+    def get_template_updater_repo(
+        self, session: AsyncSession
+    ) -> TemplateUpdater:
+        return SQLTemplateUpdaterRepository(session)
+
     ## Template object Repo
     @provide(scope=Scope.REQUEST)
     def get_template_object_reader_repo(
@@ -149,6 +160,21 @@ class InteractorProvider(Provider):
         self, repo: TemplateReader
     ) -> TemplateReaderInteractor:
         return TemplateReaderInteractor(repo)
+
+    @provide(scope=Scope.REQUEST)
+    def get_template_updater(
+        self,
+        tmo_validator: TMOValidationInteractor,
+        t_reader: TemplateReader,
+        t_updater: TemplateUpdater,
+        uow: SQLAlchemyUoW,
+    ) -> TemplateUpdaterInteractor:
+        return TemplateUpdaterInteractor(
+            tmo_validator=tmo_validator,
+            t_reader=t_reader,
+            t_updater=t_updater,
+            uow=uow,
+        )
 
     ## Template Object Interactor
     @provide(scope=Scope.REQUEST)

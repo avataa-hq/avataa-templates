@@ -13,24 +13,29 @@ from fastapi import (
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from application.template.read.exceptions import TemplateApplicationException
+from application.template.read.exceptions import (
+    TemplateReaderApplicationException,
+)
 from application.template.read.interactors import TemplateReaderInteractor
+from application.template.update.exceptions import (
+    TemplateUpdaterApplicationException,
+)
+from application.template.update.interactors import TemplateUpdaterInteractor
 from di import get_async_session
 from exceptions import (
     TemplateNotFound,
-    TMOIdNotFoundInInventory,
 )
 from presentation.api.v1.endpoints.dto import (
     TemplateRequest,
     TemplateResponse,
     TemplateResponseDate,
+    TemplateUpdateDataInput,
+    TemplateUpdateResponse,
 )
 from presentation.security.security_data_models import UserData
 from presentation.security.security_factory import security
 from schemas.template_schemas import (
     SimpleTemplateOutput,
-    TemplateUpdateInput,
-    TemplateUpdateOutput,
 )
 from services.template_services import TemplateService
 
@@ -78,7 +83,7 @@ async def get_templates_by_filter(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
         )
-    except TemplateApplicationException as ex:
+    except TemplateReaderApplicationException as ex:
         raise HTTPException(status_code=ex.status_code, detail=ex.detail)
     except Exception as ex:
         print(type(ex), ex)
@@ -87,11 +92,16 @@ async def get_templates_by_filter(
         )
 
 
-@router.put("/templates/{template_id}")
+@router.put(
+    "/templates/{template_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=TemplateUpdateResponse,
+)
+@inject
 async def update_template(
     template_id: int,
     template_data: Annotated[
-        TemplateUpdateInput,
+        TemplateUpdateDataInput,
         Body(
             examples=[
                 {
@@ -102,22 +112,26 @@ async def update_template(
             ]
         ),
     ],
-    db: Annotated[AsyncSession, Depends(get_async_session)],
+    interactor: FromDishka[TemplateUpdaterInteractor],
     user_data: Annotated[UserData, Depends(security)],
-) -> TemplateUpdateOutput:
-    service = TemplateService(db)
-
+) -> TemplateUpdateResponse:
     try:
-        template = await service.update_template(
-            template_id=template_id,
-            template_data=template_data,
+        result = await interactor(
+            request=template_data.to_interactor_dto(template_id)
         )
-    except TemplateNotFound as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except TMOIdNotFoundInInventory as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    await service.commit_changes()
-    return template
+        output = TemplateUpdateResponse.from_application_dto(result)
+        return output
+    except ValidationError as ex:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
+        )
+    except TemplateUpdaterApplicationException as ex:
+        raise HTTPException(status_code=ex.status_code, detail=ex.detail)
+    except Exception as ex:
+        print(type(ex), ex)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
+        )
 
 
 @router.delete(

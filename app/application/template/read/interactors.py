@@ -5,7 +5,9 @@ from application.template.read.dto import (
     TemplateResponseDataDTO,
     TemplateResponseDTO,
 )
-from application.template.read.exceptions import TemplateApplicationException
+from application.template.read.exceptions import (
+    TemplateReaderApplicationException,
+)
 from application.template.read.mapper import template_filter_from_dto
 from domain.template.query import TemplateReader
 from domain.template.vo.template_filter import TemplateFilter
@@ -33,11 +35,11 @@ class TemplateReaderInteractor(object):
             )
             return result
 
-        except TemplateApplicationException as ex:
+        except TemplateReaderApplicationException as ex:
             self.logger.error(ex)
             raise
         except Exception as ex:
             self.logger.error(ex)
-            raise TemplateApplicationException(
+            raise TemplateReaderApplicationException(
                 status_code=422, detail="Application Error."
             )
