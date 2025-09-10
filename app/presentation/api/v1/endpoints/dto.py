@@ -6,6 +6,10 @@ from application.template.read.dto import (
     TemplateRequestDTO,
     TemplateResponseDataDTO,
 )
+from application.template.update.dto import (
+    TemplateDataUpdateRequestDTO,
+    TemplateUpdateResponseDTO,
+)
 from application.template_object.read.dto import (
     TemplateObjectByIdRequestDTO,
     TemplateObjectRequestDTO,
@@ -298,16 +302,13 @@ class TemplateObjectUpdateDataInput(BaseModel):
     required: bool = False
     parent_object_id: int | None = Field(default=None, ge=1)
 
-
-class TemplateObjectUpdateInp(BaseModel):
-    object_id: int = Field(ge=1)
-    object_data: TemplateObjectUpdateDataInput
-
-    def to_interactor_dto(self) -> TemplateObjectDataUpdateRequestDTO:
+    def to_interactor_dto(
+        self, object_id: int
+    ) -> TemplateObjectDataUpdateRequestDTO:
         return TemplateObjectDataUpdateRequestDTO(
-            template_object_id=self.object_id,
-            required=self.object_data.required,
-            parent_object_id=self.object_data.parent_object_id,
+            template_object_id=object_id,
+            required=self.required,
+            parent_object_id=self.parent_object_id,
         )
 
 
@@ -330,4 +331,40 @@ class TemplateObjectUpdateResponse(BaseModel):
             required=dto.required,
             valid=dto.valid,
             parent_object_id=dto.parent_object_id,
+        )
+
+
+class TemplateUpdateDataInput(BaseModel):
+    name: str
+    owner: str
+    object_type_id: int = Field(ge=1)
+
+    def to_interactor_dto(
+        self, template_id: int
+    ) -> TemplateDataUpdateRequestDTO:
+        return TemplateDataUpdateRequestDTO(
+            id=template_id,
+            name=self.name,
+            owner=self.owner,
+            object_type_id=self.object_type_id,
+        )
+
+
+class TemplateUpdateResponse(BaseModel):
+    id: int
+    name: str
+    owner: str
+    object_type_id: int
+    valid: bool
+
+    @classmethod
+    def from_application_dto(
+        cls, dto: TemplateUpdateResponseDTO
+    ) -> "TemplateUpdateResponse":
+        return cls(
+            id=dto.id,
+            name=dto.name,
+            owner=dto.owner,
+            object_type_id=dto.object_type_id,
+            valid=dto.valid,
         )

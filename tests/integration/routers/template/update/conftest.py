@@ -1,7 +1,7 @@
 from typing import AsyncIterator
 from unittest.mock import AsyncMock, Mock, patch
 
-from dishka import make_async_container
+from dishka import Provider, Scope, make_async_container, provide
 from dishka.integrations.fastapi import setup_dishka
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
@@ -9,8 +9,14 @@ import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from application.common.uow import SQLAlchemyUoW
+from application.template.update.interactors import TemplateUpdaterInteractor
+from application.tmo_validation.interactors import TMOValidationInteractor
 from config import setup_config
 from di import get_async_session
+from domain.template.command import TemplateUpdater
+from domain.template.query import TemplateReader
+from domain.tmo_validation.query import TMOReader
 
 
 @pytest.fixture
@@ -35,11 +41,6 @@ def app():
 #     return AsyncMock(return_value=mock_user_data)
 
 
-class MockFactory:
-    def __init__(self):
-        pass
-
-
 @pytest.fixture
 def mock_db():
     db = AsyncMock(spec=AsyncSession)
@@ -60,6 +61,66 @@ async def mock_grpc_response() -> AsyncIterator:
         yield get_all_tmo_data_from_inventory
 
 
+class MockFactory:
+    def __init__(self):
+        self.inventory_tmo_validator_mock = AsyncMock(spec=TMOReader)
+        self.template_reader_mock = AsyncMock(spec=TemplateReader)
+        self.template_updater_mock = AsyncMock(spec=TemplateUpdater)
+
+
+class MockDatabaseProvider(Provider):
+    @provide(scope=Scope.REQUEST)
+    def get_session(self) -> AsyncSession:
+        connection = AsyncMock(spec=AsyncSession)
+        return connection
+
+    @provide(scope=Scope.REQUEST)
+    def get_uow(self, session: AsyncSession) -> SQLAlchemyUoW:
+        uow = AsyncMock(spec=SQLAlchemyUoW)
+        return uow
+
+
+class MockRepositoryProvider(Provider):
+    def __init__(self, mock_factory: MockFactory):
+        super().__init__()
+        self.mock_factory = mock_factory
+
+    @provide(scope=Scope.REQUEST)
+    def get_tmo_inventory_repo(self) -> TMOReader:
+        return self.mock_factory.inventory_tmo_validator_mock
+
+    @provide(scope=Scope.REQUEST)
+    def get_template_reader_repo(self) -> TemplateReader:
+        return self.mock_factory.template_reader_mock
+
+    @provide(scope=Scope.REQUEST)
+    def get_template_updater_repo(self) -> TemplateUpdater:
+        return self.mock_factory.template_updater_mock
+
+
+class MockInteractorProvider(Provider):
+    @provide(scope=Scope.REQUEST)
+    def get_tmo_validator(
+        self, grpc_repo: TMOReader
+    ) -> TMOValidationInteractor:
+        return TMOValidationInteractor(grpc_repo)
+
+    @provide(scope=Scope.REQUEST)
+    def get_template_updater(
+        self,
+        tmo_validator: TMOValidationInteractor,
+        t_reader: TemplateReader,
+        t_updater: TemplateUpdater,
+        uow: SQLAlchemyUoW,
+    ) -> TemplateUpdaterInteractor:
+        return TemplateUpdaterInteractor(
+            tmo_validator=tmo_validator,
+            t_reader=t_reader,
+            t_updater=t_updater,
+            uow=uow,
+        )
+
+
 @pytest_asyncio.fixture
 def mock_factory():
     return MockFactory()
@@ -67,7 +128,11 @@ def mock_factory():
 
 @pytest_asyncio.fixture
 async def container(mock_factory):
-    container = make_async_container()
+    container = make_async_container(
+        MockDatabaseProvider(),
+        MockRepositoryProvider(mock_factory),
+        MockInteractorProvider(),
+    )
     yield container
     await container.close()
 
