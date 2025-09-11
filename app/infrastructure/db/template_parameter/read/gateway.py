@@ -138,12 +138,12 @@ class SQLTemplateParameterReaderRepository(TemplateParameterReader):
                 status_code=422, detail=GATEWAY_ERROR
             )
 
-    async def get_by_parameter_type_id(
-        self, parameter_type_id: int
+    async def get_by_parameter_type_ids(
+        self, parameter_type_ids: list[int]
     ) -> list[TemplateParameterAggregate]:
         query = select(TemplateParameter)
         query = query.where(
-            TemplateParameter.parameter_type_id == parameter_type_id
+            TemplateParameter.parameter_type_id.in_(parameter_type_ids)
         )
         try:
             result = await self._session.scalars(query)

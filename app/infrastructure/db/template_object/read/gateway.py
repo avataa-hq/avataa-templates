@@ -85,9 +85,24 @@ class SQLTemplateObjectReaderRepository(TemplateObjectReader):
                 status_code=422, detail=GATEWAY_ERROR
             )
 
+    async def get_by_object_type_ids(
+        self, object_type_ids: list[int]
+    ) -> list[TemplateObjectAggregate]:
+        query = select(TemplateObject)
+        query = query.where(TemplateObject.object_type_id.in_(object_type_ids))
+        try:
+            result = await self._session.scalars(query)
+            return [sql_to_domain(to) for to in result.all()]
+        except Exception as ex:
+            self.logger.exception(ex)
+            raise TemplateObjectReaderApplicationException(
+                status_code=422, detail=GATEWAY_ERROR
+            )
+
     async def get_tree_by_filter(
         self, db_filter: TemplateObjectFilter
     ) -> list[TemplateObjectAggregate]:
+        # Get all children in max depth
         output: list[TemplateObjectAggregate] = list()
         cte_query = text("""
         WITH RECURSIVE object_tree AS (
@@ -133,6 +148,51 @@ class SQLTemplateObjectReaderRepository(TemplateObjectReader):
                 "template_id": db_filter.template_object_id,
                 "parent_id": db_filter.parent_object_id,
                 "max_depth": db_filter.depth,
+            },
+        )
+
+        for db_el in result.fetchall():  # type: TemplateObject
+            template = sql_to_domain(db_el)
+            output.append(template)
+        return output
+
+    async def get_reverse_tree_by_id(
+        self, children_id: int
+    ) -> list[TemplateObjectAggregate]:
+        output: list[TemplateObjectAggregate] = list()
+        cte_query = text("""
+        WITH RECURSIVE reverse_tree AS (
+            SELECT
+                id,
+                template_id,
+                parent_object_id,
+                object_type_id,
+                required,
+                valid,
+                0 AS depth,
+                CAST(id AS TEXT) AS path
+            FROM template_object
+            WHERE id = :children_id
+        UNION ALL
+        SELECT
+                parent_obj.id,
+                parent_obj.template_id,
+                parent_obj.parent_object_id,
+                parent_obj.object_type_id,
+                parent_obj.required,
+                parent_obj.valid,
+                rt.depth + 1,
+                CAST(parent_obj.id AS TEXT) || '->' || rt.path
+        FROM template_object parent_obj
+        INNER JOIN reverse_tree rt ON parent_obj.id = rt.parent_object_id
+        )
+        SELECT * FROM reverse_tree
+        ORDER BY depth DESC, id;
+        """).bindparams(bindparam("children_id", type_=Integer))
+        result = await self._session.execute(
+            cte_query,
+            {
+                "children_id": children_id,
             },
         )
 
