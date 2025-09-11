@@ -60,3 +60,6 @@ class TemplateParameterAggregate:
 
     def set_valid(self, valid: bool) -> None:
         self.valid = valid
+
+    def set_val_type(self, val_type: str) -> None:
+        self.val_type = val_type

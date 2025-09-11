@@ -10,7 +10,7 @@ from domain.template_object.command import TemplateObjectUpdater
 from domain.template_object.query import TemplateObjectReader
 from domain.template_parameter.command import TemplateParameterUpdater
 from domain.template_parameter.query import TemplateParameterReader
-from domain.template_parameter.service import TemplateValidityService
+from domain.template_parameter.service import TemplateParameterValidityService
 
 
 class MockFactory:
@@ -75,8 +75,8 @@ class MockInteractorProvider(Provider):
         to_reader: TemplateObjectReader,
         to_updater: TemplateObjectUpdater,
         uow: SQLAlchemyUoW,
-    ) -> TemplateValidityService:
-        return TemplateValidityService(
+    ) -> TemplateParameterValidityService:
+        return TemplateParameterValidityService(
             t_reader=t_reader,
             t_updater=t_updater,
             tp_reader=tp_reader,
