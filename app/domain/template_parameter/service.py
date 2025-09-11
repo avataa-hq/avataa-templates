@@ -21,7 +21,7 @@ from domain.template_parameter.command import TemplateParameterUpdater
 from domain.template_parameter.query import TemplateParameterReader
 
 
-class TemplateParameterValidityService:
+class TemplateValidityService:
     def __init__(
         self,
         t_reader: TemplateReader,
@@ -96,18 +96,15 @@ class TemplateParameterValidityService:
                 by_template_objects[
                     parameter.template_object_id.to_raw()
                 ].append(parameter)
-                if parameter.parameter_type_id.to_raw() == tprm_id:
-                    if parameter.val_type == new_val_type:
-                        parameter.set_valid(True)
-                        tp_update.append(parameter)
-                    else:
-                        parameter.set_valid(False)
-                        tp_update.append(parameter)
+                expected_valid = parameter.val_type == new_val_type
+                if parameter.valid != expected_valid:
+                    parameter.set_valid(expected_valid)
+                    tp_update.append(parameter)
             # Update bulk for valid for every TP
             if tp_update:
                 await self._tp_updater.bulk_update_template_parameter(tp_update)
-            # Update TO
 
+            # Update TO
             for to in template_objects:  # type: TemplateObjectAggregate
                 validity = all(
                     (tp.valid for tp in by_template_objects[to.id.to_raw()])

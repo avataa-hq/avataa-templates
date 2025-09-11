@@ -1,5 +1,5 @@
 from application.common.uow import SQLAlchemyUoW
-from domain.template_parameter.service import TemplateParameterValidityService
+from domain.template_parameter.service import TemplateValidityService
 from services.inventory_services.db_services.template_object_service import (
     TemplateObjectService,
 )
@@ -13,12 +13,12 @@ class InventoryChangesInteractor(object):
         self,
         to_service: TemplateObjectService,
         tp_service: TemplateParameterService,
-        tp_validity_service: TemplateParameterValidityService,
+        t_validity_service: TemplateValidityService,
         uow: SQLAlchemyUoW,
     ):
         self._to_service = to_service
         self._tp_service = tp_service
-        self._tp_validity_service = tp_validity_service
+        self._t_validity_service = t_validity_service
         self._uow = uow
 
     async def __call__(self, messages: list[tuple[dict, str, str]]):
@@ -55,7 +55,7 @@ class InventoryChangesInteractor(object):
             #     )
             if tprm_ids_to_check:
                 for element in tprm_ids_to_check:
-                    await self._tp_validity_service.validate(
+                    await self._t_validity_service.validate(
                         element.get("tprm_id"), element.get("val_type")
                     )
 
