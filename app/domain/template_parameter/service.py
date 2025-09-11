@@ -42,9 +42,10 @@ class TemplateValidityService:
         self.logger = getLogger(self.__class__.__name__)
 
     async def validate(self, tprm_id: int, new_val_type: str):
+        # CHeck correct valid for 2 stages.
         try:
             # Stage 1
-            list_template_id_to_update = await self._stage_1(
+            list_template_id_to_update = await self.validate_stage_1(
                 tprm_id, new_val_type
             )
 
@@ -73,17 +74,20 @@ class TemplateValidityService:
                 status_code=422, detail=domain_error_message
             )
 
-    async def _stage_1(self, tprm_id: int, new_val_type: str) -> list[int]:
+    async def validate_stage_1(
+        self, tprm_id: int, new_val_type: str
+    ) -> list[int]:
         # Update Template Parameter and Template Object.
         # Return list template id for update
         result: list[int] = []
+        expected_validity: bool = False
         try:
-            template_objects_id = await self._tp_reader.get_template_object_id_by_parameter_type_id(
+            template_objects_ids = await self._tp_reader.get_template_object_id_by_parameter_type_id(
                 tprm_id
             )
             template_objects: list[
                 TemplateObjectAggregate
-            ] = await self._to_reader.get_by_ids(template_objects_id)
+            ] = await self._to_reader.get_by_ids(template_objects_ids)
 
             template_parameters = (
                 await self._tp_reader.get_by_template_object_ids(
@@ -93,13 +97,14 @@ class TemplateValidityService:
             tp_update: list[TemplateParameterAggregate] = []
             by_template_objects = defaultdict(list)
             for parameter in template_parameters:  # type: TemplateParameterAggregate
-                by_template_objects[
-                    parameter.template_object_id.to_raw()
-                ].append(parameter)
-                expected_valid = parameter.val_type == new_val_type
-                if parameter.valid != expected_valid:
-                    parameter.set_valid(expected_valid)
-                    tp_update.append(parameter)
+                if parameter.parameter_type_id.to_raw() == tprm_id:
+                    by_template_objects[
+                        parameter.template_object_id.to_raw()
+                    ].append(parameter)
+                    expected_validity = parameter.val_type == new_val_type
+                    if parameter.valid != expected_validity:
+                        parameter.set_valid(expected_validity)
+                        tp_update.append(parameter)
             # Update bulk for valid for every TP
             if tp_update:
                 await self._tp_updater.bulk_update_template_parameter(tp_update)
@@ -113,6 +118,18 @@ class TemplateValidityService:
                     to.set_valid(validity)
                     await self._to_updater.update_template_object(to)
                     result.append(to.template_id.to_raw())
+            # Update in up tmo
+            to_to_update: list[TemplateObjectAggregate] = list()
+            # Invalid Template Objects
+            for to in template_objects:
+                hierarchy_to = await self._to_reader.get_reverse_tree_by_id(
+                    to.id.to_raw()
+                )
+                to_to_update.extend(hierarchy_to)
+
+            for to in to_to_update:
+                to.set_valid(expected_validity)
+                await self._to_updater.update_template_object(to)
             return result
 
         except TemplateParameterReaderApplicationException:
@@ -123,3 +140,55 @@ class TemplateValidityService:
             raise InvalidValueError(
                 status_code=422, detail=domain_error_message
             )
+
+    async def invalid_by_tprm(self, deleted_tprm: list[int]):
+        # Only set invalid by tprm
+        # Invalid Template Parameters
+        template_parameters = await self._tp_reader.get_by_parameter_type_ids(
+            deleted_tprm
+        )
+        invalid_to: set[int] = set()
+        for tp in template_parameters:  # type: TemplateParameterAggregate
+            tp.set_valid(False)
+            invalid_to.add(tp.template_object_id.to_raw())
+        await self._tp_updater.bulk_update_template_parameter(
+            template_parameters
+        )
+
+        # Invalid Template Objects
+        await self.invalid_by_template_object_id(list(invalid_to))
+
+    async def invalid_by_tmo(self, deleted_tmo: list[int]):
+        # Only set invalid by tmo
+        # Invalid Template Objects
+        template_objects = await self._to_reader.get_by_object_type_ids(
+            deleted_tmo
+        )
+        await self._invalidate_to_and_t(template_objects)
+
+    async def invalid_by_template_object_id(self, to_ids: list[int]):
+        template_objects = await self._to_reader.get_by_ids(to_ids)
+        await self._invalidate_to_and_t(template_objects)
+
+    async def _invalidate_to_and_t(
+        self, template_objects: list[TemplateObjectAggregate]
+    ):
+        to_to_invalid: list[TemplateObjectAggregate] = list()
+        # Invalid Template Objects
+        for to in template_objects:
+            hierarchy_to = await self._to_reader.get_reverse_tree_by_id(
+                to.id.to_raw()
+            )
+            to_to_invalid.extend(hierarchy_to)
+
+        invalid_t_ids: set[int] = set()
+        for to in to_to_invalid:
+            invalid_t_ids.add(to.template_id.to_raw())
+            to.set_valid(False)
+            await self._to_updater.update_template_object(to)
+
+        # Invalid Templates
+        templates = await self._t_reader.get_by_ids(list(invalid_t_ids))
+        for t in templates:
+            t.set_valid(False)
+            await self._t_updater.update_template(t)

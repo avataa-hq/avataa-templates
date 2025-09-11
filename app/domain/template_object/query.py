@@ -22,8 +22,16 @@ class TemplateObjectReader(Protocol):
         self, db_filter: TemplateObjectFilter
     ) -> list[TemplateObjectAggregate]: ...
 
+    async def get_by_object_type_ids(
+        self, object_type_ids: list[int]
+    ) -> list[TemplateObjectAggregate]: ...
+
     async def get_tree_by_filter(
         self, db_filter: TemplateObjectFilter
+    ) -> list[TemplateObjectAggregate]: ...
+
+    async def get_reverse_tree_by_id(
+        self, children_id: int
     ) -> list[TemplateObjectAggregate]: ...
 
     async def exists(self, db_filter: TemplateObjectFilter) -> bool: ...

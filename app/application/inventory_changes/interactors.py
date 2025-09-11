@@ -25,7 +25,7 @@ class InventoryChangesInteractor(object):
         try:
             tmo_ids = []
             # Deleted
-            # tprm_ids_to_invalid = []
+            tprm_ids_to_invalid = []
             # Updated
             tprm_ids_to_check = []
 
@@ -34,8 +34,10 @@ class InventoryChangesInteractor(object):
                     tmo_ids.extend(
                         [el.get("id") for el in message.get("objects", [])]
                     )
-                # elif entity_type == "TPRM" and operation == "deleted":
-                #     tprm_ids_to_invalid.append([el.get("id") for el in message.get("objects", [])])
+                elif entity_type == "TPRM" and operation == "deleted":
+                    tprm_ids_to_invalid.append(
+                        [el.get("id") for el in message.get("objects", [])]
+                    )
                 elif entity_type == "TPRM" and operation == "updated":
                     data = {}
                     for el in message.get("objects", []):
@@ -44,20 +46,19 @@ class InventoryChangesInteractor(object):
                     tprm_ids_to_check.append(data)
 
             tmo_ids = list(set(tmo_ids))
-            # tprm_ids_to_invalid = list(set(tprm_ids_to_invalid))
+            tprm_ids_to_invalid = list(set(tprm_ids_to_invalid))
 
-            if tmo_ids:
-                await self._to_service.set_template_object_invalid(tmo_ids)
-
-            # if tprm_ids_to_invalid:
-            #     await self._tp_service.set_template_parameter_invalid(
-            #         tprm_ids_to_invalid
-            #     )
             if tprm_ids_to_check:
                 for element in tprm_ids_to_check:
                     await self._t_validity_service.validate(
                         element.get("tprm_id"), element.get("val_type")
                     )
+            if tprm_ids_to_invalid:
+                await self._t_validity_service.invalid_by_tprm(
+                    tprm_ids_to_invalid
+                )
+            if tmo_ids:
+                await self._t_validity_service.invalid_by_tmo(tmo_ids)
 
             await self._uow.commit()
 
