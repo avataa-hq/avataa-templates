@@ -5,7 +5,6 @@ from typing import Any, Union
 
 from confluent_kafka import (
     Consumer,
-    KafkaError,
     KafkaException,
     TopicPartition,
     cimpl,
@@ -13,7 +12,6 @@ from confluent_kafka import (
 from confluent_kafka.admin import TopicMetadata
 from dishka import make_async_container
 
-from application.common.uow import SQLAlchemyUoW
 from application.inventory_changes.interactors import InventoryChangesInteractor
 from infrastructure.di.providers import (
     DatabaseProvider,
@@ -22,10 +20,6 @@ from infrastructure.di.providers import (
     KafkaServiceProvider,
     RepositoryProvider,
 )
-from services.inventory_services.db_services import (
-    TemplateObjectService,
-    TemplateParameterService,
-)
 from services.inventory_services.kafka.consumer.config import (
     KafkaConfig,
 )
@@ -33,13 +27,7 @@ from services.inventory_services.kafka.consumer.custom_deserializer import (
     PROTO_TYPES_SERIALIZERS,
     SerializerType,
 )
-from services.inventory_services.kafka.consumer.msg_protocol import (
-    KafkaMSGProtocol,
-)
 from services.inventory_services.kafka.consumer.protobuf import obj_pb2
-from services.inventory_services.kafka.consumer.utils import (
-    InventoryChangesConverter,
-)
 
 KafkaMessage = Union[obj_pb2.ListTMO, obj_pb2.ListTPRM]
 
@@ -57,19 +45,14 @@ async def initialize_kafka_consumer(consumer: Consumer) -> bool:
         )
 
         print("Successfully subscribed to Kafka topic")
-
         print("Testing Kafka connection...")
         test_msg = consumer.poll(timeout=3.0)
-
         if test_msg is not None and test_msg.error():
-            if test_msg.error().code() == KafkaError._PARTITION_EOF:
-                print("Kafka connection OK (reached end of partition)")
-            else:
-                print(f"Kafka warning: {test_msg.error()}")
+            print(f"Kafka warning: {test_msg.error()}")
         else:
             print("Kafka connection established")
-
         return True
+
     except Exception as ex:
         print(f"Failed to subscribe to Kafka topic: {ex}")
         print(f"Topic: {config.inventory_changes_topic}")
@@ -126,57 +109,6 @@ async def run_kafka_cons_inv() -> None:
                 print("Error processing final batch")
                 message_batch.clear()
             print("Kafka consumer - end")
-
-
-async def process_batch_messages(
-    messages: list[tuple[KafkaMSGProtocol, str]], container
-) -> bool:
-    list_tprm = []
-    list_tmo = []
-    converter = InventoryChangesConverter()
-    for msg, key in messages:
-        entity_type, _ = key.split(":")
-        if entity_type == "TMO":
-            list_tmo.append(converter(msg, key))
-        else:
-            list_tprm.append(converter(msg, key))
-    tmo_ids = list(
-        {
-            tmo.get("id")
-            for message in list_tmo
-            for tmo in message.get("objects", [])
-        }
-    )
-    tprm_ids = list(
-        {
-            tprm.get("id")
-            for message in list_tprm
-            for tprm in message.get("objects", [])
-        }
-    )
-    async with container() as nested_container:
-        try:
-            uow = await nested_container.get(SQLAlchemyUoW)
-            template_object_service = await nested_container.get(
-                TemplateObjectService
-            )
-            template_parameter_service = await nested_container.get(
-                TemplateParameterService
-            )
-            if tmo_ids:
-                await template_object_service.set_template_object_invalid(
-                    tmo_ids
-                )
-            if tprm_ids:
-                await template_parameter_service.set_template_parameter_invalid(
-                    tprm_ids
-                )
-            await uow.commit()
-        except Exception as ex:
-            print(f"Error processing message: {ex}.")
-            await uow.rollback()
-            return False
-    return True
 
 
 def deserialize_msg(msg: cimpl.Message, key) -> dict:

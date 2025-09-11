@@ -65,7 +65,7 @@ class TemplateObject(Base):
         ),
         nullable=True,
     )
-    object_type_id: Mapped[int] = mapped_column(nullable=False)
+    object_type_id: Mapped[int] = mapped_column(nullable=False, index=True)
 
     # Relationships
     template = relationship(
@@ -110,7 +110,7 @@ class TemplateParameter(Base):
         ),
         nullable=False,
     )
-    parameter_type_id: Mapped[int] = mapped_column(nullable=False)
+    parameter_type_id: Mapped[int] = mapped_column(nullable=False, index=True)
     value: Mapped[str] = mapped_column(nullable=True)
     constraint: Mapped[str | None] = mapped_column(nullable=True)
     val_type: Mapped[str] = mapped_column(nullable=False)
