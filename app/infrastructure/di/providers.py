@@ -39,7 +39,7 @@ from domain.template_parameter.command import (
     TemplateParameterUpdater,
 )
 from domain.template_parameter.query import TemplateParameterReader
-from domain.template_parameter.service import TemplateValidityService
+from domain.template_parameter.service import TemplateParameterValidityService
 from domain.tmo_validation.query import TMOReader
 from domain.tprm_validation.query import TPRMReader
 from infrastructure.db.template.read.gateway import SQLTemplateReaderRepository
@@ -241,6 +241,7 @@ class InteractorProvider(Provider):
         tp_reader: TemplateParameterReader,
         tp_updater: TemplateParameterUpdater,
         tprm_validator: ParameterValidationInteractor,
+        tp_validity_service: TemplateParameterValidityService,
         uow: SQLAlchemyUoW,
     ) -> TemplateParameterUpdaterInteractor:
         return TemplateParameterUpdaterInteractor(
@@ -248,6 +249,7 @@ class InteractorProvider(Provider):
             to_reader=to_reader,
             tp_updater=tp_updater,
             tprm_validator=tprm_validator,
+            tp_validity_service=tp_validity_service,
             uow=uow,
         )
 
@@ -258,6 +260,7 @@ class InteractorProvider(Provider):
         tp_reader: TemplateParameterReader,
         tp_updater: TemplateParameterUpdater,
         tprm_validator: ParameterValidationInteractor,
+        tp_validity_service: TemplateParameterValidityService,
         uow: SQLAlchemyUoW,
     ) -> BulkTemplateParameterUpdaterInteractor:
         return BulkTemplateParameterUpdaterInteractor(
@@ -265,6 +268,7 @@ class InteractorProvider(Provider):
             tp_reader=tp_reader,
             tp_updater=tp_updater,
             tprm_validator=tprm_validator,
+            tp_validity_service=tp_validity_service,
             uow=uow,
         )
 
@@ -278,8 +282,8 @@ class InteractorProvider(Provider):
         to_reader: TemplateObjectReader,
         to_updater: TemplateObjectUpdater,
         uow: SQLAlchemyUoW,
-    ) -> TemplateValidityService:
-        return TemplateValidityService(
+    ) -> TemplateParameterValidityService:
+        return TemplateParameterValidityService(
             t_reader=t_reader,
             t_updater=t_updater,
             tp_reader=tp_reader,
@@ -306,13 +310,13 @@ class KafkaServiceProvider(Provider):
     @provide(scope=Scope.REQUEST)
     def get_inventory_changes_interactor(
         self,
-        t_validity_service: TemplateValidityService,
+        tp_validity_service: TemplateParameterValidityService,
         to_service: TemplateObjectService,
         tp_service: TemplateParameterService,
         uow: SQLAlchemyUoW,
     ) -> InventoryChangesInteractor:
         return InventoryChangesInteractor(
-            t_validity_service=t_validity_service,
+            tp_validity_service=tp_validity_service,
             to_service=to_service,
             tp_service=tp_service,
             uow=uow,

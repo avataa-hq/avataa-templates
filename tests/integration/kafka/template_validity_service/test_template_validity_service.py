@@ -8,7 +8,7 @@ from domain.shared.vo.template_object_id import TemplateObjectId
 from domain.template.aggregate import TemplateAggregate
 from domain.template_object.aggregate import TemplateObjectAggregate
 from domain.template_parameter.aggregate import TemplateParameterAggregate
-from domain.template_parameter.service import TemplateValidityService
+from domain.template_parameter.service import TemplateParameterValidityService
 from domain.template_parameter.vo.parameter_type_id import ParameterTypeId
 
 
@@ -47,7 +47,7 @@ async def test_update_tprm_with_no_change_val_type(
         tp_aggr
     ]
     async with container() as di:
-        interactor = await di.get(TemplateValidityService)
+        interactor = await di.get(TemplateParameterValidityService)
 
         # Act
         await interactor.validate(tprm_id, new_val_type)
@@ -118,7 +118,7 @@ async def test_update_tprm_with_change_val_type(
         False
     ]
     async with container() as di:
-        interactor = await di.get(TemplateValidityService)
+        interactor = await di.get(TemplateParameterValidityService)
 
         # Act
         await interactor.validate(tprm_id, new_val_type)

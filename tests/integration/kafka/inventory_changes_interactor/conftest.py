@@ -5,7 +5,7 @@ import pytest_asyncio
 
 from application.common.uow import SQLAlchemyUoW
 from application.inventory_changes.interactors import InventoryChangesInteractor
-from domain.template_parameter.service import TemplateValidityService
+from domain.template_parameter.service import TemplateParameterValidityService
 from services.inventory_services.db_services import (
     TemplateObjectService,
     TemplateParameterService,
@@ -16,7 +16,9 @@ class MockFactory:
     def __init__(self):
         self.to_service_mock = AsyncMock(spec=TemplateObjectService)
         self.tp_service_mock = AsyncMock(spec=TemplateParameterService)
-        self.tp_validity_service_mock = AsyncMock(spec=TemplateValidityService)
+        self.tp_validity_service_mock = AsyncMock(
+            spec=TemplateParameterValidityService
+        )
         self.uow_mock = AsyncMock(spec=SQLAlchemyUoW)
 
 
@@ -40,7 +42,7 @@ class MockServiceProvider(Provider):
         return self.mock_factory.tp_service_mock
 
     @provide(scope=Scope.REQUEST)
-    async def get_tp_validity_service(self) -> TemplateValidityService:
+    async def get_tp_validity_service(self) -> TemplateParameterValidityService:
         return self.mock_factory.tp_validity_service_mock
 
 
@@ -50,13 +52,13 @@ class MockInteractorProvider(Provider):
         self,
         to_service: TemplateObjectService,
         tp_service: TemplateParameterService,
-        t_validity_service: TemplateValidityService,
+        tp_validity_service: TemplateParameterValidityService,
         uow: SQLAlchemyUoW,
     ) -> InventoryChangesInteractor:
         return InventoryChangesInteractor(
             to_service=to_service,
             tp_service=tp_service,
-            t_validity_service=t_validity_service,
+            tp_validity_service=tp_validity_service,
             uow=uow,
         )
 

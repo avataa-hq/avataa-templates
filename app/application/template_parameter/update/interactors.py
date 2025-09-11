@@ -25,6 +25,7 @@ from domain.template_object.vo.template_object_filter import (
 from domain.template_parameter.aggregate import TemplateParameterAggregate
 from domain.template_parameter.command import TemplateParameterUpdater
 from domain.template_parameter.query import TemplateParameterReader
+from domain.template_parameter.service import TemplateParameterValidityService
 
 
 class TemplateParameterUpdaterInteractor(object):
@@ -34,18 +35,21 @@ class TemplateParameterUpdaterInteractor(object):
         to_reader: TemplateObjectReader,
         tp_updater: TemplateParameterUpdater,
         tprm_validator: ParameterValidationInteractor,
+        tp_validity_service: TemplateParameterValidityService,
         uow: UoW,
     ):
         self._tp_reader = tp_reader
         self._to_reader = to_reader
         self._tp_updater = tp_updater
         self._tprm_validator = tprm_validator
+        self._tp_validity_service = tp_validity_service
         self._uow = uow
         self.logger = getLogger(self.__class__.__name__)
 
     async def __call__(
         self, request: TemplateParameterUpdateRequestDTO
     ) -> TemplateParameterUpdateDTO:
+        update_validity = False
         try:
             # Get parameter
             template_parameter: TemplateParameterAggregate = (
@@ -105,6 +109,15 @@ class TemplateParameterUpdaterInteractor(object):
                 template_parameter.set_constraint(
                     validated_data.valid_items[0].constraint
                 )
+            if (
+                validated_data.valid_items[0].val_type
+                and template_parameter.val_type
+                != validated_data.valid_items[0].val_type
+            ):
+                template_parameter.set_val_type(
+                    validated_data.valid_items[0].val_type
+                )
+                update_validity = True
 
             # Update in DB
             try:
@@ -115,6 +128,12 @@ class TemplateParameterUpdaterInteractor(object):
                 await self._uow.rollback()
                 raise TemplateParameterUpdaterApplicationException(
                     status_code=ex.status_code, detail=ex.detail
+                )
+            # Update validity
+            if update_validity:
+                await self._tp_validity_service.validate(
+                    template_parameter.parameter_type_id.to_raw(),
+                    template_parameter.val_type,
                 )
             await self._uow.commit()
             # Update TemplateObject valid
@@ -150,18 +169,21 @@ class BulkTemplateParameterUpdaterInteractor(object):
         to_reader: TemplateObjectReader,
         tp_updater: TemplateParameterUpdater,
         tprm_validator: ParameterValidationInteractor,
+        tp_validity_service: TemplateParameterValidityService,
         uow: UoW,
     ):
         self._tp_reader = tp_reader
         self._to_reader = to_reader
         self._tp_updater = tp_updater
         self._tprm_validator = tprm_validator
+        self._tp_validity_service = tp_validity_service
         self._uow = uow
         self.logger = getLogger(self.__class__.__name__)
 
     async def __call__(
         self, request: TemplateParameterBulkUpdateRequestDTO
-    ) -> list:
+    ) -> list[TemplateParameterUpdateDTO]:
+        list_to_update_validity: list[tuple[int, str]] = []
         try:
             # Get all parameters
             parameters = await self._tp_reader.get_by_ids(
@@ -212,8 +234,21 @@ class BulkTemplateParameterUpdaterInteractor(object):
                     and update_data.constraint != parameter.constraint
                 ):
                     parameter.set_constraint(update_data.constraint)
+                if (
+                    update_data.val_type
+                    and update_data.val_type != parameter.val_type
+                ):
+                    parameter.set_val_type(update_data.val_type)
+                    list_to_update_validity.append(
+                        (update_data.parameter_type_id, update_data.val_type)
+                    )
             # Bulk save
             await self._tp_updater.bulk_update_template_parameter(parameters)
+            # Update validity
+            for updating_data in list_to_update_validity:  #  type: tuple[int, str]
+                await self._tp_validity_service.validate(
+                    updating_data[0], updating_data[1]
+                )
             await self._uow.commit()
             # Create user response
             result = [

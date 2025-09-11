@@ -20,6 +20,7 @@ from config import setup_config
 from domain.template_object.query import TemplateObjectReader
 from domain.template_parameter.command import TemplateParameterUpdater
 from domain.template_parameter.query import TemplateParameterReader
+from domain.template_parameter.service import TemplateParameterValidityService
 from domain.tprm_validation.query import TPRMReader
 
 
@@ -55,6 +56,9 @@ class MockFactory:
             spec=TemplateParameterUpdater
         )
         self.inventory_tprm_validator_mock = AsyncMock(spec=TPRMReader)
+        self.tp_validity_service_mock = AsyncMock(
+            spec=TemplateParameterValidityService
+        )
 
 
 class MockDatabaseProvider(Provider):
@@ -90,6 +94,10 @@ class MockRepositoryProvider(Provider):
     def get_template_parameter_updater_repo(self) -> TemplateParameterUpdater:
         return self.mock_factory.template_parameter_updater_mock
 
+    @provide(scope=Scope.REQUEST)
+    async def get_tp_validity_service(self) -> TemplateParameterValidityService:
+        return self.mock_factory.tp_validity_service_mock
+
 
 class MockInteractorProvider(Provider):
     @provide(scope=Scope.REQUEST)
@@ -105,6 +113,7 @@ class MockInteractorProvider(Provider):
         tp_reader: TemplateParameterReader,
         tp_updater: TemplateParameterUpdater,
         tprm_validator: ParameterValidationInteractor,
+        tp_validity_service: TemplateParameterValidityService,
         uow: SQLAlchemyUoW,
     ) -> TemplateParameterUpdaterInteractor:
         return TemplateParameterUpdaterInteractor(
@@ -112,6 +121,7 @@ class MockInteractorProvider(Provider):
             to_reader=to_reader,
             tp_updater=tp_updater,
             tprm_validator=tprm_validator,
+            tp_validity_service=tp_validity_service,
             uow=uow,
         )
 
@@ -122,6 +132,7 @@ class MockInteractorProvider(Provider):
         tp_reader: TemplateParameterReader,
         tp_updater: TemplateParameterUpdater,
         tprm_validator: ParameterValidationInteractor,
+        tp_validity_service: TemplateParameterValidityService,
         uow: SQLAlchemyUoW,
     ) -> BulkTemplateParameterUpdaterInteractor:
         return BulkTemplateParameterUpdaterInteractor(
@@ -129,6 +140,7 @@ class MockInteractorProvider(Provider):
             tp_reader=tp_reader,
             tp_updater=tp_updater,
             tprm_validator=tprm_validator,
+            tp_validity_service=tp_validity_service,
             uow=uow,
         )
 

@@ -21,7 +21,7 @@ from domain.template_parameter.command import TemplateParameterUpdater
 from domain.template_parameter.query import TemplateParameterReader
 
 
-class TemplateValidityService:
+class TemplateParameterValidityService:
     def __init__(
         self,
         t_reader: TemplateReader,
