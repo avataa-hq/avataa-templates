@@ -110,6 +110,7 @@ async def test_update_tprm_with_change_val_type(
         tprm_id
     ]
     mock_factory.to_reader_mock.get_by_ids.return_value = [to_aggr]
+    mock_factory.to_reader_mock.get_reverse_tree_by_id.return_value = [to_aggr]
     mock_factory.tp_reader_mock.get_by_template_object_ids.return_value = [
         tp_aggr
     ]

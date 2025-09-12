@@ -20,3 +20,9 @@ class TemplateParameterUpdater(Protocol):
     async def bulk_update_template_parameter(
         self, template_parameters: list[TemplateParameterAggregate]
     ) -> list[TemplateParameterAggregate]: ...
+
+
+class TemplateParameterDeleter(Protocol):
+    async def delete_template_parameter(
+        self, template_parameter_id: int
+    ) -> None: ...

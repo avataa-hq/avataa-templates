@@ -11,8 +11,16 @@ from fastapi import (
 )
 from fastapi.params import Query
 from pydantic import ValidationError
-from sqlalchemy.ext.asyncio import AsyncSession
 
+from application.template_parameter.delete.dto import (
+    TemplateParameterDeleteRequestDTO,
+)
+from application.template_parameter.delete.exceptions import (
+    TemplateParameterDeleterApplicationException,
+)
+from application.template_parameter.delete.interactors import (
+    TemplateParameterDeleterInteractor,
+)
 from application.template_parameter.read.exceptions import (
     TemplateParameterReaderApplicationException,
 )
@@ -26,10 +34,6 @@ from application.template_parameter.update.interactors import (
     BulkTemplateParameterUpdaterInteractor,
     TemplateParameterUpdaterInteractor,
 )
-from di import (
-    get_async_session,
-)
-from exceptions import TemplateParameterNotFound
 from presentation.api.v1.endpoints.dto import (
     TemplateParameterBulkUpdateRequest,
     TemplateParameterSearchRequest,
@@ -39,9 +43,6 @@ from presentation.api.v1.endpoints.dto import (
 )
 from presentation.security.security_data_models import UserData
 from presentation.security.security_factory import security
-from services.template_parameter_services import (
-    TemplateParameterService,
-)
 
 router = APIRouter(tags=["template-parameter"])
 
@@ -146,20 +147,26 @@ async def update_template_parameters(
     "/parameters/{parameter_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
+@inject
 async def delete_template_parameter(
     parameter_id: int,
-    db: Annotated[AsyncSession, Depends(get_async_session)],
+    interactor: FromDishka[TemplateParameterDeleterInteractor],
     user_data: Annotated[UserData, Depends(security)],
 ) -> Response:
-    service = TemplateParameterService(db)
-
     try:
-        await service.delete_template_parameter(parameter_id)
-    except TemplateParameterNotFound:
-        raise HTTPException(
-            status_code=404,
-            detail="Template parameter not found",
+        request = TemplateParameterDeleteRequestDTO(
+            template_parameter_id=parameter_id
         )
-
-    await service.commit_changes()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+        await interactor(request=request)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    except ValidationError as ex:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
+        )
+    except TemplateParameterDeleterApplicationException as ex:
+        raise HTTPException(status_code=ex.status_code, detail=ex.detail)
+    except Exception as ex:
+        print(type(ex), ex)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
+        )
