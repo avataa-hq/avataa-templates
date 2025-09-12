@@ -12,6 +12,7 @@ from application.template.update.dto import (
 )
 from application.template_object.read.dto import (
     TemplateObjectByIdRequestDTO,
+    TemplateObjectByObjectTypeRequestDTO,
     TemplateObjectRequestDTO,
     TemplateObjectSearchDTO,
     TemplateObjectWithChildrenSearchDTO,
@@ -130,6 +131,15 @@ class TemplateObjectSearchRequest(BaseModel):
             parent_id=self.parent_id,
             depth=self.depth,
             include_parameters=self.include_parameters,
+        )
+
+
+class TemplateObjectSearchByObjectTypeRequest(BaseModel):
+    object_type_id: int = Field(default=1, ge=1)
+
+    def to_interactor_dto(self) -> TemplateObjectByObjectTypeRequestDTO:
+        return TemplateObjectByObjectTypeRequestDTO(
+            object_type_id=self.object_type_id,
         )
 
 

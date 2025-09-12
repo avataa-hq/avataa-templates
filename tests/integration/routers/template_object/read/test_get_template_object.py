@@ -22,7 +22,7 @@ async def test_search_template_object(
     http_client: AsyncClient,
     base_url: str,
     mock_factory,
-):
+) -> None:
     # Assign
     tmo_id = 46_181
     template_id = 1
@@ -33,7 +33,7 @@ async def test_search_template_object(
         required=True,
         valid=True,
     )
-    mock_factory.template_object_reader_mock.get_by_id.return_value = to
+    mock_factory.to_reader_mock.get_by_id.return_value = to
     param_1 = TemplateParameterAggregate(
         id=1,
         template_object_id=TemplateObjectId(1),
@@ -74,7 +74,7 @@ async def test_search_template_object(
         required=True,
         valid=True,
     )
-    mock_factory.template_parameter_reader_mock.get_by_template_object_ids.return_value = [
+    mock_factory.tp_reader_mock.get_by_template_object_ids.return_value = [
         param_1,
         param_2,
         param_3,
@@ -143,7 +143,7 @@ async def test_search_template_object_without_include(
     http_client: AsyncClient,
     base_url: str,
     mock_factory,
-):
+) -> None:
     # Assign
     tmo_id = 46_181
     template_id = 17
@@ -154,7 +154,7 @@ async def test_search_template_object_without_include(
         required=True,
         valid=True,
     )
-    mock_factory.template_object_reader_mock.get_by_id.return_value = to
+    mock_factory.to_reader_mock.get_by_id.return_value = to
 
     request = {
         "id": template_id,

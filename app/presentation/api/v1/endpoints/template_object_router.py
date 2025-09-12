@@ -26,7 +26,8 @@ from application.template_object.read.exceptions import (
     TemplateObjectReaderApplicationException,
 )
 from application.template_object.read.interactors import (
-    TemplateObjectByIdInteractor,
+    TemplateObjectByIdReaderInteractor,
+    TemplateObjectByObjectTypeReaderInteractor,
     TemplateObjectReaderInteractor,
 )
 from application.template_object.update.exceptions import (
@@ -36,6 +37,7 @@ from application.template_object.update.interactors import (
     TemplateObjectUpdaterInteractor,
 )
 from presentation.api.v1.endpoints.dto import (
+    TemplateObjectSearchByObjectTypeRequest,
     TemplateObjectSearchRequest,
     TemplateObjectSearchResponse,
     TemplateObjectSearchWithChildrenResponse,
@@ -57,7 +59,7 @@ router = APIRouter(tags=["template-object"])
 @inject
 async def get_template_object(
     request: Annotated[TemplateObjectSingleSearchRequest, Query()],
-    interactor: FromDishka[TemplateObjectByIdInteractor],
+    interactor: FromDishka[TemplateObjectByIdReaderInteractor],
     user_data: Annotated[UserData, Depends(security)],
 ) -> TemplateObjectSearchResponse:
     try:
@@ -92,6 +94,36 @@ async def get_template_objects(
         result = await interactor(request=request.to_interactor_dto())
         return [
             TemplateObjectSearchWithChildrenResponse.from_application_dto(res)
+            for res in result
+        ]
+    except ValidationError as ex:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
+        )
+    except TemplateObjectReaderApplicationException as ex:
+        raise HTTPException(status_code=ex.status_code, detail=ex.detail)
+    except Exception as ex:
+        print(type(ex), ex)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
+        )
+
+
+@router.get(
+    "/objects/by_object_type_id",
+    status_code=status.HTTP_200_OK,
+    response_model=list[TemplateObjectSearchResponse],
+)
+@inject
+async def get_template_objects_by_object_type_id(
+    request: Annotated[TemplateObjectSearchByObjectTypeRequest, Query()],
+    interactor: FromDishka[TemplateObjectByObjectTypeReaderInteractor],
+    user_data: Annotated[UserData, Depends(security)],
+) -> list[TemplateObjectSearchResponse]:
+    try:
+        result = await interactor(request=request.to_interactor_dto())
+        return [
+            TemplateObjectSearchResponse.from_application_dto(res)
             for res in result
         ]
     except ValidationError as ex:

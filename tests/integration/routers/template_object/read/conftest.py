@@ -9,7 +9,8 @@ import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.template_object.read.interactors import (
-    TemplateObjectByIdInteractor,
+    TemplateObjectByIdReaderInteractor,
+    TemplateObjectByObjectTypeReaderInteractor,
     TemplateObjectReaderInteractor,
 )
 from config import setup_config
@@ -30,10 +31,8 @@ def app():
 
 class MockFactory:
     def __init__(self):
-        self.template_object_reader_mock = AsyncMock(spec=TemplateObjectReader)
-        self.template_parameter_reader_mock = AsyncMock(
-            spec=TemplateParameterReader
-        )
+        self.to_reader_mock = AsyncMock(spec=TemplateObjectReader)
+        self.tp_reader_mock = AsyncMock(spec=TemplateParameterReader)
 
 
 class MockDatabaseProvider(Provider):
@@ -52,13 +51,13 @@ class MockRepositoryProvider(Provider):
     def get_template_object_reader_repo(
         self, session: AsyncSession
     ) -> TemplateObjectReader:
-        return self.mock_factory.template_object_reader_mock
+        return self.mock_factory.to_reader_mock
 
     @provide(scope=Scope.REQUEST)
     def get_template_parameter_reader_repo(
         self, session: AsyncSession
     ) -> TemplateParameterReader:
-        return self.mock_factory.template_parameter_reader_mock
+        return self.mock_factory.tp_reader_mock
 
 
 class MockInteractorProvider(Provider):
@@ -71,8 +70,16 @@ class MockInteractorProvider(Provider):
     @provide(scope=Scope.REQUEST)
     def get_template_object_by_id_reader(
         self, to_repo: TemplateObjectReader, tp_repo: TemplateParameterReader
-    ) -> TemplateObjectByIdInteractor:
-        return TemplateObjectByIdInteractor(to_repo=to_repo, tp_repo=tp_repo)
+    ) -> TemplateObjectByIdReaderInteractor:
+        return TemplateObjectByIdReaderInteractor(
+            to_repo=to_repo, tp_repo=tp_repo
+        )
+
+    @provide(scope=Scope.REQUEST)
+    def get_template_object_by_object_id_reader(
+        self, to_repo: TemplateObjectReader
+    ) -> TemplateObjectByObjectTypeReaderInteractor:
+        return TemplateObjectByObjectTypeReaderInteractor(to_repo=to_repo)
 
 
 @pytest_asyncio.fixture
