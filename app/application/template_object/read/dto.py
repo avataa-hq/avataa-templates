@@ -25,6 +25,11 @@ class TemplateObjectByIdRequestDTO:
     include_parameters: bool
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
+class TemplateObjectByObjectTypeRequestDTO:
+    object_type_id: int
+
+
 # From aggregate to router
 @dataclass(frozen=True, slots=True, kw_only=True)
 class TemplateObjectSearchDTO:

@@ -12,7 +12,8 @@ from application.template_object.delete.interactors import (
     TemplateObjectDeleterInteractor,
 )
 from application.template_object.read.interactors import (
-    TemplateObjectByIdInteractor,
+    TemplateObjectByIdReaderInteractor,
+    TemplateObjectByObjectTypeReaderInteractor,
     TemplateObjectReaderInteractor,
 )
 from application.template_object.update.interactors import (
@@ -220,8 +221,17 @@ class InteractorProvider(Provider):
         self,
         to_repo: TemplateObjectReader,
         tp_repo: TemplateParameterReader,
-    ) -> TemplateObjectByIdInteractor:
-        return TemplateObjectByIdInteractor(to_repo=to_repo, tp_repo=tp_repo)
+    ) -> TemplateObjectByIdReaderInteractor:
+        return TemplateObjectByIdReaderInteractor(
+            to_repo=to_repo, tp_repo=tp_repo
+        )
+
+    @provide(scope=Scope.REQUEST)
+    def get_template_object_by_object_type_reader(
+        self,
+        to_repo: TemplateObjectReader,
+    ) -> TemplateObjectByObjectTypeReaderInteractor:
+        return TemplateObjectByObjectTypeReaderInteractor(to_repo=to_repo)
 
     @provide(scope=Scope.REQUEST)
     def get_template_object_updater(

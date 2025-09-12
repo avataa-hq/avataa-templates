@@ -3,6 +3,7 @@ from logging import getLogger
 
 from application.template_object.read.dto import (
     TemplateObjectByIdRequestDTO,
+    TemplateObjectByObjectTypeRequestDTO,
     TemplateObjectRequestDTO,
     TemplateObjectSearchDTO,
     TemplateObjectWithChildrenSearchDTO,
@@ -99,7 +100,7 @@ class TemplateObjectReaderInteractor(object):
         return roots
 
 
-class TemplateObjectByIdInteractor(object):
+class TemplateObjectByIdReaderInteractor(object):
     def __init__(
         self,
         to_repo: TemplateObjectReader,
@@ -136,3 +137,25 @@ class TemplateObjectByIdInteractor(object):
             raise TemplateObjectReaderApplicationException(
                 status_code=422, detail="Application Error."
             )
+
+
+class TemplateObjectByObjectTypeReaderInteractor(object):
+    def __init__(
+        self,
+        to_repo: TemplateObjectReader,
+    ) -> None:
+        self._to_repository = to_repo
+        self.logger = getLogger(self.__class__.__name__)
+
+    async def __call__(
+        self, request: TemplateObjectByObjectTypeRequestDTO
+    ) -> list[TemplateObjectSearchDTO]:
+        template_objects = await self._to_repository.get_by_object_type_ids(
+            [request.object_type_id]
+        )
+
+        result = [
+            TemplateObjectSearchDTO.from_aggregate(aggregate=el, parameters=[])
+            for el in template_objects
+        ]
+        return result
