@@ -10,8 +10,8 @@ dependencies = [
     "confluent-kafka[protobuf,schemaregistry]==2.11.1",
     "dishka==1.6.0",
     "fastapi==0.116.1",
-    "grpcio==1.64.1",
-    "protobuf==5.29.5",
+    "grpcio==1.74.0",
+    "protobuf==6.32.1",
     "pydantic==2.11.7",
     "pydantic-settings==2.10.1",
     "pyjwt==2.10.1",
@@ -23,8 +23,8 @@ dependencies = [
 [dependency-groups]
 dev = [
     "black>=25.1.0",
-    "grpcio-tools>=1.64.1",
-    "mypy==1.18.1",
+    "grpcio-tools>=1.74.0",
+    "mypy>=1.18.1",
     "pre-commit>=4.3.0",
     "ty>=0.0.1a20",
     "types-cachetools==6.2.0.20250827",
@@ -35,7 +35,7 @@ lint = [
 tests = [
     "httpx==0.28.1",
     "pytest==8.4.2",
-    "pytest-asyncio==1.1.0",
+    "pytest-asyncio==1.2.0",
     "pytest-cov==7.0.0",
     "testcontainers==4.13.0",
 ]

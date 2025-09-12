@@ -9,20 +9,20 @@ from domain.tprm_validation.aggregate import InventoryTprmAggregate
 
 
 @pytest.fixture(scope="session")
-def url() -> str:
+def base_url() -> str:
     return f"{setup_config().app.prefix}/v{setup_config().app.app_version}/add-parameters"
 
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_create_template_parameter(
     http_client: AsyncClient,
-    url: str,
+    base_url: str,
     mock_factory,
 ):
     template_object_id = 1
     tprm_id = 135_299
     val = "123"
-    full_url = f"{url}/{template_object_id}"
+    full_url = f"{base_url}/{template_object_id}"
     param_1 = TemplateParameterAggregate(
         id=1,
         template_object_id=TemplateObjectId(template_object_id),
@@ -104,12 +104,12 @@ async def test_create_template_parameter(
 @pytest.mark.parametrize("val", ["[False, True]", "[false, true]"])
 async def test_create_template_parameter_multiple_bool(
     http_client: AsyncClient,
-    url: str,
+    base_url: str,
     val: str,
     mock_factory,
 ):
     template_object_id = 1
-    full_url = f"{url}/{template_object_id}"
+    full_url = f"{base_url}/{template_object_id}"
     tprm_id = 141_047
     param_1 = TemplateParameterAggregate(
         id=1,
@@ -191,13 +191,13 @@ async def test_create_template_parameter_multiple_bool(
 @pytest.mark.asyncio(loop_scope="session")
 async def test_create_template_parameter_with_already_exists_parameter(
     http_client: AsyncClient,
-    url: str,
+    base_url: str,
     mock_factory,
 ):
     template_object_id = 1
     tprm_id = 135_299
     val = "123"
-    full_url = f"{url}/{template_object_id}"
+    full_url = f"{base_url}/{template_object_id}"
     mock_factory.template_parameter_reader_mock.exists.return_value = True
 
     request = [{"parameter_type_id": tprm_id, "value": val, "required": True}]
@@ -210,16 +210,17 @@ async def test_create_template_parameter_with_already_exists_parameter(
 @pytest.mark.asyncio(loop_scope="session")
 async def test_create_template_parameter_from_incorrect_tmo(
     http_client: AsyncClient,
-    url: str,
+    base_url: str,
     mock_factory,
 ):
-    val = "1"
+    # Assign
     template_object_id = 1
-    full_url = f"{url}/{template_object_id}"
+    val = "1"
     tprm_id = 100
     inconsistent_tprm_id = tprm_id + 1
     tmo_id = 46_181
     status_code = 422
+    full_url = f"{base_url}/{template_object_id}"
     detail_error = f"Inconsistent request parameters: {[inconsistent_tprm_id]} do not belong tmo {tmo_id}."
 
     param_1 = TemplateParameterAggregate(
@@ -248,7 +249,9 @@ async def test_create_template_parameter_from_incorrect_tmo(
             "required": False,
         }
     ]
-
+    response = {"detail": detail_error}
+    # Act
     result = await http_client.post(full_url, json=request)
+    # Assert
     assert result.status_code == status_code
-    assert result.json() == {"detail": detail_error}
+    assert result.json() == response

@@ -11,7 +11,7 @@ from domain.template_parameter.vo.parameter_type_id import ParameterTypeId
 
 
 @pytest.fixture(scope="session")
-def url() -> str:
+def base_url() -> str:
     return (
         f"{setup_config().app.prefix}/v{setup_config().app.app_version}/object"
     )
@@ -20,7 +20,7 @@ def url() -> str:
 @pytest.mark.asyncio(loop_scope="session")
 async def test_search_template_object(
     http_client: AsyncClient,
-    url: str,
+    base_url: str,
     mock_factory,
 ):
     # Assign
@@ -132,7 +132,7 @@ async def test_search_template_object(
     }
 
     # Act
-    result = await http_client.get(url, params=request)
+    result = await http_client.get(base_url, params=request)
     # Assert
     assert result.status_code == 200
     assert result.json() == response
@@ -141,7 +141,7 @@ async def test_search_template_object(
 @pytest.mark.asyncio(loop_scope="session")
 async def test_search_template_object_without_include(
     http_client: AsyncClient,
-    url: str,
+    base_url: str,
     mock_factory,
 ):
     # Assign
@@ -170,7 +170,7 @@ async def test_search_template_object_without_include(
     }
 
     # Act
-    result = await http_client.get(url, params=request)
+    result = await http_client.get(base_url, params=request)
     # Assert
     assert result.status_code == 200
     assert result.json() == response

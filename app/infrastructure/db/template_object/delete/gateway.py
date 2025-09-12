@@ -4,33 +4,31 @@ from sqlalchemy import delete
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from application.template_parameter.delete.exceptions import (
-    TemplateParameterDeleterApplicationException,
+from application.template_object.delete.exceptions import (
+    TemplateObjectDeleterApplicationException,
 )
-from domain.template_parameter.command import TemplateParameterDeleter
-from models import TemplateParameter
+from domain.template_object.command import TemplateObjectDeleter
+from models import TemplateObject
 
 
-class SQLTemplateParameterDeleterRepository(TemplateParameterDeleter):
+class SQLTemplateObjectDeleterRepository(TemplateObjectDeleter):
     def __init__(self, session: AsyncSession):
         self._session = session
         self.logger = getLogger(self.__class__.__name__)
 
-    async def delete_template_parameter(
-        self, template_parameter_id: int
-    ) -> None:
-        query = delete(TemplateParameter)
-        query = query.where(TemplateParameter.id == template_parameter_id)
+    async def delete_template_object(self, template_object_id: int) -> None:
+        query = delete(TemplateObject)
+        query = query.where(TemplateObject.id == template_object_id)
         try:
             result = await self._session.execute(query)
             self.logger.debug(f"Deleted rows: {result.rowcount}.")
         except SQLAlchemyError as ex:
             self.logger.exception(ex)
-            raise TemplateParameterDeleterApplicationException(
+            raise TemplateObjectDeleterApplicationException(
                 status_code=422, detail="Gateway SQL Error."
             )
         except Exception as ex:
             self.logger.exception(ex)
-            raise TemplateParameterDeleterApplicationException(
+            raise TemplateObjectDeleterApplicationException(
                 status_code=422, detail="Gateway Error."
             )

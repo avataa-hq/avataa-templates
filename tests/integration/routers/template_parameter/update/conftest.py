@@ -120,7 +120,7 @@ class MockInteractorProvider(Provider):
         )
 
     @provide(scope=Scope.REQUEST)
-    def bulk_update_template_parameter_interactor(
+    def get_template_parameter_bulk_updater(
         self,
         to_reader: TemplateObjectReader,
         tp_reader: TemplateParameterReader,

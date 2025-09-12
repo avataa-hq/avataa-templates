@@ -9,18 +9,18 @@ from domain.tprm_validation.aggregate import InventoryTprmAggregate
 
 
 @pytest.fixture(scope="session")
-def url() -> str:
+def base_url() -> str:
     return f"{setup_config().app.prefix}/v{setup_config().app.app_version}/parameters"
 
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_bulk_update_template_parameters(
     http_client: AsyncClient,
-    url: str,
+    base_url: str,
     mock_factory,
 ):
+    # Assign
     template_object_id = 1
-
     tprm_id_1 = 141_046
     val_1 = "[8]"
     tprm_id_2 = 135_296
@@ -136,6 +136,8 @@ async def test_bulk_update_template_parameters(
         },
     ]
 
-    result = await http_client.post(url, json=request)
+    # Act
+    result = await http_client.post(base_url, json=request)
+    # Assert
     assert result.status_code == 200
     assert result.json() == response

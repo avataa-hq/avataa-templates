@@ -8,16 +8,17 @@ from domain.template_parameter.vo.parameter_type_id import ParameterTypeId
 
 
 @pytest.fixture(scope="session")
-def url() -> str:
+def base_url() -> str:
     return f"{setup_config().app.prefix}/v{setup_config().app.app_version}/parameters"
 
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_search_template_parameter(
     http_client: AsyncClient,
-    url: str,
+    base_url: str,
     mock_factory,
 ) -> None:
+    # Assign
     tp_1 = TemplateParameterAggregate(
         id=1,
         template_object_id=TemplateObjectId(1),
@@ -83,6 +84,8 @@ async def test_search_template_parameter(
             "valid": True,
         },
     ]
-    result = await http_client.get(url, params=request)
+    # Act
+    result = await http_client.get(base_url, params=request)
+    # Assert
     assert result.status_code == 200
     assert result.json() == response

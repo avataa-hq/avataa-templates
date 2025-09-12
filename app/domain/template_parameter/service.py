@@ -74,10 +74,9 @@ class TemplateParameterValidityService:
             result = True
             template_object.set_valid(validity)
             await self._to_updater.update_template_object(template_object)
-            await self._uow.commit()
         return result
 
-    async def validate_after_delete_tprm(self, to_id: int) -> None:
+    async def validate_after_delete(self, to_id: int) -> None:
         # Check validity for Parents primary TO
         hierarchy_to = await self._to_reader.get_reverse_tree_by_id(to_id)
         t_to_update: list[int] = list()

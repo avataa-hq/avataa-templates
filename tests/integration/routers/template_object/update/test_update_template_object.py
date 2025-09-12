@@ -10,7 +10,7 @@ from models import TemplateObject
 
 
 @pytest.fixture(scope="session")
-def url() -> str:
+def base_url() -> str:
     return (
         f"{setup_config().app.prefix}/v{setup_config().app.app_version}/objects"
     )
@@ -19,7 +19,7 @@ def url() -> str:
 @pytest.mark.asyncio(loop_scope="session")
 async def test_update_template_parameter(
     http_client: AsyncClient,
-    url: str,
+    base_url: str,
     mock_db,
     mock_factory,
 ) -> None:
@@ -29,7 +29,7 @@ async def test_update_template_parameter(
     required_before = False
     required_after = not required_before
     valid = True
-    full_url = f"{url}/{template_object_id}"
+    full_url = f"{base_url}/{template_object_id}"
     to = TemplateObject(
         template_id=template_id,
         parent_object_id=None,
