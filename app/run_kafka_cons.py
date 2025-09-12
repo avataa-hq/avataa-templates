@@ -6,8 +6,8 @@ from typing import Any, Union
 from confluent_kafka import (
     Consumer,
     KafkaException,
+    Message,
     TopicPartition,
-    cimpl,
 )
 from confluent_kafka.admin import TopicMetadata
 from dishka import make_async_container
@@ -111,7 +111,7 @@ async def run_kafka_cons_inv() -> None:
             print("Kafka consumer - end")
 
 
-def deserialize_msg(msg: cimpl.Message, key) -> dict:
+def deserialize_msg(msg: Message, key) -> dict:
     deserializer = {
         "TMO": obj_pb2.ListTMO,
         "TPRM": obj_pb2.ListTPRM,

@@ -47,7 +47,7 @@ class TemplateParameterCreatorInteractor(object):
         self._tp_reader = tp_reader
         self._to_repo = to_repo
         self._tprm_validator = tprm_validator
-        self.uow = uow
+        self._uow = uow
 
         self.logger = getLogger(self.__class__.__name__)
 
@@ -117,7 +117,7 @@ class TemplateParameterCreatorInteractor(object):
         created_parameters = await self._tp_creator.create_template_parameters(
             create_dtos=create_dtos
         )
-        await self.uow.commit()
+        await self._uow.commit()
         # Create user response
         result = [
             TemplateParameterCreatedDTO.from_aggregate(created)

@@ -6,7 +6,6 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 import pytest
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.common.uow import SQLAlchemyUoW
 from application.template_parameter.update.interactors import (
@@ -63,12 +62,7 @@ class MockFactory:
 
 class MockDatabaseProvider(Provider):
     @provide(scope=Scope.REQUEST)
-    def get_session(self) -> AsyncSession:
-        connection = AsyncMock(spec=AsyncSession)
-        return connection
-
-    @provide(scope=Scope.REQUEST)
-    def get_uow(self, session: AsyncSession) -> SQLAlchemyUoW:
+    def get_uow(self) -> SQLAlchemyUoW:
         uow = AsyncMock(spec=SQLAlchemyUoW)
         return uow
 

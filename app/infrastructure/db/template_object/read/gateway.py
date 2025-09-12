@@ -187,7 +187,7 @@ class SQLTemplateObjectReaderRepository(TemplateObjectReader):
         INNER JOIN reverse_tree rt ON parent_obj.id = rt.parent_object_id
         )
         SELECT * FROM reverse_tree
-        ORDER BY depth DESC, id;
+        ORDER BY depth ASC, id;
         """).bindparams(bindparam("children_id", type_=Integer))
         result = await self._session.execute(
             cte_query,
