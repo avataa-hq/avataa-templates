@@ -8,6 +8,9 @@ from application.common.uow import SQLAlchemyUoW
 from application.inventory_changes.interactors import InventoryChangesInteractor
 from application.template.read.interactors import TemplateReaderInteractor
 from application.template.update.interactors import TemplateUpdaterInteractor
+from application.template_object.delete.interactors import (
+    TemplateObjectDeleterInteractor,
+)
 from application.template_object.read.interactors import (
     TemplateObjectByIdInteractor,
     TemplateObjectReaderInteractor,
@@ -35,7 +38,10 @@ from application.tprm_validation.interactors import (
 from database import get_session_factory
 from domain.template.command import TemplateUpdater
 from domain.template.query import TemplateReader
-from domain.template_object.command import TemplateObjectUpdater
+from domain.template_object.command import (
+    TemplateObjectDeleter,
+    TemplateObjectUpdater,
+)
 from domain.template_object.query import TemplateObjectReader
 from domain.template_parameter.command import (
     TemplateParameterCreator,
@@ -49,6 +55,9 @@ from domain.tprm_validation.query import TPRMReader
 from infrastructure.db.template.read.gateway import SQLTemplateReaderRepository
 from infrastructure.db.template.update.gateway import (
     SQLTemplateUpdaterRepository,
+)
+from infrastructure.db.template_object.delete.gateway import (
+    SQLTemplateObjectDeleterRepository,
 )
 from infrastructure.db.template_object.read.gateway import (
     SQLTemplateObjectReaderRepository,
@@ -128,6 +137,12 @@ class RepositoryProvider(Provider):
         self, session: AsyncSession
     ) -> TemplateObjectUpdater:
         return SQLTemplateObjectUpdaterRepository(session)
+
+    @provide(scope=Scope.REQUEST)
+    def get_template_object_deleter_repo(
+        self, session: AsyncSession
+    ) -> TemplateObjectDeleter:
+        return SQLTemplateObjectDeleterRepository(session)
 
     ## Template parameter Repo
     @provide(scope=Scope.REQUEST)
@@ -223,6 +238,21 @@ class InteractorProvider(Provider):
             uow=uow,
         )
 
+    @provide(scope=Scope.REQUEST)
+    def get_template_object_deleter(
+        self,
+        to_reader: TemplateObjectReader,
+        to_deleter: TemplateObjectDeleter,
+        tp_validity_service: TemplateParameterValidityService,
+        uow: SQLAlchemyUoW,
+    ) -> TemplateObjectDeleterInteractor:
+        return TemplateObjectDeleterInteractor(
+            to_reader=to_reader,
+            to_deleter=to_deleter,
+            tp_validity_service=tp_validity_service,
+            uow=uow,
+        )
+
     ## Template Parameter Interactor
     @provide(scope=Scope.REQUEST)
     def get_template_parameter_creator(
@@ -267,7 +297,7 @@ class InteractorProvider(Provider):
         )
 
     @provide(scope=Scope.REQUEST)
-    def bulk_update_template_parameter_interactor(
+    def get_template_parameter_bulk_updater(
         self,
         to_reader: TemplateObjectReader,
         tp_reader: TemplateParameterReader,
@@ -286,7 +316,7 @@ class InteractorProvider(Provider):
         )
 
     @provide(scope=Scope.REQUEST)
-    def get_delete_template_parameter_interactor(
+    def get_template_parameter_deleter(
         self,
         tp_reader: TemplateParameterReader,
         tp_deleter: TemplateParameterDeleter,

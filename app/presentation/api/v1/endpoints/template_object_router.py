@@ -12,8 +12,16 @@ from fastapi import (
     status,
 )
 from pydantic import ValidationError
-from sqlalchemy.ext.asyncio import AsyncSession
 
+from application.template_object.delete.dto import (
+    TemplateObjectDeleteRequestDTO,
+)
+from application.template_object.delete.exceptions import (
+    TemplateObjectDeleterApplicationException,
+)
+from application.template_object.delete.interactors import (
+    TemplateObjectDeleterInteractor,
+)
 from application.template_object.read.exceptions import (
     TemplateObjectReaderApplicationException,
 )
@@ -27,12 +35,6 @@ from application.template_object.update.exceptions import (
 from application.template_object.update.interactors import (
     TemplateObjectUpdaterInteractor,
 )
-from di import (
-    get_async_session,
-)
-from exceptions import (
-    TemplateObjectNotFound,
-)
 from presentation.api.v1.endpoints.dto import (
     TemplateObjectSearchRequest,
     TemplateObjectSearchResponse,
@@ -43,9 +45,6 @@ from presentation.api.v1.endpoints.dto import (
 )
 from presentation.security.security_data_models import UserData
 from presentation.security.security_factory import security
-from services.template_object_services import (
-    TemplateObjectService,
-)
 
 router = APIRouter(tags=["template-object"])
 
@@ -153,20 +152,24 @@ async def update_template_object(
     "/objects/{object_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
+@inject
 async def delete_template_object(
     object_id: int,
-    db: Annotated[AsyncSession, Depends(get_async_session)],
+    interactor: FromDishka[TemplateObjectDeleterInteractor],
     user_data: Annotated[UserData, Depends(security)],
 ) -> Response:
-    service = TemplateObjectService(db)
-
     try:
-        await service.delete_template_object(object_id)
-    except TemplateObjectNotFound:
+        request = TemplateObjectDeleteRequestDTO(template_object_id=object_id)
+        await interactor(request=request)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    except ValidationError as ex:
         raise HTTPException(
-            status_code=404,
-            detail="Template object not found",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
         )
-
-    await service.commit_changes()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    except TemplateObjectDeleterApplicationException as ex:
+        raise HTTPException(status_code=ex.status_code, detail=ex.detail)
+    except Exception as ex:
+        print(type(ex), ex)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
+        )

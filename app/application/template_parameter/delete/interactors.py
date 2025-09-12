@@ -40,7 +40,7 @@ class TemplateParameterDeleterInteractor(object):
                 template_parameter.id
             )
             # Update Validity
-            await self._tp_validity_service.validate_after_delete_tprm(
+            await self._tp_validity_service.validate_after_delete(
                 template_parameter.template_object_id.to_raw()
             )
             await self._uow.commit()

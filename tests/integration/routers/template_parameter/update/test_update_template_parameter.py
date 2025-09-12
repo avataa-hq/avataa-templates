@@ -12,22 +12,23 @@ from domain.tprm_validation.aggregate import InventoryTprmAggregate
 
 
 @pytest.fixture(scope="session")
-def url() -> str:
+def base_url() -> str:
     return f"{setup_config().app.prefix}/v{setup_config().app.app_version}/parameters"
 
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_update_template_parameter(
     http_client: AsyncClient,
-    url: str,
+    base_url: str,
     mock_factory,
 ):
+    # Assign
     template_parameter_id = 1
     tprm_id = 141_046
     val = "[8]"
     required_value = False
     val_type_value = "int"
-    full_url = f"{url}/{template_parameter_id}"
+    full_url = f"{base_url}/{template_parameter_id}"
     mock_factory.template_parameter_reader_mock.get_by_id.return_value = (
         TemplateParameterAggregate(
             id=1,
@@ -100,7 +101,9 @@ async def test_update_template_parameter(
         "valid": True,
     }
 
+    # Act
     result = await http_client.put(full_url, json=request)
+    # Assert
     assert result.status_code == 200
     assert result.json() == response
 
@@ -108,13 +111,14 @@ async def test_update_template_parameter(
 @pytest.mark.asyncio(loop_scope="session")
 async def test_incorrect_update_template_parameter(
     http_client: AsyncClient,
-    url: str,
+    base_url: str,
     mock_factory,
 ):
+    # Assign
     template_parameter_id = 1
     val = "[8]"
     required_value = False
-    full_url = f"{url}/{template_parameter_id}"
+    full_url = f"{base_url}/{template_parameter_id}"
     error_message = "Template Parameter not found."
     error_code = 404
     mock_factory.template_parameter_reader_mock.get_by_id.side_effect = (
@@ -129,7 +133,9 @@ async def test_incorrect_update_template_parameter(
     }
     response = {"detail": error_message}
 
+    # Act
     result = await http_client.put(full_url, json=request)
+    # Assert
     assert result.status_code == error_code
     assert result.json() == response
     mock_factory.template_parameter_reader_mock.get_by_id.assert_called_once()

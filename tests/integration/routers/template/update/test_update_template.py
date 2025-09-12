@@ -12,13 +12,13 @@ from models import Template
 
 
 @pytest.fixture(scope="session")
-def url() -> str:
+def base_url() -> str:
     return f"{setup_config().app.prefix}/v{setup_config().app.app_version}/templates"
 
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_update_template(
-    http_client: AsyncClient, url: str, mock_db, mock_factory
+    http_client: AsyncClient, base_url: str, mock_db, mock_factory
 ) -> None:
     # Assign
     template_id = 1
@@ -27,7 +27,7 @@ async def test_update_template(
     name_after = "Template Name X"
     owner_before = "Owner"
     owner_after = "Updated Owner"
-    full_url = f"{url}/{template_id}"
+    full_url = f"{base_url}/{template_id}"
     request = {
         "name": name_after,
         "owner": owner_after,
@@ -86,7 +86,7 @@ async def test_update_template(
 @pytest.mark.asyncio(loop_scope="session")
 async def test_update_template_with_change_tmo_id(
     http_client: AsyncClient,
-    url: str,
+    base_url: str,
     mock_db,
     mock_factory,
     mock_grpc_response,
@@ -106,7 +106,7 @@ async def test_update_template_with_change_tmo_id(
     get_all_tmo_data_from_inventory = mock_grpc_response
     get_all_tmo_data_from_inventory.return_value = grpc_response
 
-    full_url = f"{url}/{template_id}"
+    full_url = f"{base_url}/{template_id}"
     request = {
         "name": name_after,
         "owner": owner_after,
@@ -168,7 +168,7 @@ async def test_update_template_with_change_tmo_id(
 @pytest.mark.asyncio(loop_scope="session")
 async def test_update_template_with_change_tmo_id_error(
     http_client: AsyncClient,
-    url: str,
+    base_url: str,
     mock_db,
     mock_factory,
     mock_grpc_response,
@@ -188,7 +188,7 @@ async def test_update_template_with_change_tmo_id_error(
     get_all_tmo_data_from_inventory = mock_grpc_response
     get_all_tmo_data_from_inventory.return_value = grpc_response
 
-    full_url = f"{url}/{template_id}"
+    full_url = f"{base_url}/{template_id}"
     request = {
         "name": name_after,
         "owner": owner_after,

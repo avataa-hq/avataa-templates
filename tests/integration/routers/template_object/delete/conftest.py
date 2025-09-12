@@ -9,13 +9,13 @@ import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.common.uow import SQLAlchemyUoW
-from application.template_parameter.delete.interactors import (
-    TemplateParameterDeleterInteractor,
+from application.template_object.delete.interactors import (
+    TemplateObjectDeleterInteractor,
 )
 from config import setup_config
 from di import get_async_session
-from domain.template_parameter.command import TemplateParameterDeleter
-from domain.template_parameter.query import TemplateParameterReader
+from domain.template_object.command import TemplateObjectDeleter
+from domain.template_object.query import TemplateObjectReader
 from domain.template_parameter.service import TemplateParameterValidityService
 
 
@@ -25,7 +25,7 @@ def app():
     v1_prefix = f"{setup_config().app.prefix}/v{setup_config().app.app_version}"
     _app = FastAPI(root_path=v1_prefix)
 
-    from presentation.api.v1.endpoints.template_parameter_router import router
+    from presentation.api.v1.endpoints.template_object_router import router
 
     _app.include_router(router)
 
@@ -53,8 +53,8 @@ def mock_db():
 
 class MockFactory:
     def __init__(self):
-        self.tp_deleter_mock = AsyncMock(spec=TemplateParameterDeleter)
-        self.tp_reader_mock = AsyncMock(spec=TemplateParameterReader)
+        self.to_reader_mock = AsyncMock(spec=TemplateObjectReader)
+        self.to_deleter_mock = AsyncMock(spec=TemplateObjectDeleter)
         self.tp_validity_service_mock = AsyncMock(
             spec=TemplateParameterValidityService
         )
@@ -78,12 +78,12 @@ class MockRepositoryProvider(Provider):
         self.mock_factory = mock_factory
 
     @provide(scope=Scope.REQUEST)
-    def get_template_parameter_deleter_repo(self) -> TemplateParameterDeleter:
-        return self.mock_factory.tp_deleter_mock
+    def get_template_object_reader_repo(self) -> TemplateObjectReader:
+        return self.mock_factory.to_reader_mock
 
     @provide(scope=Scope.REQUEST)
-    def get_template_parameter_reader_repo(self) -> TemplateParameterReader:
-        return self.mock_factory.tp_reader_mock
+    def get_template_object_deleter_repo(self) -> TemplateObjectDeleter:
+        return self.mock_factory.to_deleter_mock
 
     @provide(scope=Scope.REQUEST)
     async def get_tp_validity_service(self) -> TemplateParameterValidityService:
@@ -92,16 +92,16 @@ class MockRepositoryProvider(Provider):
 
 class MockInteractorProvider(Provider):
     @provide(scope=Scope.REQUEST)
-    def get_template_parameter_deleter(
+    def get_template_object_deleter(
         self,
-        tp_reader: TemplateParameterReader,
-        tp_deleter: TemplateParameterDeleter,
+        to_reader: TemplateObjectReader,
+        to_deleter: TemplateObjectDeleter,
         tp_validity_service: TemplateParameterValidityService,
         uow: SQLAlchemyUoW,
-    ) -> TemplateParameterDeleterInteractor:
-        return TemplateParameterDeleterInteractor(
-            tp_deleter=tp_deleter,
-            tp_reader=tp_reader,
+    ) -> TemplateObjectDeleterInteractor:
+        return TemplateObjectDeleterInteractor(
+            to_reader=to_reader,
+            to_deleter=to_deleter,
             tp_validity_service=tp_validity_service,
             uow=uow,
         )
