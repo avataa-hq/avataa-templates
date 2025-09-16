@@ -1,22 +1,18 @@
 from enum import StrEnum
-from typing import Any
+from typing import Any, Union
 
-from confluent_kafka import cimpl
-
-from services.inventory_services.kafka.consumer.protobuf import (
-    obj_pb2,
-)
 from services.inventory_services.kafka.consumer.custom_deserializer import (
     PROTO_TYPES_SERIALIZERS,
     SerializerType,
 )
+from services.inventory_services.kafka.consumer.protobuf import obj_pb2
 from services.inventory_services.kafka.events.tmo_msg import (
-    on_update_tmo,
     on_delete_tmo,
+    on_update_tmo,
 )
 from services.inventory_services.kafka.events.trpm_msg import (
-    on_update_tprm,
     on_delete_tprm,
+    on_update_tprm,
 )
 
 
@@ -48,6 +44,10 @@ INVENTORY_CHANGES_HANDLER_BY_MSG_CLASS_NAME = {
     "TPRM": TPRM_HANDLERS_BY_MSG_EVENT,
 }
 
+KafkaMessage = Union[
+    obj_pb2.ListMO, obj_pb2.ListTMO, obj_pb2.ListTPRM, obj_pb2.ListPRM
+]
+
 
 def __msg_f_serializer(value: Any) -> Any:
     """Returns serialized proto msg field value into python type"""
@@ -61,7 +61,7 @@ def __msg_f_serializer(value: Any) -> Any:
 
 
 def protobuf_kafka_msg_to_dict(
-    msg: cimpl.Message,
+    msg: type[KafkaMessage],
     including_default_value_fields: bool,
 ) -> dict[str, list[dict[str, str]]]:
     """Serialises protobuf.message.Message into python dict and returns it"""

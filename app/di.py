@@ -1,77 +1,184 @@
-from functools import partial
-from logging import getLogger
 from typing import AsyncGenerator
 
-from fastapi import FastAPI, Depends
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-    AsyncEngine,
-)
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from application.common.uow import UoW
-from config import setup_config
-from presentation.api.depends_stub import Stub
+from application.common.uow import SQLAlchemyUoW, UoW
+from database import get_session_factory
 
 
-logger = getLogger(__name__)
-
-
-def new_uow(
-    session: AsyncSession = Depends(Stub(AsyncSession)),
-):
-    return session
-
-
-def create_engine() -> AsyncEngine:
-    engine = create_async_engine(
-        url=setup_config().DATABASE_URL.unicode_string(),
-        echo=True,
-        max_overflow=15,
-        pool_size=15,
-        pool_pre_ping=True,
-        connect_args={
-            "server_settings": {
-                "application_name": "Object Template MS",
-                "search_path": setup_config().db.schema_name,
-            },
-        },
-    )
-    return engine
-
-
-def build_session_factory(
-    engine: AsyncEngine,
-) -> async_sessionmaker[AsyncSession]:
-    return async_sessionmaker(
-        bind=engine,
-        autoflush=False,
-        expire_on_commit=False,
-    )
-
-
-async def new_session(
-    session_maker: async_sessionmaker,
-):
-    async with session_maker() as session:
-        yield session
-
-
-async def build_session(
-    session_factory: async_sessionmaker[AsyncSession],
-) -> AsyncGenerator[AsyncSession, None]:
+# Common
+async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
+    session_factory = get_session_factory()
     async with session_factory() as session:
-        logger.info(msg="Create DB session.")
-        yield session
-        logger.info(msg="Close DB session.")
+        try:
+            yield session
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
 
 
-def init_dependencies(app: FastAPI):
-    db_engine = create_engine()
-    session_factory = build_session_factory(engine=db_engine)
+def get_unit_of_work(session: AsyncSession = Depends(get_async_session)) -> UoW:
+    return SQLAlchemyUoW(session)
 
-    app.dependency_overrides[AsyncSession] = partial(
-        build_session, session_factory
-    )
-    app.dependency_overrides[UoW] = new_uow
+
+# REPO
+## Inventory Repo
+# def get_inventory_repository() -> TPRMReader:
+#     return GrpcTPRMReaderRepository()
+
+
+## Template Repo
+# async def get_template_reader_repository(
+#     session: AsyncSession = Depends(get_async_session),
+# ) -> TemplateReader:
+#     return SQLTemplateReaderRepository(session)
+
+
+# ## Template object Repo
+# def get_template_object_reader_repository(
+#     session: AsyncSession = Depends(get_async_session),
+# ) -> TemplateObjectReader:
+#     return SQLTemplateObjectReaderRepository(session)
+
+
+## Template parameter Repo
+# def get_template_parameter_creator_repository(
+#     session: AsyncSession = Depends(get_async_session),
+# ) -> TemplateParameterCreator:
+#     return SQLTemplateParameterCreatorRepository(session)
+
+
+# def get_template_parameter_reader_repository(
+#     session: AsyncSession = Depends(get_async_session),
+# ) -> TemplateParameterReader:
+#     return SQLTemplateParameterReaderRepository(session)
+#
+#
+# def get_template_parameter_updater_repository(
+#     session: AsyncSession = Depends(get_async_session),
+# ) -> TemplateParameterUpdater:
+#     return SQLTemplateParameterUpdaterRepository(session)
+#
+#
+# # INTERACTORS
+# ## ParameterValidator Interactor
+# def get_template_parameter_validator_interactor(
+#     repository: TPRMReader = Depends(get_inventory_repository),
+# ) -> ParameterValidationInteractor:
+#     return ParameterValidationInteractor(repository)
+
+
+## Template Interactor
+# def read_template_interactor(
+#     repository: TemplateReader = Depends(get_template_reader_repository),
+# ) -> TemplateReaderInteractor:
+#     return TemplateReaderInteractor(repository)
+
+
+## Template Object Interactor
+# def read_template_object_interactor(
+#     to_repository: TemplateObjectReader = Depends(
+#         get_template_object_reader_repository
+#     ),
+#     tp_repository: TemplateParameterReader = Depends(
+#         get_template_parameter_reader_repository
+#     ),
+# ) -> TemplateObjectReaderInteractor:
+#     return TemplateObjectReaderInteractor(
+#         to_repo=to_repository, tp_repo=tp_repository
+#     )
+#
+#
+# def read_template_object_by_id_interactor(
+#     to_repository: TemplateObjectReader = Depends(
+#         get_template_object_reader_repository
+#     ),
+#     tp_repository: TemplateParameterReader = Depends(
+#         get_template_parameter_reader_repository
+#     ),
+# ) -> TemplateObjectByIdInteractor:
+#     return TemplateObjectByIdInteractor(
+#         to_repo=to_repository, tp_repo=tp_repository
+#     )
+#
+#
+## Template Parameter Interactor
+# def create_template_parameter_interactor(
+#     uow: UoW = Depends(get_unit_of_work),
+#     to_repo: TemplateObjectReader = Depends(
+#         get_template_object_reader_repository
+#     ),
+#     tp_repo: TemplateParameterCreator = Depends(
+#         get_template_parameter_creator_repository
+#     ),
+#     tp_repo_reader=Depends(get_template_parameter_reader_repository),
+#     tprm_validator: ParameterValidationInteractor = Depends(
+#         get_template_parameter_validator_interactor
+#     ),
+# ) -> TemplateParameterCreatorInteractor:
+#     return TemplateParameterCreatorInteractor(
+#         to_repo=to_repo,
+#         tp_creator=tp_repo,
+#         tp_reader=tp_repo_reader,
+#         tprm_validator=tprm_validator,
+#         uow=uow,
+#     )
+#
+#
+# def read_template_parameter_interactor(
+#     tp_repo: TemplateParameterReader = Depends(
+#         get_template_parameter_reader_repository
+#     ),
+# ) -> TemplateParameterReaderInteractor:
+#     return TemplateParameterReaderInteractor(tp_repo)
+#
+#
+# def update_template_parameter_interactor(
+#     uow: UoW = Depends(get_unit_of_work),
+#     tp_reader: TemplateParameterReader = Depends(
+#         get_template_parameter_reader_repository
+#     ),
+#     to_reader: TemplateObjectReader = Depends(
+#         get_template_object_reader_repository
+#     ),
+#     tp_updater: TemplateParameterUpdater = Depends(
+#         get_template_parameter_updater_repository
+#     ),
+#     tprm_validator: ParameterValidationInteractor = Depends(
+#         get_template_parameter_validator_interactor
+#     ),
+# ) -> TemplateParameterUpdaterInteractor:
+#     return TemplateParameterUpdaterInteractor(
+#         tp_reader=tp_reader,
+#         to_reader=to_reader,
+#         tp_updater=tp_updater,
+#         tprm_validator=tprm_validator,
+#         uow=uow,
+#     )
+#
+#
+# def bulk_update_template_parameter_interactor(
+#     uow: UoW = Depends(get_unit_of_work),
+#     tp_reader: TemplateParameterReader = Depends(
+#         get_template_parameter_reader_repository
+#     ),
+#     to_reader: TemplateObjectReader = Depends(
+#         get_template_object_reader_repository
+#     ),
+#     tp_updater: TemplateParameterUpdater = Depends(
+#         get_template_parameter_updater_repository
+#     ),
+#     tprm_validator: ParameterValidationInteractor = Depends(
+#         get_template_parameter_validator_interactor
+#     ),
+# ) -> BulkTemplateParameterUpdaterInteractor:
+#     return BulkTemplateParameterUpdaterInteractor(
+#         tp_reader=tp_reader,
+#         to_reader=to_reader,
+#         tp_updater=tp_updater,
+#         tprm_validator=tprm_validator,
+#         uow=uow,
+#     )

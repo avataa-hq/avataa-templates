@@ -1,6 +1,5 @@
-import pytest
-
 from httpx import AsyncClient
+import pytest
 
 
 @pytest.mark.asyncio
@@ -48,4 +47,3 @@ async def test_registry_template(
     )
 
     assert response.status_code == 200
-    print(response.json())

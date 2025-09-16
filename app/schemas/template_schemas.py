@@ -1,87 +1,93 @@
-from __future__ import annotations
-from pydantic import BaseModel, conint
-from typing import List, Optional
+from pydantic import BaseModel, Field
 
 
 class TemplateParameterInput(BaseModel):
-    parameter_type_id: conint(gt=0)
-    value: Optional[str] = None
-    constraint: Optional[str] = None
+    parameter_type_id: int = Field(gt=0)
+    value: str | None = None
+    constraint: str | None = None
     required: bool = False
 
 
 class TemplateObjectInput(BaseModel):
-    object_type_id: conint(gt=0)
+    object_type_id: int = Field(gt=0)
     required: bool = True
-    parameters: Optional[List[TemplateParameterInput]] = []
-    children: Optional[List["TemplateObjectInput"]] = []
+    parameters: list[TemplateParameterInput] | None = Field(
+        default_factory=list
+    )
+    children: list["TemplateObjectInput"] | None = Field(default_factory=list)
 
 
 class TemplateInput(BaseModel):
     name: str
     owner: str
-    object_type_id: conint(gt=0)
-    template_objects: Optional[List[TemplateObjectInput]] = []
+    object_type_id: int = Field(gt=0)
+    template_objects: list[TemplateObjectInput] | None = Field(
+        default_factory=list
+    )
 
 
 class TemplateParameterOutput(BaseModel):
-    id: conint(gt=0)
-    parameter_type_id: conint(gt=0)
-    value: Optional[str] = None
-    constraint: Optional[str] = None
+    id: int = Field(gt=0)
+    parameter_type_id: int = Field(gt=0)
+    value: str | None = None
+    constraint: str | None = None
     required: bool = False
     val_type: str
-    valid: Optional[bool] = True
+    valid: bool | None = True
 
 
 class TemplateObjectOutput(BaseModel):
-    id: conint(gt=0)
-    object_type_id: conint(gt=0)
+    id: int = Field(gt=0)
+    object_type_id: int = Field(gt=0)
     required: bool = True
-    parameters: Optional[List[TemplateParameterOutput]] = []
-    children: Optional[List["TemplateObjectOutput"]] = []
-    valid: Optional[bool] = True
+    parameters: list[TemplateParameterOutput] | None = Field(
+        default_factory=list
+    )
+    children: list["TemplateObjectOutput"] | None = Field(default_factory=list)
+    valid: bool | None = True
 
 
 class TemplateOutput(BaseModel):
-    id: conint(gt=0)
+    id: int = Field(gt=0)
     name: str
     owner: str
-    object_type_id: conint(gt=0)
-    template_objects: Optional[List[TemplateObjectOutput]] = []
-    valid: Optional[bool] = True
+    object_type_id: int = Field(gt=0)
+    template_objects: list[TemplateObjectOutput] | None = Field(
+        default_factory=list
+    )
+    valid: bool | None = True
 
 
 class TemplateObjectUpdateInput(BaseModel):
     required: bool
-    parent_object_id: Optional[conint(gt=0)]
+    parent_object_id: int | None = Field(default=None, gt=0)
 
 
 class TemplateObjectUpdateOutput(BaseModel):
-    id: conint(gt=0)
-    object_type_id: conint(gt=0)
-    parent_object_id: Optional[conint(gt=0)]
+    id: int = Field(gt=0)
+    object_type_id: int = Field(gt=0)
+    parent_object_id: int | None = Field(default=None, gt=0)
     required: bool
-    valid: Optional[bool] = True
+    valid: bool | None = True
 
 
 class SimpleTemplateOutput(BaseModel):
-    id: conint(gt=0)
+    id: int = Field(gt=0)
     name: str
     owner: str
-    object_type_id: conint(gt=0)
-    valid: Optional[bool] = True
+    object_type_id: int = Field(gt=0)
+    valid: bool | None = True
 
 
 class TemplateUpdateInput(BaseModel):
     name: str
     owner: str
-    object_type_id: conint(gt=0)
+    object_type_id: int = Field(gt=0)
 
 
 class TemplateUpdateOutput(BaseModel):
-    id: conint(gt=0)
+    id: int = Field(gt=0)
     name: str
     owner: str
-    object_type_id: conint(gt=0)
-    valid: Optional[bool] = True
+    object_type_id: int = Field(gt=0)
+    valid: bool | None = True

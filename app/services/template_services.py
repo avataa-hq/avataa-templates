@@ -1,15 +1,18 @@
 from typing import List
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+
+from exceptions import (
+    TemplateNotFound,
+)
+from models import Template
 from schemas.template_schemas import (
     SimpleTemplateOutput,
     TemplateUpdateInput,
     TemplateUpdateOutput,
 )
-from models import Template
-from exceptions import (
-    TemplateNotFound,
-)
+
 from .template_registry_services import (
     TemplateRegistryService,
 )
@@ -17,7 +20,7 @@ from .template_registry_services import (
 
 class TemplateService:
     def __init__(self, db: AsyncSession) -> None:
-        self.db = db
+        self.db: AsyncSession = db
 
     async def get_templates(
         self,
@@ -88,5 +91,5 @@ class TemplateService:
 
         await self.db.delete(template)
 
-    async def commit_changes(self):
+    async def commit_changes(self) -> None:
         await self.db.commit()

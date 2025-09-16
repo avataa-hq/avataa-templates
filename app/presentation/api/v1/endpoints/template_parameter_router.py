@@ -1,4 +1,7 @@
-from typing import List, Annotated
+from typing import Annotated
+
+from dishka import FromDishka
+from dishka.integrations.fastapi import inject
 from fastapi import (
     APIRouter,
     Depends,
@@ -6,104 +9,164 @@ from fastapi import (
     Response,
     status,
 )
+from fastapi.params import Query
+from pydantic import ValidationError
 
-from application.common.uow import UoW
-from presentation.api.depends_stub import Stub
-from schemas.template_schemas import (
-    TemplateParameterInput,
-    TemplateParameterOutput,
+from application.template_parameter.delete.dto import (
+    TemplateParameterDeleteRequestDTO,
 )
-from services.template_parameter_services import (
-    TemplateParameterService,
+from application.template_parameter.delete.exceptions import (
+    TemplateParameterDeleterApplicationException,
 )
-from exceptions import (
-    TemplateParameterNotFound,
-    TemplateObjectNotFound,
-    TPRMNotFoundInInventory,
-    RequiredMismatchException,
-    InvalidParameterValue,
-    ValueConstraintException,
-    IncorrectConstraintException,
+from application.template_parameter.delete.interactors import (
+    TemplateParameterDeleterInteractor,
 )
-
+from application.template_parameter.read.exceptions import (
+    TemplateParameterReaderApplicationException,
+)
+from application.template_parameter.read.interactors import (
+    TemplateParameterReaderInteractor,
+)
+from application.template_parameter.update.exceptions import (
+    TemplateParameterUpdaterApplicationException,
+)
+from application.template_parameter.update.interactors import (
+    BulkTemplateParameterUpdaterInteractor,
+    TemplateParameterUpdaterInteractor,
+)
+from presentation.api.v1.endpoints.dto import (
+    TemplateParameterBulkUpdateRequest,
+    TemplateParameterSearchRequest,
+    TemplateParameterSearchResponse,
+    TemplateParameterUpdateInput,
+    TemplateParameterUpdateResponse,
+)
+from presentation.security.security_data_models import UserData
+from presentation.security.security_factory import security
 
 router = APIRouter(tags=["template-parameter"])
 
 
-@router.get("/parameters")
+@router.get(
+    "/parameters",
+    status_code=status.HTTP_200_OK,
+    response_model=list[TemplateParameterSearchResponse],
+)
+@inject
 async def get_template_object_parameters(
-    template_object_id: int,
-    db: Annotated[UoW, Depends(Stub(UoW))],
-) -> List[TemplateParameterOutput]:
-    service = TemplateParameterService(db)
-
+    request: Annotated[TemplateParameterSearchRequest, Query()],
+    interactor: FromDishka[TemplateParameterReaderInteractor],
+    user_data: Annotated[UserData, Depends(security)],
+) -> list[TemplateParameterSearchResponse]:
     try:
-        return await service.get_all_by_template_object(template_object_id)
-    except TemplateObjectNotFound:
+        result = await interactor(request=request.to_interactor_dto())
+        return [
+            TemplateParameterSearchResponse.from_application_dto(el)
+            for el in result
+        ]
+    except ValidationError as ex:
         raise HTTPException(
-            status_code=404,
-            detail="Template object not found",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
+        )
+    except TemplateParameterReaderApplicationException as ex:
+        raise HTTPException(status_code=ex.status_code, detail=ex.detail)
+    except Exception as ex:
+        print(type(ex), ex)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
         )
 
 
-@router.put("/parameters/{parameter_id}")
+@router.put(
+    "/parameters/{parameter_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=TemplateParameterUpdateResponse,
+)
+@inject
 async def update_template_parameter(
     parameter_id: int,
-    parameter_data: TemplateParameterInput,
-    db: Annotated[UoW, Depends(Stub(UoW))],
-) -> TemplateParameterOutput:
-    service = TemplateParameterService(db)
-
+    parameter_data: TemplateParameterUpdateInput,
+    interactor: FromDishka[TemplateParameterUpdaterInteractor],
+    user_data: Annotated[UserData, Depends(security)],
+) -> TemplateParameterUpdateResponse:
     try:
-        parameter = await service.update_template_parameter(
-            parameter_data=parameter_data,
-            parameter_id=parameter_id,
+        updated_parameter = await interactor(
+            request=parameter_data.to_interactor_dto(parameter_id),
         )
-    except TemplateParameterNotFound:
+        output = TemplateParameterUpdateResponse.from_application_dto(
+            updated_parameter
+        )
+        return output
+    except ValidationError as ex:
         raise HTTPException(
-            status_code=404,
-            detail="Template parameter not found",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
         )
-    except TPRMNotFoundInInventory as e:
+    except TemplateParameterUpdaterApplicationException as ex:
+        raise HTTPException(status_code=ex.status_code, detail=ex.detail)
+    except Exception as ex:
+        print(type(ex), ex)
         raise HTTPException(
-            status_code=404,
-            detail=(
-                f"TPRM with id {e.parameter_type_id} not "
-                f"found for TMO {e.object_type_id} in Inventory."
-            ),
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
         )
-    except RequiredMismatchException as e:
+
+
+@router.post(
+    "/parameters",
+    status_code=status.HTTP_200_OK,
+    response_model=list[TemplateParameterUpdateResponse],
+)
+@inject
+async def update_template_parameters(
+    request: TemplateParameterBulkUpdateRequest,
+    interactor: FromDishka[BulkTemplateParameterUpdaterInteractor],
+    user_data: Annotated[UserData, Depends(security)],
+) -> list[TemplateParameterUpdateResponse]:
+    try:
+        updated_parameter = await interactor(
+            request=request.to_interactor_dto()
+        )
+        output = [
+            TemplateParameterUpdateResponse.from_application_dto(param)
+            for param in updated_parameter
+        ]
+        return output
+    except ValidationError as ex:
         raise HTTPException(
-            status_code=400,
-            detail=str(e),
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
         )
-    except InvalidParameterValue as e:
-        raise HTTPException(status_code=422, detail=str(e))
-    except ValueConstraintException as e:
-        raise HTTPException(status_code=422, detail=str(e))
-    except IncorrectConstraintException as e:
-        raise HTTPException(status_code=422, detail=str(e))
-    await service.commit_changes()
-    return parameter
+    except TemplateParameterUpdaterApplicationException as ex:
+        raise HTTPException(status_code=ex.status_code, detail=ex.detail)
+    except Exception as ex:
+        print(type(ex), ex)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
+        )
 
 
 @router.delete(
     "/parameters/{parameter_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
+@inject
 async def delete_template_parameter(
     parameter_id: int,
-    db: Annotated[UoW, Depends(Stub(UoW))],
-):
-    service = TemplateParameterService(db)
-
+    interactor: FromDishka[TemplateParameterDeleterInteractor],
+    user_data: Annotated[UserData, Depends(security)],
+) -> Response:
     try:
-        await service.delete_template_parameter(parameter_id)
-    except TemplateParameterNotFound:
-        raise HTTPException(
-            status_code=404,
-            detail="Template parameter not found",
+        request = TemplateParameterDeleteRequestDTO(
+            template_parameter_id=parameter_id
         )
-
-    await service.commit_changes()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+        await interactor(request=request)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    except ValidationError as ex:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
+        )
+    except TemplateParameterDeleterApplicationException as ex:
+        raise HTTPException(status_code=ex.status_code, detail=ex.detail)
+    except Exception as ex:
+        print(type(ex), ex)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
+        )

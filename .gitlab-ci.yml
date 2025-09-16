@@ -2,6 +2,7 @@ stages:
   - test
   - build
   - deploy
+  - cleanup
 
 
 variables:
@@ -27,19 +28,162 @@ pre:
         -o $HOME/.local/bin/jq
       chmod +x $HOME/.local/bin/jq;
   rules:
-    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop  
+    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
           $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
           $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
-    # if event = push && target = develop          
+    # if event = push && target = develop
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
-    # if event = push && target = main          
+    # if event = push && target = main
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $MAIN_BRANCH
   tags:
-    - main
+    - coordinator
   interruptible: true
+
+start_ec2_amd64:
+  stage: .pre
+  script:
+    # start instance
+    - |
+      timeout=60;
+      start_time=$(date +%s)
+      while true; do
+        current_time=$(date +%s)
+        elapsed_time=$((current_time - start_time));
+        if [ "$elapsed_time" -ge "$timeout" ]; then
+          echo "Timeout reached. Instance couldn't be started within $timeout seconds."
+          exit 1
+        fi
+        echo "Attempting to start instance: ${EC2_INSTANCE_ID_AMD64}"
+        start_output=$(aws ec2 start-instances --instance-ids ${EC2_INSTANCE_ID_AMD64} 2>&1 || true)
+        echo "$start_output";
+        if echo "$start_output" | grep -q "IncorrectInstanceState"; then
+          echo "Instance not in correct state from which it can be started, retrying in 3s..."
+          sleep 3
+          continue
+        # handle other errors
+        elif echo "$start_output" | grep -q "An error occurred"; then
+          echo "AWS returned an error other than IncorrectInstanceState."
+          exit 1
+        fi
+        break
+      done
+    # wait to start
+    - |
+      timeout=60;
+      start_time=$(date +%s)
+      until 
+          [ "$(aws ec2 describe-instances --instance-ids ${EC2_INSTANCE_ID_AMD64} --query 'Reservations[0].Instances[0].State.Name' --output text)" = "running" ]; do
+        current_time=$(date +%s)
+        elapsed_time=$((current_time - start_time));
+        if [ "$elapsed_time" -ge "$timeout" ]; then
+          echo "Timeout reached. Instance didn't reach the running state within $timeout seconds."
+          exit 1
+        fi;
+        sleep 2
+        echo "Waiting for instance to be running..."
+      done;
+      echo "Instance is now running!"
+  rules:
+    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
+          $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
+          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
+    # if event = push && target = develop
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+    # if event = push && target = main
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $MAIN_BRANCH
+  tags:
+    - coordinator
+  interruptible: false
+
+start_ec2_arm64:
+  stage: .pre
+  script:
+    # start instance
+    - |
+      timeout=60;
+      start_time=$(date +%s)
+      while true; do
+        current_time=$(date +%s)
+        elapsed_time=$((current_time - start_time));
+        if [ "$elapsed_time" -ge "$timeout" ]; then
+          echo "Timeout reached. Instance couldn't be started within $timeout seconds."
+          exit 1
+        fi
+        echo "Attempting to start instance: ${EC2_INSTANCE_ID_ARM64}"
+        start_output=$(aws ec2 start-instances --instance-ids ${EC2_INSTANCE_ID_ARM64} 2>&1 || true)
+        echo "$start_output";
+        if echo "$start_output" | grep -q "IncorrectInstanceState"; then
+          echo "Instance not in correct state from which it can be started, retrying in 3s..."
+          sleep 3
+          continue
+        # handle other errors
+        elif echo "$start_output" | grep -q "An error occurred"; then
+          echo "AWS returned an error other than IncorrectInstanceState."
+          exit 1
+        fi
+        break
+      done
+    # wait to start
+    - |
+      timeout=60;
+      start_time=$(date +%s)
+      until 
+          [ "$(aws ec2 describe-instances --instance-ids ${EC2_INSTANCE_ID_ARM64} --query 'Reservations[0].Instances[0].State.Name' --output text)" = "running" ]; do
+        current_time=$(date +%s)
+        elapsed_time=$((current_time - start_time));
+        if [ "$elapsed_time" -ge "$timeout" ]; then
+          echo "Timeout reached. Instance didn't reach the running state within $timeout seconds."
+          exit 1
+        fi;
+        sleep 2
+        echo "Waiting for instance to be running..."
+      done;
+      echo "Instance is now running!"
+  rules:
+      # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
+          $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
+          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
+    # if event = push && target = develop
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+    # if event = push && target = main
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $MAIN_BRANCH
+  tags:
+    - coordinator
+  interruptible: false
+
+prepare_coordinator:
+  stage: .pre
+  script:
+    - mkdir -p ~/${PIPELINE_DIR}
+    - cd ~/${PIPELINE_DIR}
+    # create pipeline lock file
+    - touch pipeline-running-${CI_PIPELINE_ID}.lock
+    # put project_id to pipeline lock file
+    - echo $CI_PROJECT_ID > pipeline-running-${CI_PIPELINE_ID}.lock
+  rules:
+    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
+          $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
+          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
+    # if event = push && target = develop
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+    # if event = push && target = main
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $MAIN_BRANCH
+  needs: ["start_ec2_amd64", "start_ec2_arm64"]
+  tags:
+    - coordinator
+  interruptible: false
 
 
 lint:
@@ -92,18 +236,18 @@ unit_test:
     - name: postgres:${POSTGRES_VERSION}
       alias: postgres
   script:
-    - uv sync --group ${UV_GROUP_TESTS}
+    - uv sync --no-dev --group ${UV_GROUP_TESTS}
     - source .venv/bin/activate
     - pytest
   rules:
-    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop  
+    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
           $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
           $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
-    # if event = push && target = develop          
+    # if event = push && target = develop
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
-    # if event = push && target = main          
+    # if event = push && target = main
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $MAIN_BRANCH
   tags:
@@ -133,14 +277,14 @@ migrations_test:
     - cd ${APP_DIR}
     - ${MIGRATIONS_COMMAND}
   rules:
-    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop  
+    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
           $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
           $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
-    # if event = push && target = develop          
+    # if event = push && target = develop
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
-    # if event = push && target = main          
+    # if event = push && target = main
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $MAIN_BRANCH
   tags:
@@ -163,14 +307,14 @@ package_vulns_test:
     - trivy fs --pkg-types=library --format table --scanners vuln --exit-code 1 ${REQUIREMENTS_FILENAME}
       --output ${TRIVY_REPORT_FILENAME} || cat ${TRIVY_REPORT_FILENAME}
   rules:
-    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop  
+    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
           $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
           $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
-    # if event = push && target = develop          
+    # if event = push && target = develop
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
-    # if event = push && target = main          
+    # if event = push && target = main
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $MAIN_BRANCH
   tags:
@@ -180,31 +324,8 @@ package_vulns_test:
   artifacts:
     when: always
     paths:
-      # - ${TRIVY_REPORT_FILENAME}
       - trivy_report.txt
 
-analyse_code_dev:
-  stage: test
-  image:
-    name: ${REGISTRY_URL}/${PROJECT_NAME}/${SONAR_SCANNER_CLI_IMAGE}:${SONAR_SCANNER_CLI_VERSION}
-    entrypoint: [""]
-  script:
-    - cd ${APP_DIR}
-    - /usr/bin/entrypoint.sh sonar-scanner
-        -Dsonar.host.url=${SONARQUBE_URL}
-        -Dsonar.sources=.
-        -Dsonar.python.version=${PYTHON_VERSION}
-        -Dsonar.projectKey=${SONARQUBE_PROJECT_KEY_DEV}
-        -Dsonar.projectName="${SONARQUBE_PROJECT_NAME_DEV}"
-        -Dsonar.token=${SONARQUBE_PROJECT_TOKEN_DEV}
-  rules:
-    # if event = push && target = develop          
-    - if: $CI_PIPELINE_SOURCE == 'push' &&
-          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
-  tags:
-    - main-docker
-  # allow_failure: true
-  interruptible: true
 
 analyse_code_main:
   stage: test
@@ -221,7 +342,7 @@ analyse_code_main:
         -Dsonar.projectName="${SONARQUBE_PROJECT_NAME}"
         -Dsonar.token=${SONARQUBE_PROJECT_TOKEN}
   rules:
-    # if event = push && target = main          
+    # if event = push && target = main
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $MAIN_BRANCH
   tags:
@@ -230,33 +351,66 @@ analyse_code_main:
   interruptible: true
 
 
-build_dev:
+generate_version:
   stage: build
   variables:
-    DOCKER_HOST: ${DOCKER_HOST}
-  image: docker:${DOCKER_DIND_VERSION}
-  services:
-    - docker:${DOCKER_DIND_VERSION}
+    GIT_STRATEGY: clone
+  image: 
+    name: ${REGISTRY_URL}/${PROJECT_NAME}/${GIT_IMAGE}:${GIT_VERSION}
+    entrypoint: [""]
+  before_script:
+    - git config --global --add safe.directory $CI_PROJECT_DIR
+    - git switch $MAIN_BRANCH
   script:
-    - docker login -u ${REGISTRY_PUSH_USER} -p ${REGISTRY_PUSH_PASSWORD} ${REGISTRY_URL}
-    - docker buildx create --name ${DOCKER_BUILDER_NAME} --driver=docker-container
-    - docker buildx build
-        --platform ${BUILD_ARCHS}
-        --tag ${REGISTRY_URL}/${PROJECT_NAME}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}:${DEVELOP_TAG}
-        --builder ${DOCKER_BUILDER_NAME}
-        --provenance false
-        --sbom false
-        --push .
-    # get image digest to sign image with cosign
-    - IMAGE_DIGEST=$(docker buildx imagetools inspect --format "{{json .Manifest.Digest}}"
-        ${REGISTRY_URL}/${PROJECT_NAME}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}:${DEVELOP_TAG} | tr -d '"')
-    - echo ${IMAGE_DIGEST} > ${BUILDS_CI_PATH}/${IMAGE_DIGEST_FILENAME}
+    # get current project version
+    - current_version=$(uv version --short)
+    # check current project version
+    - echo "Current project version is ${current_version}"
+    - git remote set-url origin https://gitlab-ci-token:${GITLAB_API_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git
+    # NOTE implement latest_tag if needed
+    # - git fetch --tags
+    # - latest_tag=$(git describe --tags --abbrev=0 2>/dev/null)
+    # # check latest tag
+    # - |
+    #   if [ -z "$latest_tag" ]; then
+    #     echo "No tags found, add new one"
+    #   else
+    #     echo "Latest tag is ${latest_tag}"
+    #   fi
+    # # compare latest tag with current project tag
+    # - |
+    #   if [ "$latest_tag" = "$current_version" ]; then
+    #     echo "Latest tag equals current project version"
+    #   else
+    #     echo "Sync latest tag with current project version, project version takes precedence"
+    #     latest_tag=$current_version
+    #   fi
+    # increase project version by 1 (patch)
+    - uv version --no-sync --bump patch
+    - new_tag=$(uv version --short --color never)
+    - echo "New version/tag is ${new_tag}"
+    # put new version to file for next jobs
+    - echo ${new_tag} > ${BUILDS_CI_PATH}/${CI_PROJECT_NAME}_new_version
+    # commit version bump to "main" branch
+    - git config user.email "${GIT_CI_USER_EMAIL}"
+    - git config user.name "${GIT_CI_USER_NAME}"
+    - rm ${TRIVY_REPORT_FILENAME}
+    - git add -A
+    - git commit -m "CI - bump version to ${new_tag} [skip ci]"
+    # push new project version (in pyproject.toml) to repository
+    # - git push
+    # create tag
+    - git tag "${new_tag}"
+    # push tag
+    - git push origin $MAIN_BRANCH "${new_tag}"
   rules:
-    # if event = push && target = develop          
+    # if event = push && target = main
     - if: $CI_PIPELINE_SOURCE == 'push' &&
-          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+          $CI_COMMIT_BRANCH == $MAIN_BRANCH
   tags:
-    - main-docker
+    - coordinator-docker
+  interruptible: false
+
 
 build_main:
   stage: build
@@ -265,9 +419,28 @@ build_main:
   image: docker:${DOCKER_DIND_VERSION}
   services:
     - docker:${DOCKER_DIND_VERSION}
+  before_script:
+    - mkdir -p ~/.ssh
+    - echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_ed25519
+    - chmod 600 ~/.ssh/id_ed25519
+    # - echo "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+    # allow amd64
+    - |
+      host_amd64=$(echo ${DOCKER_BUILDER_SSH_URL_AMD64} | cut -d'@' -f2-);
+      ssh-keyscan -H ${host_amd64} >> ~/.ssh/known_hosts
+    # allow arm64
+    - |
+      host_arm64=$(echo ${DOCKER_BUILDER_SSH_URL_ARM64} | cut -d'@' -f2-);
+      ssh-keyscan -H ${host_arm64} >> ~/.ssh/known_hosts
+    - new_version=$(cat ${BUILDS_CI_PATH}/${CI_PROJECT_NAME}_new_version)
   script:
     - docker login -u ${REGISTRY_PUSH_USER} -p ${REGISTRY_PUSH_PASSWORD} ${REGISTRY_URL}
-    - docker buildx create --name ${DOCKER_BUILDER_NAME} --driver=docker-container
+    # create multiarch builder
+    - docker buildx create --driver docker-container --platform ${BUILD_ARCH_AMD64} --name ${DOCKER_BUILDER_NAME} --use ${DOCKER_BUILDER_SSH_URL_AMD64}
+    - docker buildx create --driver docker-container --platform ${BUILD_ARCH_ARM64} --name ${DOCKER_BUILDER_NAME} --append ${DOCKER_BUILDER_SSH_URL_ARM64}
+    # check builder connections
+    - docker buildx inspect --bootstrap
+    # build latest tag
     - docker buildx build
         --platform ${BUILD_ARCHS}
         --tag ${REGISTRY_URL}/${PROJECT_NAME}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}:${LATEST_TAG}
@@ -275,40 +448,27 @@ build_main:
         --provenance false
         --sbom false
         --push .
+    # build new version tag
+    - docker buildx build
+        --platform ${BUILD_ARCHS}
+        --tag ${REGISTRY_URL}/${PROJECT_NAME}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}:${new_version}
+        --builder ${DOCKER_BUILDER_NAME}
+        --provenance false
+        --sbom false
+        --push .
     # get image digest to sign image with cosign
     - IMAGE_DIGEST=$(docker buildx imagetools inspect --format "{{json .Manifest.Digest}}"
         ${REGISTRY_URL}/${PROJECT_NAME}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}:${LATEST_TAG} | tr -d '"')
-    - echo ${IMAGE_DIGEST} > ${BUILDS_CI_PATH}/${IMAGE_DIGEST_FILENAME}
+    - echo ${IMAGE_DIGEST} > ${BUILDS_CI_PATH}/${CI_PROJECT_NAME}_${IMAGE_DIGEST_FILENAME}
   rules:
-    # if event = push && target = main          
+    # if event = push && target = main
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $MAIN_BRANCH
+  needs: ["generate_version"]
   tags:
-    - main-docker
+    - coordinator-docker
+  interruptible: false
 
-
-sign_dev:
-  stage: build
-  variables:
-    COSIGN_PASSWORD: ${COSIGN_PASSWORD}
-    COSIGN_PRIVATE_KEY: ${COSIGN_PRIVATE_KEY}
-  image:
-    name: bitnami/cosign:${COSIGN_VERSION}
-    entrypoint: [""]
-  script:
-    - IMAGE_DIGEST=$(cat ${BUILDS_CI_PATH}/${IMAGE_DIGEST_FILENAME})
-    - cosign sign --yes --recursive --key env://COSIGN_PRIVATE_KEY
-        --registry-username ${REGISTRY_PUSH_USER}
-        --registry-password ${REGISTRY_PUSH_PASSWORD}
-        ${REGISTRY_URL}/${PROJECT_NAME}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}@${IMAGE_DIGEST}
-  rules:
-    # if event = push && target = develop          
-    - if: $CI_PIPELINE_SOURCE == 'push' &&
-          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
-  needs: ["build_dev"]
-  tags:
-    - main-docker
-  interruptible: true
 
 sign_main:
   stage: build
@@ -319,40 +479,24 @@ sign_main:
     name: bitnami/cosign:${COSIGN_VERSION}
     entrypoint: [""]
   script:
-    - IMAGE_DIGEST=$(cat ${BUILDS_CI_PATH}/${IMAGE_DIGEST_FILENAME})
+    - IMAGE_DIGEST=$(cat ${BUILDS_CI_PATH}/${CI_PROJECT_NAME}_${IMAGE_DIGEST_FILENAME})
     - cosign sign --yes --recursive --key env://COSIGN_PRIVATE_KEY
         --registry-username ${REGISTRY_PUSH_USER}
         --registry-password ${REGISTRY_PUSH_PASSWORD}
         ${REGISTRY_URL}/${PROJECT_NAME}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}@${IMAGE_DIGEST}
   rules:
-    # if event = push && target = main          
+    # if event = push && target = main
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $MAIN_BRANCH
   needs: ["build_main"]
   tags:
-    - main-docker
-  interruptible: true
-
-
-deploy_dev:
-  stage: deploy
-  script:
-    - ssh ${EC2_USER}@${EC2_HOST} "
-        docker login -u ${REGISTRY_PULL_USER} -p ${REGISTRY_PULL_PASSWORD} ${REGISTRY_URL} &&
-        docker pull ${REGISTRY_URL}/${PROJECT_NAME}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}:${DEVELOP_TAG} &&
-        docker compose -f ${COMPOSE_PATH} up -d"
-  rules:
-    # if event = push && target = develop          
-    - if: $CI_PIPELINE_SOURCE == 'push' &&
-          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
-  tags:
-    - main
+    - coordinator-docker
+  interruptible: false
 
 
 cleanup:
-  stage: .post
+  stage: cleanup
   script:
-    - if [ "${CI_COMMIT_BRANCH}" = "${DEVELOP_BRANCH}" ]; then ssh ${EC2_USER}@${EC2_HOST} "docker system prune --force"; fi 
     - docker system prune --force
     # get digests without tag "develop" and remove them
     - source <(echo 'export PATH="$HOME/.local/bin:$PATH"');
@@ -367,9 +511,10 @@ cleanup:
           echo -e "No images for project \"${PROJECT_NAME}\"!";
           exit 0
       fi;
+      # remove empty tags digests
       digests_to_remove=$(echo "${images}" | jq -cr '.[] | select( .tags == null ) | .digest');
-      if  [ -z "${digests_to_remove}" ] ; then 
-          echo -e "No images to remove!";
+      if [ -z "${digests_to_remove}" ] ; then 
+          echo "No images to remove!";
           exit 0
       else
           while IFS= read -r digest_to_remove; do
@@ -380,12 +525,192 @@ cleanup:
                 "${REGISTRY_PROTOCOL}://${REGISTRY_URL}/api/v2.0/projects/${PROJECT_NAME}/repositories/${REGISTRY_MS_PATH}%252F${CI_PROJECT_NAME}/artifacts/${digest_to_remove}" 
           done < <(printf '%s\n' "${digests_to_remove}");
       fi;
+      # remove all other than REGISTRY_VERSIONS_KEEP=3 last tags/versions, don't remove digest where more then REGISTRY_MAX_TAGS_IN_DIGEST=2
+      images_to_filter_old_tags=$(echo "${images}" | jq -cr "
+        [.[] 
+          | select(.tags != null) 
+          | select((.tags | map(.name) | index(\"$DEVELOP_TAG\") or index(\"$LATEST_TAG\") | not) 
+                  and ((.tags | length > $REGISTRY_MAX_TAGS_IN_DIGEST) | not))
+        ]
+      ");
+      tags_old_versions_to_remove=$(echo "${images_to_filter_old_tags}" | jq -cr 'map(.tags) | flatten | unique | .[].name' \
+        | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
+        | sort -Vr \
+        | tail -n +$((REGISTRY_VERSIONS_KEEP+1))
+      );
+      if [ -z "${tags_old_versions_to_remove}" ] ; then 
+          echo "No old versions to remove!";
+          exit 0
+      else
+          while IFS= read -r tag_to_remove; do
+              echo -e "Remove old image tag ${tag_to_remove}\n";
+              if ! curl -s -S -X 'DELETE' --max-time 7 \
+                -u "${REGISTRY_USERNAME}:${REGISTRY_PASSWORD}" \
+                -H 'accept: application/json' \
+                "${REGISTRY_PROTOCOL}://${REGISTRY_URL}/api/v2.0/projects/${PROJECT_NAME}/repositories/${REGISTRY_MS_PATH}%252F${CI_PROJECT_NAME}/artifacts/${tag_to_remove}"; 
+              then
+                echo "Failed to remove ${tag_to_remove}" >&2
+              fi
+          done < <(printf '%s\n' "${tags_old_versions_to_remove}");
+      fi;
   rules:
-    # if event = push && target = develop          
+    # if event = push && target = develop
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
-    # if event = push && target = main          
+    # if event = push && target = main
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $MAIN_BRANCH
   tags:
-    - main
+    - coordinator
+  interruptible: false
+
+check_running_pipelines:
+  stage: .post
+  script:
+    - cd ~/${PIPELINE_DIR}
+    # find all pipeline lock files and grab their ids
+    - |
+      pipeline_running_ids=$(find . -maxdepth 1 -type f -name "pipeline-running-*.lock" | cut -d'-' -f3- | sed 's/\.lock$//');
+      if [ -n "$pipeline_running_ids" ]; then
+        echo "Found pipelines lock files:"
+        echo -e "${pipeline_running_ids}\n";
+        while IFS= read -r pipeline_id; do
+          echo "Checking pipeline ${pipeline_id}...";
+          project_id=$(cat pipeline-running-${pipeline_id}.lock);
+          status=$(curl -s -S -X 'GET' --max-time 7 --header "PRIVATE-TOKEN: $GITLAB_API_TOKEN" \
+            "https://gitlab.com/api/v4/projects/${project_id}/pipelines/${pipeline_id}" \
+              | jq -cr '.status');
+          case "$status" in
+            running)
+              echo "Pipeline ${pipeline_id} is running"
+              echo "EC2 instance cannot be stopped!"
+              # save decision
+              echo "false" > stop_ec2_instances_${CI_PIPELINE_ID}.final
+              break
+              ;;
+            created)
+              echo "Pipeline ${pipeline_id} is created"
+              echo "EC2 instance cannot be stopped!"
+              echo "false" > stop_ec2_instances_${CI_PIPELINE_ID}.final
+              break
+              ;;
+            pending)
+              echo "Pipeline ${pipeline_id} is pending"
+              echo "EC2 instance cannot be stopped!"
+              echo "false" > stop_ec2_instances_${CI_PIPELINE_ID}.final
+              break
+              ;;
+            scheduled)
+              echo "Pipeline ${pipeline_id} is scheduled"
+              echo "EC2 instance cannot be stopped!"
+              echo "false" > stop_ec2_instances_${CI_PIPELINE_ID}.final
+              break
+              ;;
+            *)
+              echo "Pipeline ${pipeline_id} has status: $status"
+              ;;
+          esac;
+          echo "Pipeline ${pipeline_id} is not running, remove its lock file..."
+          rm pipeline-running-${pipeline_id}.lock
+          echo "true" > stop_ec2_instances_${CI_PIPELINE_ID}.final
+        done <<< "$pipeline_running_ids"
+      else
+          echo "Running pipelines not found"
+          echo "EC2 Instance can be stopped!"
+          echo "true" > stop_ec2_instances_${CI_PIPELINE_ID}.final
+      fi
+  rules:
+    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
+          $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
+          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
+    # if event = push && target = develop
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+    # if event = push && target = main
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $MAIN_BRANCH
+  tags:
+    - coordinator
+  interruptible: false
+
+
+stop_ec2_amd64:
+  stage: .post
+  script:
+    # stop instance if none of pipelines are running
+    - cd ~/${PIPELINE_DIR}
+    - |
+      stop_ec2_instance=$(cat stop_ec2_instances_${CI_PIPELINE_ID}.final);
+      if [ "$stop_ec2_instance" = "true" ]; then
+        aws ec2 stop-instances --instance-ids ${EC2_INSTANCE_ID_AMD64}
+      fi
+# check if other lock files found - DON'T STOP SERVER
+  rules:
+    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
+          $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
+          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
+    # if event = push && target = develop
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+    # if event = push && target = main
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $MAIN_BRANCH
+  needs: ["check_running_pipelines"]
+  tags:
+    - coordinator
+  interruptible: false
+
+stop_ec2_arm64:
+  stage: .post
+  script:
+    # stop instance if none of pipelines are running
+    - cd ~/${PIPELINE_DIR}
+    - |
+      stop_ec2_instance=$(cat stop_ec2_instances_${CI_PIPELINE_ID}.final);
+      if [ "$stop_ec2_instance" = "true" ]; then
+        aws ec2 stop-instances --instance-ids ${EC2_INSTANCE_ID_ARM64}
+      fi
+  rules:
+    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
+          $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
+          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
+    # if event = push && target = develop
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+    # if event = push && target = main
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $MAIN_BRANCH
+  needs: ["check_running_pipelines"]
+  tags:
+    - coordinator
+  interruptible: false
+
+cleanup_coordinator:
+  stage: .post
+  script:
+    - cd ~/${PIPELINE_DIR}
+    # remove current pipeline lock file
+    - rm pipeline-running-${CI_PIPELINE_ID}.lock || true
+    # remove decision file
+    - rm stop_ec2_instances_${CI_PIPELINE_ID}.final || true
+    # remove project new version file
+    # - rm ~/${BUILDS_CI_PATH}/${CI_PROJECT_NAME}_new_version
+    # remove image digest
+  rules:
+    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
+          $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
+          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
+    # if event = push && target = develop
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+    # if event = push && target = main
+    - if: $CI_PIPELINE_SOURCE == 'push' &&
+          $CI_COMMIT_BRANCH == $MAIN_BRANCH
+  needs: ["stop_ec2_amd64", "stop_ec2_arm64"]
+  tags:
+    - coordinator
+  interruptible: false

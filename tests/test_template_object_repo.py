@@ -1,10 +1,9 @@
-import pytest
-
 from datetime import datetime
 
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import TemplateObject, Template
+from models import Template, TemplateObject
 from services.inventory_services.protocols import (
     TemplateObjectRepo,
 )
@@ -52,12 +51,12 @@ async def test_template_objects_invalid(
     await test_session.flush()
 
     # Act
-    objects = await repo.get_template_objects_by_object_type_id([1])
+    objects = await repo.get_template_objects_by_id([1])
     updated_objects = await repo.set_template_objects_invalid(objects)
     await test_session.commit()
 
     # Assert
-    assert len(updated_objects) == 2
+    assert len(updated_objects) == 1
     for obj in updated_objects:
         assert obj.valid is False
 
@@ -97,7 +96,7 @@ async def test_template_objects_invalid_id(
     await test_session.flush()
 
     # Act
-    objects = await repo.get_template_objects_by_object_type_id([17])
+    objects = await repo.get_template_objects_by_id([17])
 
     # Assert
     assert len(objects) == 0

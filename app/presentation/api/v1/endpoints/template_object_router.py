@@ -1,122 +1,207 @@
-from typing import (
-    List,
-    Optional,
-    Annotated,
-)
-from fastapi import (
-    Body,
-    Query,
-    status,
-    Depends,
-    Response,
-    APIRouter,
-    HTTPException,
-)
+from typing import Annotated
 
-from application.common.uow import UoW
-from presentation.api.depends_stub import Stub
-from schemas.template_schemas import (
-    TemplateObjectOutput,
-    TemplateObjectUpdateInput,
-    TemplateObjectUpdateOutput,
+from dishka import FromDishka
+from dishka.integrations.fastapi import inject
+from fastapi import (
+    APIRouter,
+    Body,
+    Depends,
+    HTTPException,
+    Query,
+    Response,
+    status,
 )
-from services.template_object_services import (
-    TemplateObjectService,
+from pydantic import ValidationError
+
+from application.template_object.delete.dto import (
+    TemplateObjectDeleteRequestDTO,
 )
-from exceptions import (
-    TemplateNotFound,
-    InvalidHierarchy,
-    TemplateObjectNotFound,
+from application.template_object.delete.exceptions import (
+    TemplateObjectDeleterApplicationException,
 )
+from application.template_object.delete.interactors import (
+    TemplateObjectDeleterInteractor,
+)
+from application.template_object.read.exceptions import (
+    TemplateObjectReaderApplicationException,
+)
+from application.template_object.read.interactors import (
+    TemplateObjectByIdReaderInteractor,
+    TemplateObjectByObjectTypeReaderInteractor,
+    TemplateObjectReaderInteractor,
+)
+from application.template_object.update.exceptions import (
+    TemplateObjectUpdaterApplicationException,
+)
+from application.template_object.update.interactors import (
+    TemplateObjectUpdaterInteractor,
+)
+from presentation.api.v1.endpoints.dto import (
+    TemplateObjectSearchByObjectTypeRequest,
+    TemplateObjectSearchRequest,
+    TemplateObjectSearchResponse,
+    TemplateObjectSearchWithChildrenResponse,
+    TemplateObjectSingleSearchRequest,
+    TemplateObjectUpdateDataInput,
+    TemplateObjectUpdateResponse,
+)
+from presentation.security.security_data_models import UserData
+from presentation.security.security_factory import security
 
 router = APIRouter(tags=["template-object"])
 
 
-@router.get("/objects")
-async def get_template_objects(
-    template_id: int,
-    db: Annotated[UoW, Depends(Stub(UoW))],
-    parent_id: Optional[int] = Query(
-        None,
-        description="Parent object ID (optional)",
-    ),
-    depth: int = Query(
-        1,
-        ge=1,
-        description="Depth of children to retrieve (1 by default)",
-    ),
-    include_parameters: bool = Query(
-        False,
-        description="Include parameters in the response (default: False)",
-    ),
-) -> List[TemplateObjectOutput]:
-    service = TemplateObjectService(db)
-
+@router.get(
+    "/object",
+    status_code=status.HTTP_200_OK,
+    response_model=TemplateObjectSearchResponse,
+)
+@inject
+async def get_template_object(
+    request: Annotated[TemplateObjectSingleSearchRequest, Query()],
+    interactor: FromDishka[TemplateObjectByIdReaderInteractor],
+    user_data: Annotated[UserData, Depends(security)],
+) -> TemplateObjectSearchResponse:
     try:
-        return await service.get_template_objects(
-            template_id=template_id,
-            parent_id=parent_id,
-            depth=depth,
-            include_parameters=include_parameters,
-        )
-    except TemplateNotFound:
+        result = await interactor(request=request.to_interactor_dto())
+        return TemplateObjectSearchResponse.from_application_dto(result)
+
+    except ValidationError as ex:
         raise HTTPException(
-            status_code=404,
-            detail="Template not found",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
         )
-    except TemplateObjectNotFound:
+    except TemplateObjectReaderApplicationException as ex:
+        raise HTTPException(status_code=ex.status_code, detail=ex.detail)
+    except Exception as ex:
+        print(type(ex), ex)
         raise HTTPException(
-            status_code=404,
-            detail="Parent template object not found",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
         )
 
 
-@router.put("/objects/{parameter_id}")
+@router.get(
+    "/objects",
+    status_code=status.HTTP_200_OK,
+    response_model=list[TemplateObjectSearchWithChildrenResponse],
+)
+@inject
+async def get_template_objects(
+    request: Annotated[TemplateObjectSearchRequest, Query()],
+    interactor: FromDishka[TemplateObjectReaderInteractor],
+    user_data: Annotated[UserData, Depends(security)],
+) -> list[TemplateObjectSearchWithChildrenResponse]:
+    try:
+        result = await interactor(request=request.to_interactor_dto())
+        return [
+            TemplateObjectSearchWithChildrenResponse.from_application_dto(res)
+            for res in result
+        ]
+    except ValidationError as ex:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
+        )
+    except TemplateObjectReaderApplicationException as ex:
+        raise HTTPException(status_code=ex.status_code, detail=ex.detail)
+    except Exception as ex:
+        print(type(ex), ex)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
+        )
+
+
+@router.get(
+    "/objects/by_object_type_id",
+    status_code=status.HTTP_200_OK,
+    response_model=list[TemplateObjectSearchResponse],
+)
+@inject
+async def get_template_objects_by_object_type_id(
+    request: Annotated[TemplateObjectSearchByObjectTypeRequest, Query()],
+    interactor: FromDishka[TemplateObjectByObjectTypeReaderInteractor],
+    user_data: Annotated[UserData, Depends(security)],
+) -> list[TemplateObjectSearchResponse]:
+    try:
+        result = await interactor(request=request.to_interactor_dto())
+        return [
+            TemplateObjectSearchResponse.from_application_dto(res)
+            for res in result
+        ]
+    except ValidationError as ex:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
+        )
+    except TemplateObjectReaderApplicationException as ex:
+        raise HTTPException(status_code=ex.status_code, detail=ex.detail)
+    except Exception as ex:
+        print(type(ex), ex)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
+        )
+
+
+@router.put(
+    "/objects/{object_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=TemplateObjectUpdateResponse,
+)
+@inject
 async def update_template_object(
     object_id: int,
     object_data: Annotated[
-        TemplateObjectUpdateInput,
+        TemplateObjectUpdateDataInput,
         Body(
-            example={
-                "required": True,
-                "parent_object_id": 1,
-            }
+            examples=[
+                {
+                    "required": True,
+                    "parent_object_id": 1,
+                }
+            ]
         ),
     ],
-    db: Annotated[UoW, Depends(Stub(UoW))],
-) -> TemplateObjectUpdateOutput:
-    service = TemplateObjectService(db)
-
+    interactor: FromDishka[TemplateObjectUpdaterInteractor],
+    user_data: Annotated[UserData, Depends(security)],
+) -> TemplateObjectUpdateResponse:
     try:
-        obj = await service.update_template_object(
-            object_data=object_data,
-            object_id=object_id,
+        result = await interactor(
+            request=object_data.to_interactor_dto(object_id=object_id)
         )
-    except TemplateObjectNotFound as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except InvalidHierarchy as e:
-        raise HTTPException(status_code=422, detail=str(e))
-    await service.commit_changes()
-    return obj
+        output = TemplateObjectUpdateResponse.from_application_dto(result)
+        return output
+    except ValidationError as ex:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
+        )
+    except TemplateObjectUpdaterApplicationException as ex:
+        raise HTTPException(status_code=ex.status_code, detail=ex.detail)
+    except Exception as ex:
+        print(type(ex), ex)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
+        )
 
 
 @router.delete(
     "/objects/{object_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
+@inject
 async def delete_template_object(
     object_id: int,
-    db: Annotated[UoW, Depends(Stub(UoW))],
-):
-    service = TemplateObjectService(db)
-
+    interactor: FromDishka[TemplateObjectDeleterInteractor],
+    user_data: Annotated[UserData, Depends(security)],
+) -> Response:
     try:
-        await service.delete_template_object(object_id)
-    except TemplateObjectNotFound:
+        request = TemplateObjectDeleteRequestDTO(template_object_id=object_id)
+        await interactor(request=request)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    except ValidationError as ex:
         raise HTTPException(
-            status_code=404,
-            detail="Template object not found",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
         )
-
-    await service.commit_changes()
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    except TemplateObjectDeleterApplicationException as ex:
+        raise HTTPException(status_code=ex.status_code, detail=ex.detail)
+    except Exception as ex:
+        print(type(ex), ex)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
+        )

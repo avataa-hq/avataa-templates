@@ -69,11 +69,8 @@ class InvalidParameterValue(Exception):
         object_type_id: int,
         tprm_val_type: str,
         tprm_is_multiple: bool,
-        value: str,
+        value: str | None,
     ) -> None:
-        # self.parameter_type_id = parameter_type_id
-        # self.object_type_id = object_type_id
-        # self.value = value
         super().__init__(
             f"Invalid value '{value}' for parameter type (ID={parameter_type_id}, "
             f"type={tprm_val_type}, is_multiple={tprm_is_multiple}) "
@@ -86,8 +83,8 @@ class ValueConstraintException(Exception):
         self,
         parameter_type_id: int,
         object_type_id: int,
-        value: str,
-        constraint: str,
+        value: str | None,
+        constraint: str | None,
         tprm_val_type: str,
         tprm_is_multiple: bool,
     ) -> None:

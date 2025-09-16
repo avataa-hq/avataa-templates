@@ -1,9 +1,9 @@
 import datetime
 
 from sqlalchemy import (
+    CheckConstraint,
     ForeignKey,
     func,
-    CheckConstraint,
 )
 from sqlalchemy.orm import (
     Mapped,
@@ -58,14 +58,14 @@ class TemplateObject(Base):
         ),
         nullable=False,
     )
-    parent_object_id: Mapped[int] = mapped_column(
+    parent_object_id: Mapped[int | None] = mapped_column(
         ForeignKey(
             column="template_object.id",
             ondelete="CASCADE",
         ),
         nullable=True,
     )
-    object_type_id: Mapped[int] = mapped_column(nullable=False)
+    object_type_id: Mapped[int] = mapped_column(nullable=False, index=True)
 
     # Relationships
     template = relationship(
@@ -110,9 +110,9 @@ class TemplateParameter(Base):
         ),
         nullable=False,
     )
-    parameter_type_id: Mapped[int] = mapped_column(nullable=False)
+    parameter_type_id: Mapped[int] = mapped_column(nullable=False, index=True)
     value: Mapped[str] = mapped_column(nullable=True)
-    constraint: Mapped[str] = mapped_column(nullable=True)
+    constraint: Mapped[str | None] = mapped_column(nullable=True)
     val_type: Mapped[str] = mapped_column(nullable=False)
 
     # Relationships

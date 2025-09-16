@@ -1,18 +1,21 @@
 from typing import List
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from schemas.template_schemas import (
-    TemplateParameterInput,
-    TemplateParameterOutput,
+
+from exceptions import (
+    TemplateObjectNotFound,
+    TemplateParameterNotFound,
 )
 from models import (
     TemplateObject,
     TemplateParameter,
 )
-from exceptions import (
-    TemplateObjectNotFound,
-    TemplateParameterNotFound,
+from schemas.template_schemas import (
+    TemplateParameterInput,
+    TemplateParameterOutput,
 )
+
 from .template_services import (
     TemplateRegistryService,
 )
@@ -69,8 +72,8 @@ class TemplateParameterService:
         result = await self.db.execute(
             select(TemplateObject).filter_by(id=parameter.template_object_id)
         )
-        object = result.scalar_one()
-        object_type_id = object.object_type_id
+        t_object = result.scalar_one()
+        object_type_id = t_object.object_type_id
 
         template_registry_service = TemplateRegistryService(self.db)
         await template_registry_service.initialize_parameters_map(
@@ -109,5 +112,5 @@ class TemplateParameterService:
 
         await self.db.delete(parameter)
 
-    async def commit_changes(self):
+    async def commit_changes(self) -> None:
         await self.db.commit()

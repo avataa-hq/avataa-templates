@@ -1,11 +1,13 @@
 import ast
 import re
-from typing import Any, Optional, Callable
-from .type_casting_functions import (
-    param_type_casting_router,
-)
+from typing import Any, Callable, Optional
+
 from exceptions import (
     IncorrectConstraintException,
+)
+
+from .type_casting_functions import (
+    param_type_casting_router,
 )
 
 
@@ -23,18 +25,18 @@ def non_value_constraint_validation(value: Any, constraint: Any) -> bool:
 
 def float_value_constraint_validation(value: float, constraint: str) -> bool:
     bottom, top = constraint.split(":")
-    top = float(top)
-    bottom = float(bottom)
+    f_top = float(top)
+    f_bottom = float(bottom)
 
-    return bottom < value < top
+    return f_bottom < value < f_top
 
 
 def int_value_constraint_validation(value: int, constraint: str) -> bool:
     bottom, top = constraint.split(":")
-    top = int(top)
-    bottom = int(bottom)
+    int_top = int(top)
+    int_bottom = int(bottom)
 
-    return bottom < value < top
+    return int_bottom < value < int_top
 
 
 param_value_constraint_validation_router = {
@@ -49,6 +51,7 @@ param_value_constraint_validation_router = {
     "mo_link": non_value_constraint_validation,
     "prm_link": non_value_constraint_validation,
     "sequence": non_value_constraint_validation,
+    "enum": str_value_constraint_validation,
 }
 
 

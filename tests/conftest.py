@@ -1,55 +1,43 @@
 from typing import AsyncIterator
 from unittest.mock import patch
 
-import pytest_asyncio
 from fastapi import FastAPI
-from httpx import AsyncClient, ASGITransport
-
-
+from httpx import ASGITransport, AsyncClient
+from main import v1_app as real_app
+import pytest_asyncio
 from sqlalchemy.ext.asyncio import (
-    create_async_engine,
+    AsyncEngine,
     AsyncSession,
     async_sessionmaker,
-    AsyncEngine,
+    create_async_engine,
 )
 from sqlalchemy.pool import NullPool
 from testcontainers.postgres import (
     PostgresContainer,
 )
 
-from application.common.uow import UoW
-from main import v1_app as real_app
-from models import Base
 from config import setup_config
+from di import get_async_session
+from models import Base
 
-db_url = setup_config().test_database_url.unicode_string()
 
-if setup_config().tests.run_container_postgres_local:
-
-    class DBContainer(PostgresContainer):
-        @property
-        def connection_url(self, host: str | None = None) -> str:
-            if not host:
-                host = setup_config().tests.docker_db_host
-            return str(super().get_connection_url(host=host))
-
-    @pytest_asyncio.fixture(scope="session", loop_scope="session")
-    async def postgres_container() -> AsyncIterator[DBContainer]:
-        postgres_container = DBContainer(
+@pytest_asyncio.fixture(scope="session")
+def db_url():
+    if setup_config().tests.run_container_postgres_local:
+        with PostgresContainer(
             username=setup_config().tests.user,
             password=setup_config().tests.db_pass,
             dbname="test_db",
             driver="asyncpg",
-        )
-        with postgres_container as container:
-            yield container
-            container.volumes.clear()
-
-    db_url = postgres_container.connection_url
+        ) as postgres:
+            yield postgres.get_connection_url()
+    else:
+        db_url = setup_config().test_database_url.unicode_string()
+        yield db_url
 
 
 @pytest_asyncio.fixture(scope="session", loop_scope="session")
-async def test_engine() -> AsyncIterator[AsyncEngine]:
+async def test_engine(db_url) -> AsyncIterator[AsyncEngine]:
     engine = create_async_engine(
         url=db_url,
         poolclass=NullPool,
@@ -70,18 +58,19 @@ async def test_engine() -> AsyncIterator[AsyncEngine]:
 @pytest_asyncio.fixture(scope="function", loop_scope="function")
 async def test_session(
     test_engine: AsyncEngine,
-) -> AsyncIterator[AsyncSession]:
+):
     """Create test database session"""
-    async_session = async_sessionmaker(
+    session_factory = async_sessionmaker(
         bind=test_engine,
         class_=AsyncSession,
         expire_on_commit=False,
     )
-
-    async with async_session() as session:
-        yield session
+    async with session_factory() as session:
         try:
+            yield session
+        except Exception:
             await session.rollback()
+            raise
         finally:
             await session.close()
 
@@ -119,7 +108,7 @@ async def mock_grpc_response() -> AsyncIterator:
 
 @pytest_asyncio.fixture(scope="function", loop_scope="function")
 async def app(test_session, mock_grpc_response, test_engine) -> FastAPI:
-    real_app.dependency_overrides[UoW] = lambda: test_session
+    real_app.dependency_overrides[get_async_session] = lambda: test_session
     return real_app
 
 

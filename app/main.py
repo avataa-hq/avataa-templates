@@ -1,25 +1,54 @@
+from contextlib import asynccontextmanager
+
+from dishka import make_async_container
+from dishka.integrations.fastapi import setup_dishka
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import setup_config
+from infrastructure.di.providers import (
+    DatabaseProvider,
+    InteractorProvider,
+    RepositoryProvider,
+)
+from infrastructure.grpc.config import cleanup_grpc_services, init_grpc_services
 from init_app import create_app
-from di import init_dependencies
+from logs import conf_logging
 from presentation.api.v1.endpoints import (
-    template_registry_router,
     template_object_router,
-    template_router,
     template_parameter_router,
+    template_registry_router,
+    template_router,
 )
 
-prefix = "/api/object_templates"
-app_title = "Template API"
-app_version = "1"
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_grpc_services()
+    conf_logging(setup_config().app)
+    yield
+    await cleanup_grpc_services()
+    await app.state.dishka_container.close()
+
+
+app_title = setup_config().app.app_title
+prefix = setup_config().app.prefix
+app_version = setup_config().app.app_version
 
 app = create_app(
     documentation_enabled=setup_config().app.docs_enabled,
     root_path=prefix,
     title=app_title,
     version=app_version,
+    lifespan=lifespan,
 )
+container = make_async_container(
+    DatabaseProvider(),
+    RepositoryProvider(),
+    InteractorProvider(),
+)
+
+setup_dishka(container=container, app=app)
 
 app.add_middleware(
     CORSMiddleware,
@@ -44,4 +73,3 @@ v1_app.include_router(template_object_router.router)
 v1_app.include_router(template_router.router)
 
 app.mount(f"/v{app_version}", v1_app)
-init_dependencies(v1_app)

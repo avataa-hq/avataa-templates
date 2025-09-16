@@ -1,43 +1,50 @@
 [project]
 name = "object-templates"
-version = "0.1.0"
+version = "3.0.2"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "alembic==1.15.2",
+    "alembic==1.16.5",
     "asyncpg==0.30.0",
-    "confluent-kafka==2.9.0",
-    "fastapi==0.115.12",
-    "grpcio==1.64.1",
-    "protobuf==5.29.3",
-    "pydantic==2.11.1",
-    "pydantic-settings==2.8.1",
-    "python-keycloak==5.3.1",
-    "sqlalchemy[asyncio]==2.0.40",
-    "uvicorn==0.34.0",
+    "confluent-kafka[protobuf,schemaregistry]==2.11.1",
+    "dishka==1.6.0",
+    "fastapi==0.116.1",
+    "grpcio==1.74.0",
+    "protobuf==6.32.1",
+    "pydantic==2.11.7",
+    "pydantic-settings==2.10.1",
+    "pyjwt==2.10.1",
+    "python-keycloak==5.8.1",
+    "sqlalchemy[asyncio]==2.0.43",
+    "uvicorn==0.35.0",
 ]
 
 [dependency-groups]
 dev = [
-    "mypy==1.15.0",
-    "pre-commit==4.2.0",
+    "black>=25.1.0",
+    "grpcio-tools>=1.74.0",
+    "mypy>=1.18.1",
+    "pre-commit>=4.3.0",
+    "ty>=0.0.1a20",
+    "types-cachetools==6.2.0.20250827",
 ]
 lint = [
-    "ruff==0.11.2",
+    "ruff==0.13.0",
 ]
 tests = [
     "httpx==0.28.1",
-    "pytest==8.3.5",
-    "pytest-asyncio==0.26.0",
-    "testcontainers==4.9.2",
+    "pytest==8.4.2",
+    "pytest-asyncio==1.2.0",
+    "pytest-cov==7.0.0",
+    "testcontainers==4.13.0",
 ]
 security = [
-    "pip-audit==2.7.3",
+    "pip-audit==2.9.0",
 ]
 migrations = [
-    "alembic==1.15.2",
+    "alembic>=1.16.5",
     "asyncpg==0.30.0",
-    "pydantic-settings==2.8.1",
-    "sqlalchemy==2.0.40",
+    "pydantic-settings>=2.10.1",
+    "sqlalchemy[asyncio]>=2.0.43",
 ]

@@ -1,6 +1,7 @@
 import ast
 from datetime import datetime
-from typing import Optional, Callable
+import json
+from typing import Callable
 
 
 def str_validation(value: str) -> bool:
@@ -80,12 +81,24 @@ param_validation_by_val_type_router = {
     "mo_link": mo_link_validation,
     "prm_link": prm_link_validation,
     "sequence": sequence_validation,
+    "enum": str_validation,
 }
+
+
+def parse_maybe_list(value: str) -> list | None:
+    try:
+        result = ast.literal_eval(value)
+    except (ValueError, SyntaxError):
+        try:
+            result = json.loads(value)
+        except json.JSONDecodeError:
+            return None
+    return result if isinstance(result, list) else None
 
 
 def validate_by_val_type(
     val_type: str,
-    value: Optional[str],
+    value: str | None,
     is_multiple: bool = False,
 ) -> bool:
     """
@@ -99,7 +112,7 @@ def validate_by_val_type(
     Returns:
         bool: True if the value(s) are valid; False otherwise.
     """
-    validator_function: Optional[Callable] = (
+    validator_function: Callable | None = (
         param_validation_by_val_type_router.get(val_type)
     )
 
@@ -107,11 +120,8 @@ def validate_by_val_type(
         return True
 
     if is_multiple:
-        try:
-            value_list = ast.literal_eval(value)
-            if not isinstance(value_list, list):
-                return False
-        except (ValueError, SyntaxError):
+        value_list = parse_maybe_list(value)
+        if value_list is None:
             return False
 
         return all(validator_function(str(item)) for item in value_list)
