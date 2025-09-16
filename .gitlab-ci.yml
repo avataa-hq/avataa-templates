@@ -517,7 +517,6 @@ cleanup:
       digests_to_remove=$(echo "${images}" | jq -cr '.[] | select( .tags == null ) | .digest');
       if [ -z "${digests_to_remove}" ] ; then 
           echo "No images to remove!";
-
       else
           while IFS= read -r digest_to_remove; do
               echo -e "Remove image digest ${digest_to_remove}\n";
@@ -527,23 +526,6 @@ cleanup:
                 "${REGISTRY_PROTOCOL}://${REGISTRY_URL}/api/v2.0/projects/${PROJECT_NAME}/repositories/${REGISTRY_MS_PATH}%252F${CI_PROJECT_NAME}/artifacts/${digest_to_remove}" 
           done < <(printf '%s\n' "${digests_to_remove}");
       fi;
-    - echo "5";
-    - |
-      images_to_filter_old_tags=$(echo "${images}" | jq -cr "
-        [.[] 
-          | select(.tags != null) 
-          | select((.tags | map(.name) | index(\"$DEVELOP_TAG\") or index(\"$LATEST_TAG\") | not) 
-                  and ((.tags | length > $REGISTRY_MAX_TAGS_IN_DIGEST) | not))
-        ]
-      ");
-    - echo "${images_to_filter_old_tags}"
-    - echo "${images_to_filter_old_tags}" | jq -cr 'map(.tags) | flatten | unique | .[].name'
-    # - echo "${images_to_filter_old_tags}" | jq -cr 'map(.tags) | flatten | unique | .[].name' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$'
-    # - |
-    #   echo "${images_to_filter_old_tags}" | jq -cr 'map(.tags) | flatten | unique | .[].name' \
-    #       | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
-    #       | sort -Vr \
-    #       | tail -n +$((REGISTRY_VERSIONS_KEEP+1))
     - |
       # remove all other than REGISTRY_VERSIONS_KEEP=3 last tags/versions, don't remove digest where more then REGISTRY_MAX_TAGS_IN_DIGEST=2
       images_to_filter_old_tags=$(echo "${images}" | jq -cr "
@@ -553,7 +535,6 @@ cleanup:
                   and ((.tags | length > $REGISTRY_MAX_TAGS_IN_DIGEST) | not))
         ]
       ");
-      echo ${images_to_filter_old_tags};
       if echo "${images_to_filter_old_tags}" | jq -e 'length == 0' >/dev/null ; then 
           echo "No images to remove!";
           exit 0
@@ -563,7 +544,6 @@ cleanup:
           | sort -Vr \
           | tail -n +$((REGISTRY_VERSIONS_KEEP+1))
         );
-        echo ${tags_old_versions_to_remove};
         if [ -z "${tags_old_versions_to_remove}" ] ; then 
             echo "No old versions to remove!";
             exit 0
