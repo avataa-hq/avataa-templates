@@ -507,13 +507,16 @@ cleanup:
         -H 'accept: application/json' \
         "${REGISTRY_PROTOCOL}://${REGISTRY_URL}/api/v2.0/projects/${PROJECT_NAME}/repositories/${REGISTRY_MS_PATH}%252F${CI_PROJECT_NAME}/artifacts?page=1&page_size=50&with_tag=true");
     - |
+      # if no images
       if echo "${images}" | jq -e 'length == 0' >/dev/null ; then 
           echo -e "No images for project \"${PROJECT_NAME}\"!";
       fi;
+    - |
       # remove empty tags digests
       digests_to_remove=$(echo "${images}" | jq -cr '.[] | select( .tags == null ) | .digest');
       if [ -z "${digests_to_remove}" ] ; then 
           echo "No images to remove!";
+
       else
           while IFS= read -r digest_to_remove; do
               echo -e "Remove image digest ${digest_to_remove}\n";
@@ -532,24 +535,30 @@ cleanup:
                   and ((.tags | length > $REGISTRY_MAX_TAGS_IN_DIGEST) | not))
         ]
       ");
-      tags_old_versions_to_remove=$(echo "${images_to_filter_old_tags}" | jq -cr 'map(.tags) | flatten | unique | .[].name' \
-        | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
-        | sort -Vr \
-        | tail -n +$((REGISTRY_VERSIONS_KEEP+1))
-      );
-      if [ -z "${tags_old_versions_to_remove}" ] ; then 
-          echo "No old versions to remove!";
+      if [ -z "${images_to_filter_old_tags}" ] ; then 
+          echo "No images to remove!";
+          exit 0
       else
-          while IFS= read -r tag_to_remove; do
-              echo -e "Remove old image tag ${tag_to_remove}\n";
-              if ! curl -s -S -X 'DELETE' --max-time 7 \
-                -u "${REGISTRY_USERNAME}:${REGISTRY_PASSWORD}" \
-                -H 'accept: application/json' \
-                "${REGISTRY_PROTOCOL}://${REGISTRY_URL}/api/v2.0/projects/${PROJECT_NAME}/repositories/${REGISTRY_MS_PATH}%252F${CI_PROJECT_NAME}/artifacts/${tag_to_remove}"; 
-              then
-                echo "Failed to remove ${tag_to_remove}" >&2
-              fi
-          done < <(printf '%s\n' "${tags_old_versions_to_remove}");
+        tags_old_versions_to_remove=$(echo "${images_to_filter_old_tags}" | jq -cr 'map(.tags) | flatten | unique | .[].name' \
+          | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
+          | sort -Vr \
+          | tail -n +$((REGISTRY_VERSIONS_KEEP+1))
+        );
+        if [ -z "${tags_old_versions_to_remove}" ] ; then 
+            echo "No old versions to remove!";
+            exit 0
+        else
+            while IFS= read -r tag_to_remove; do
+                echo -e "Remove old image tag ${tag_to_remove}\n";
+                if ! curl -s -S -X 'DELETE' --max-time 7 \
+                  -u "${REGISTRY_USERNAME}:${REGISTRY_PASSWORD}" \
+                  -H 'accept: application/json' \
+                  "${REGISTRY_PROTOCOL}://${REGISTRY_URL}/api/v2.0/projects/${PROJECT_NAME}/repositories/${REGISTRY_MS_PATH}%252F${CI_PROJECT_NAME}/artifacts/${tag_to_remove}"; 
+                then
+                  echo "Failed to remove ${tag_to_remove}" >&2
+                fi
+            done < <(printf '%s\n' "${tags_old_versions_to_remove}");
+        fi;
       fi;
   rules:
     # if event = push && target = develop
