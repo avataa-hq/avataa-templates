@@ -527,18 +527,6 @@ cleanup:
                 "${REGISTRY_PROTOCOL}://${REGISTRY_URL}/api/v2.0/projects/${PROJECT_NAME}/repositories/${REGISTRY_MS_PATH}%252F${CI_PROJECT_NAME}/artifacts/${digest_to_remove}" 
           done < <(printf '%s\n' "${digests_to_remove}");
       fi;
-    - echo "1";
-    - echo "${images}";
-    - echo "2";
-    - echo "${images}" | jq -cr;
-    - echo "3";
-    - echo "${images}" | jq -cr ".[]"
-    - echo "${images}" | jq -cr "[.[]]"
-    - echo "4";
-    - echo "${images}" | jq -cr "[.[] | select(.tags != null) | select(.tags != null) ]"
-    - echo "${images}" | jq -cr "[.[] | select(.tags != null) | select((.tags)) ]"
-    - echo "${images}" | jq -cr "[.[] | select(.tags != null) | select(.tags  | map(.name)) ]"
-    - echo "${images}" | jq -cr "[.[] | select(.tags != null) | select((.tags | map(.name) | index(\"$DEVELOP_TAG\") or index(\"$LATEST_TAG\") )) ]"
     - echo "5";
     - |
       images_to_filter_old_tags=$(echo "${images}" | jq -cr "
@@ -548,6 +536,9 @@ cleanup:
                   and ((.tags | length > $REGISTRY_MAX_TAGS_IN_DIGEST) | not))
         ]
       ");
+    - echo "${images_to_filter_old_tags}"
+    - echo "${images_to_filter_old_tags}" | jq -cr 'map(.tags) | flatten | unique | .[].name'
+    - echo "${images_to_filter_old_tags}" | jq -cr 'map(.tags) | flatten | unique | .[].name' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$'
     - |
       echo "${images_to_filter_old_tags}" | jq -cr 'map(.tags) | flatten | unique | .[].name' \
           | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
