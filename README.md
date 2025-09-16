@@ -34,6 +34,9 @@ KEYCLOAK_REDIRECT_HOST=<keycloak_external_host>
 KEYCLOAK_REDIRECT_PORT=<keycloak_external_port>
 KEYCLOAK_REDIRECT_PROTOCOL=<keycloak_external_protocol>
 KEYCLOAK_SCOPE=<keycloak_scope>
+SECURITY_MIDDLEWARE_HOST=<security_middleware_host>
+SECURITY_MIDDLEWARE_PORT=<security_middleware_port>
+SECURITY_MIDDLEWARE_PROTOCOL=<security_middleware_protocol>
 SECURITY_TYPE=<security_type>
 ```
 
