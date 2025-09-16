@@ -527,6 +527,16 @@ cleanup:
                 "${REGISTRY_PROTOCOL}://${REGISTRY_URL}/api/v2.0/projects/${PROJECT_NAME}/repositories/${REGISTRY_MS_PATH}%252F${CI_PROJECT_NAME}/artifacts/${digest_to_remove}" 
           done < <(printf '%s\n' "${digests_to_remove}");
       fi;
+    - echo "1";
+    - echo "${images}";
+    - echo "2";
+    - echo "${images}" | jq -cr;
+    - echo "3";
+    - echo "${images}" | jq -cr ".[]"
+    - echo "4";
+    - echo "${images}" | jq -cr "[.[] | select((.tags | map(.name) | index(\"$DEVELOP_TAG\") or index(\"$LATEST_TAG\") )) ]"
+    - echo "5";
+    - echo "${images}" | jq -cr "[.[] | select((.tags | map(.name) | index(\"$DEVELOP_TAG\") or index(\"$LATEST_TAG\") | not )) ]"
     - |
       # remove all other than REGISTRY_VERSIONS_KEEP=3 last tags/versions, don't remove digest where more then REGISTRY_MAX_TAGS_IN_DIGEST=2
       images_to_filter_old_tags=$(echo "${images}" | jq -cr "
