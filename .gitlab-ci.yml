@@ -554,7 +554,7 @@ cleanup:
         ]
       ");
       echo ${images_to_filter_old_tags};
-      if "${images_to_filter_old_tags}" | jq -e 'length == 0' >/dev/null ; then 
+      if echo "${images_to_filter_old_tags}" | jq -e 'length == 0' >/dev/null ; then 
           echo "No images to remove!";
           exit 0
       else
