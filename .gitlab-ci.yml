@@ -533,7 +533,11 @@ cleanup:
     - echo "${images}" | jq -cr;
     - echo "3";
     - echo "${images}" | jq -cr ".[]"
+    - echo "${images}" | jq -cr "[.[]]"
     - echo "4";
+    - echo "${images}" | jq -cr "[.[] | select(.tags != null) ]"
+    - echo "${images}" | jq -cr "[.[] | select((.tags)) ]"
+    - echo "${images}" | jq -cr "[.[] | select(.tags  | map(.name)) ]"
     - echo "${images}" | jq -cr "[.[] | select((.tags | map(.name) | index(\"$DEVELOP_TAG\") or index(\"$LATEST_TAG\") )) ]"
     - echo "5";
     - echo "${images}" | jq -cr "[.[] | select((.tags | map(.name) | index(\"$DEVELOP_TAG\") or index(\"$LATEST_TAG\") | not )) ]"
