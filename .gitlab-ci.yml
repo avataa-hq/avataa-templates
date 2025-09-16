@@ -538,12 +538,12 @@ cleanup:
       ");
     - echo "${images_to_filter_old_tags}"
     - echo "${images_to_filter_old_tags}" | jq -cr 'map(.tags) | flatten | unique | .[].name'
-    - echo "${images_to_filter_old_tags}" | jq -cr 'map(.tags) | flatten | unique | .[].name' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$'
-    - |
-      echo "${images_to_filter_old_tags}" | jq -cr 'map(.tags) | flatten | unique | .[].name' \
-          | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
-          | sort -Vr \
-          | tail -n +$((REGISTRY_VERSIONS_KEEP+1))
+    # - echo "${images_to_filter_old_tags}" | jq -cr 'map(.tags) | flatten | unique | .[].name' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$'
+    # - |
+    #   echo "${images_to_filter_old_tags}" | jq -cr 'map(.tags) | flatten | unique | .[].name' \
+    #       | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
+    #       | sort -Vr \
+    #       | tail -n +$((REGISTRY_VERSIONS_KEEP+1))
     - |
       # remove all other than REGISTRY_VERSIONS_KEEP=3 last tags/versions, don't remove digest where more then REGISTRY_MAX_TAGS_IN_DIGEST=2
       images_to_filter_old_tags=$(echo "${images}" | jq -cr "
@@ -554,7 +554,7 @@ cleanup:
         ]
       ");
       echo ${images_to_filter_old_tags};
-      if [ -z "${images_to_filter_old_tags}" ] ; then 
+      if "${images_to_filter_old_tags}" | jq -e 'length == 0' >/dev/null ; then 
           echo "No images to remove!";
           exit 0
       else
