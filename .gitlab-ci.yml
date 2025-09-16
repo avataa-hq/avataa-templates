@@ -510,6 +510,7 @@ cleanup:
       # if no images
       if echo "${images}" | jq -e 'length == 0' >/dev/null ; then 
           echo -e "No images for project \"${PROJECT_NAME}\"!";
+          exit 0
       fi;
     - |
       # remove empty tags digests
