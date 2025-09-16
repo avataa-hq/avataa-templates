@@ -540,7 +540,14 @@ cleanup:
     - echo "${images}" | jq -cr "[.[] | select(.tags != null) | select(.tags  | map(.name)) ]"
     - echo "${images}" | jq -cr "[.[] | select(.tags != null) | select((.tags | map(.name) | index(\"$DEVELOP_TAG\") or index(\"$LATEST_TAG\") )) ]"
     - echo "5";
-    - echo "${images}" | jq -cr "[.[] | select((.tags | map(.name) | index(\"$DEVELOP_TAG\") or index(\"$LATEST_TAG\") | not )) ]"
+    - |
+      echo "${images}" | jq -cr "
+        [.[] 
+          | select(.tags != null) 
+          | select((.tags | map(.name) | index(\"$DEVELOP_TAG\") or index(\"$LATEST_TAG\") | not) 
+                  and ((.tags | length > $REGISTRY_MAX_TAGS_IN_DIGEST) | not))
+        ]
+      "
     - |
       # remove all other than REGISTRY_VERSIONS_KEEP=3 last tags/versions, don't remove digest where more then REGISTRY_MAX_TAGS_IN_DIGEST=2
       images_to_filter_old_tags=$(echo "${images}" | jq -cr "
