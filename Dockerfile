@@ -18,10 +18,10 @@ FROM python:3.11.13-slim-trixie AS runner-image
 # envs
 ENV PYTHONUNBUFFERED=1
 
-RUN apt-get update && apt-get install --no-install-recommends -y supervisor && \
-	apt-get clean && rm -rf /var/lib/apt/lists/*
+# RUN apt-get update && apt-get install --no-install-recommends -y supervisor && \
+# 	apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN pip install -U --no-cache-dir setuptools
+RUN pip install --upgrade --no-cache-dir supervisor setuptools
 
 # add worker user
 RUN adduser --disabled-password --gecos "" worker
@@ -34,7 +34,7 @@ ENV PATH="/home/worker/.venv/bin:${PATH}"
 COPY --chown=worker:worker app /home/worker/app
 
 # copy supervisor config
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY supervisord.conf /etc/supervisor/supervisord.conf
 
 # login as worker user
 USER worker

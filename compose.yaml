@@ -26,7 +26,7 @@ services:
     container_name: object-templates
     command: >
       bash -c "alembic upgrade head && 
-        /usr/bin/supervisord"
+        supervisord"
     # ports:
     #   - "8000:8000"
     #   - "50051:50051"
