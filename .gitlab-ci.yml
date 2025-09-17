@@ -213,7 +213,7 @@ unit_test:
   stage: test
   image: ${REGISTRY_URL}/${PROJECT_NAME}/${PYTHON_IMAGE}:${PYTHON_IMAGE_VERSION}
   services:
-    - name: postgres:${POSTGRES_VERSION}
+    - name: ${POSTGRES_IMAGE}:${POSTGRES_VERSION}
       alias: postgres
   script:
     - uv sync --no-dev --group ${UV_GROUP_TESTS}
@@ -246,7 +246,7 @@ migrations_test:
     POSTGRES_PASSWORD: ${TESTS_POSTGRES_PASSWORD}
   image: ${REGISTRY_URL}/${PROJECT_NAME}/${PYTHON_IMAGE}:${PYTHON_IMAGE_VERSION}
   services:
-    - name: postgres:${POSTGRES_VERSION}
+    - name: ${POSTGRES_IMAGE}:${POSTGRES_VERSION}
       alias: postgres
   script:
     - uv sync --only-group ${UV_GROUP_MIGRATIONS}
