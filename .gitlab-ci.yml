@@ -28,13 +28,10 @@ pre:
         -o $HOME/.local/bin/jq
       chmod +x $HOME/.local/bin/jq;
   rules:
-    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop
+    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = main
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
           $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
-          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
-    # if event = push && target = develop
-    - if: $CI_PIPELINE_SOURCE == 'push' &&
-          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $MAIN_BRANCH
     # if event = push && target = main
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $MAIN_BRANCH
@@ -87,13 +84,10 @@ start_ec2_amd64:
       done;
       echo "Instance is now running!"
   rules:
-    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop
+    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = main
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
           $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
-          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
-    # if event = push && target = develop
-    - if: $CI_PIPELINE_SOURCE == 'push' &&
-          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $MAIN_BRANCH
     # if event = push && target = main
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $MAIN_BRANCH
@@ -146,13 +140,10 @@ start_ec2_arm64:
       done;
       echo "Instance is now running!"
   rules:
-      # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop
+      # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = main
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
           $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
-          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
-    # if event = push && target = develop
-    - if: $CI_PIPELINE_SOURCE == 'push' &&
-          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $MAIN_BRANCH
     # if event = push && target = main
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $MAIN_BRANCH
@@ -170,13 +161,10 @@ prepare_coordinator:
     # put project_id to pipeline lock file
     - echo $CI_PROJECT_ID > pipeline-running-${CI_PIPELINE_ID}.lock
   rules:
-    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop
+    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = main
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
           $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
-          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
-    # if event = push && target = develop
-    - if: $CI_PIPELINE_SOURCE == 'push' &&
-          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $MAIN_BRANCH
     # if event = push && target = main
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $MAIN_BRANCH
@@ -197,21 +185,13 @@ lint:
     - if [ -d "${TESTS_DIR}" ]; then ruff check ${TESTS_DIR} || ruff check --statistics ${TESTS_DIR}; fi 
     - if [ -d "${TESTS_DIR}" ]; then ruff format --diff ${TESTS_DIR} || ruff format --check ${TESTS_DIR}; fi 
   rules:
-    # works (!) - if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop
+    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = main
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
           $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
-          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
-    # works (!) - if event = push && target = /^feature\/A[DV]-\d+$/
-    # - if: $CI_PIPELINE_SOURCE == 'push' &&
-    #       $CI_COMMIT_BRANCH =~ $FEATURE_BRANCH_REGEX
-    # works (!) - if event = push && target = develop
-    - if: $CI_PIPELINE_SOURCE == 'push' &&
-          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
-    # works (!) - if event = push && target = main
+          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $MAIN_BRANCH
+    # if event = push && target = main
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $MAIN_BRANCH
-    # $CI_DEFAULT_BRANCH = develop
-    # $CI_COMMIT_REF_NAME == 'main'
   tags:
     - main-docker
   interruptible: true
@@ -240,13 +220,10 @@ unit_test:
     - source .venv/bin/activate
     - pytest
   rules:
-    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop
+    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = main
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
           $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
-          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
-    # if event = push && target = develop
-    - if: $CI_PIPELINE_SOURCE == 'push' &&
-          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $MAIN_BRANCH
     # if event = push && target = main
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $MAIN_BRANCH
@@ -277,13 +254,10 @@ migrations_test:
     - cd ${APP_DIR}
     - ${MIGRATIONS_COMMAND}
   rules:
-    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop
+    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = main
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
           $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
-          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
-    # if event = push && target = develop
-    - if: $CI_PIPELINE_SOURCE == 'push' &&
-          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $MAIN_BRANCH
     # if event = push && target = main
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $MAIN_BRANCH
@@ -307,13 +281,10 @@ package_vulns_test:
     - trivy fs --pkg-types=library --format table --scanners vuln --exit-code 1 ${REQUIREMENTS_FILENAME}
       --output ${TRIVY_REPORT_FILENAME} || cat ${TRIVY_REPORT_FILENAME}
   rules:
-    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop
+    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = main
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
           $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
-          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
-    # if event = push && target = develop
-    - if: $CI_PIPELINE_SOURCE == 'push' &&
-          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $MAIN_BRANCH
     # if event = push && target = main
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $MAIN_BRANCH
@@ -561,9 +532,6 @@ cleanup:
         fi;
       fi;
   rules:
-    # if event = push && target = develop
-    - if: $CI_PIPELINE_SOURCE == 'push' &&
-          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
     # if event = push && target = main
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $MAIN_BRANCH
@@ -627,13 +595,10 @@ check_running_pipelines:
           echo "true" > stop_ec2_instances_${CI_PIPELINE_ID}.final
       fi
   rules:
-    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop
+    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = main
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
           $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
-          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
-    # if event = push && target = develop
-    - if: $CI_PIPELINE_SOURCE == 'push' &&
-          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $MAIN_BRANCH
     # if event = push && target = main
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $MAIN_BRANCH
@@ -654,13 +619,10 @@ stop_ec2_amd64:
       fi
 # check if other lock files found - DON'T STOP SERVER
   rules:
-    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop
+    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = main
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
           $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
-          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
-    # if event = push && target = develop
-    - if: $CI_PIPELINE_SOURCE == 'push' &&
-          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $MAIN_BRANCH
     # if event = push && target = main
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $MAIN_BRANCH
@@ -680,13 +642,10 @@ stop_ec2_arm64:
         aws ec2 stop-instances --instance-ids ${EC2_INSTANCE_ID_ARM64}
       fi
   rules:
-    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop
+    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = main
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
           $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
-          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
-    # if event = push && target = develop
-    - if: $CI_PIPELINE_SOURCE == 'push' &&
-          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $MAIN_BRANCH
     # if event = push && target = main
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $MAIN_BRANCH
@@ -707,13 +666,10 @@ cleanup_coordinator:
     # - rm ~/${BUILDS_CI_PATH}/${CI_PROJECT_NAME}_new_version
     # remove image digest
   rules:
-    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = develop
+    # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = main
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
           $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ $FEATURE_BRANCH_REGEX &&
-          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $DEVELOP_BRANCH
-    # if event = push && target = develop
-    - if: $CI_PIPELINE_SOURCE == 'push' &&
-          $CI_COMMIT_BRANCH == $DEVELOP_BRANCH
+          $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $MAIN_BRANCH
     # if event = push && target = main
     - if: $CI_PIPELINE_SOURCE == 'push' &&
           $CI_COMMIT_BRANCH == $MAIN_BRANCH
