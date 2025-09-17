@@ -21,7 +21,7 @@ ENV PYTHONUNBUFFERED=1
 # RUN apt-get update && apt-get install --no-install-recommends -y supervisor && \
 # 	apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --upgrade --no-cache-dir supervisor setuptools
+RUN pip install --upgrade --no-cache-dir setuptools supervisor
 
 # add worker user
 RUN adduser --disabled-password --gecos "" worker
