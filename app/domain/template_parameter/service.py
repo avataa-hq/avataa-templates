@@ -22,6 +22,7 @@ from domain.template_parameter.query import TemplateParameterReader
 from domain.template_parameter.vo.template_parameter_filter import (
     TemplateParameterFilter,
 )
+from utils.val_type_validators import validate_by_val_type
 
 
 class TemplateParameterValidityService:
@@ -44,11 +45,13 @@ class TemplateParameterValidityService:
         self._uow = uow
         self.logger = getLogger(self.__class__.__name__)
 
-    async def validate(self, tprm_id: int, new_val_type: str):
-        # CHeck correct valid for 2 stages.
+    async def validate(
+        self, tprm_id: int, new_val_type: str, multiple: bool
+    ) -> None:
+        # Check correct valid for 2 stages.
         # Stage 1
         list_template_id_to_update = await self.validate_stage_1(
-            tprm_id, new_val_type
+            tprm_id, new_val_type, multiple
         )
 
         # Stage 2 Check all TO for template
@@ -90,7 +93,10 @@ class TemplateParameterValidityService:
             await self.validate_stage_2(t_to_update)
 
     async def validate_stage_1(
-        self, tprm_id: int, new_val_type: str
+        self,
+        tprm_id: int,
+        new_val_type: str,
+        multiple: bool,
     ) -> list[int]:
         # Update Template Parameter and Template Object.
         # Return list template id for update
@@ -117,6 +123,11 @@ class TemplateParameterValidityService:
                         parameter.template_object_id.to_raw()
                     ].append(parameter)
                     expected_validity = parameter.val_type == new_val_type
+                    # Check value corresponds val_type
+                    correspond = validate_by_val_type(
+                        new_val_type, parameter.value, multiple
+                    )
+                    expected_validity = correspond and expected_validity
                     if parameter.valid != expected_validity:
                         parameter.set_valid(expected_validity)
                         tp_update.append(parameter)
