@@ -9,6 +9,10 @@ async def test_update_tprm(
     mock_factory,
 ) -> None:
     # Assign
+    obj_id = 141029
+    multiple_value = False
+    val_type = "int"
+
     test_messages = [
         (
             {
@@ -20,16 +24,16 @@ async def test_update_tprm(
                         "description": "",
                         "field_value": "",
                         "group": "",
-                        "id": 141029,
+                        "id": obj_id,
                         "modification_date": "2025-09-11T09:04:56.333488",
                         "modified_by": "test_client",
-                        "multiple": False,
+                        "multiple": multiple_value,
                         "name": "Score",
                         "prm_link_filter": "",
                         "required": False,
                         "returnable": False,
                         "tmo_id": 46181,
-                        "val_type": "int",
+                        "val_type": val_type,
                         "version": 73,
                     }
                 ]
@@ -54,7 +58,7 @@ async def test_update_tprm(
         mock_factory.tp_validity_service_mock.invalid_by_tprm.assert_not_called()
         mock_factory.tp_validity_service_mock.invalid_by_tmo.assert_not_called()
         mock_factory.tp_validity_service_mock.validate.assert_called_once_with(
-            141029, "int"
+            obj_id, val_type, multiple_value
         )
 
 

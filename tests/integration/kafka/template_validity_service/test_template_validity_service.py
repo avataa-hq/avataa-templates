@@ -50,7 +50,7 @@ async def test_update_tprm_with_no_change_val_type(
         interactor = await di.get(TemplateParameterValidityService)
 
         # Act
-        await interactor.validate(tprm_id, new_val_type)
+        await interactor.validate(tprm_id, new_val_type, False)
 
         # Assert
         mock_factory.to_reader_mock.get_by_ids.assert_called_once_with(
@@ -122,7 +122,7 @@ async def test_update_tprm_with_change_val_type(
         interactor = await di.get(TemplateParameterValidityService)
 
         # Act
-        await interactor.validate(tprm_id, new_val_type)
+        await interactor.validate(tprm_id, new_val_type, False)
 
         # Assert
         mock_factory.to_reader_mock.get_by_ids.assert_called_once_with(

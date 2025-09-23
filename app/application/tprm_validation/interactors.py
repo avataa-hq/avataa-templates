@@ -1,6 +1,7 @@
 from logging import getLogger
 
 from application.tprm_validation.dto import (
+    TemplateParameterValidationDTO,
     TemplateParameterValidationRequestDTO,
     TemplateParameterValidationResponseDTO,
     TemplateParameterWithTPRMData,
@@ -8,6 +9,7 @@ from application.tprm_validation.dto import (
 from application.tprm_validation.exceptions import (
     ParameterValidationException,
 )
+from domain.tprm_validation.aggregate import InventoryTprmAggregate
 from domain.tprm_validation.query import TPRMReader
 from domain.tprm_validation.vo.validation_filter import (
     ParameterValidationFilter,
@@ -24,9 +26,6 @@ class ParameterValidationInteractor(object):
     async def __call__(
         self, request: TemplateParameterValidationRequestDTO
     ) -> TemplateParameterValidationResponseDTO:
-        valid_parameters: list[TemplateParameterWithTPRMData] = []
-        invalid_parameters: list[TemplateParameterWithTPRMData] = []
-        errors: list[str] = []
         # Generate filters
         repo_filter = ParameterValidationFilter(tmo_id=request.object_type_id)
         # gRPC request
@@ -42,7 +41,30 @@ class ParameterValidationInteractor(object):
                 f" do not belong tmo {repo_filter.tmo_id}.",
             )
         #  Check user data
-        for el in request.parameter_to_validate:
+        valid_params, invalid_params, errors = self.check_user_data(
+            request.parameter_to_validate, result
+        )
+
+        # Generate results
+        return TemplateParameterValidationResponseDTO(
+            valid_items=valid_params,
+            invalid_items=invalid_params,
+            errors=errors,
+        )
+
+    @staticmethod
+    def check_user_data(
+        params_to_validate: list[TemplateParameterValidationDTO],
+        result: dict[int, InventoryTprmAggregate],
+    ) -> tuple[
+        list[TemplateParameterWithTPRMData],
+        list[TemplateParameterWithTPRMData],
+        list[str],
+    ]:
+        valid_parameters: list[TemplateParameterWithTPRMData] = []
+        invalid_parameters: list[TemplateParameterWithTPRMData] = []
+        errors: list[str] = []
+        for el in params_to_validate:
             parameter_type_id: int = el.parameter_type_id
             if not validate_by_val_type(
                 result[parameter_type_id].val_type,
@@ -113,10 +135,4 @@ class ParameterValidationInteractor(object):
                     constraint=el.constraint,
                 )
             )
-
-        # Generate results
-        return TemplateParameterValidationResponseDTO(
-            valid_items=valid_parameters,
-            invalid_items=invalid_parameters,
-            errors=errors,
-        )
+        return valid_parameters, invalid_parameters, errors

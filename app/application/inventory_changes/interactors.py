@@ -41,12 +41,15 @@ class InventoryChangesInteractor(object):
                     for el in message.get("objects", []):
                         data["tprm_id"] = el.get("id")
                         data["val_type"] = el.get("val_type")
+                        data["multiple"] = el.get("multiple")
                     tprm_ids_to_check.append(data)
 
             if tprm_ids_to_check:
                 for element in tprm_ids_to_check:
                     await self._tp_validity_service.validate(
-                        element.get("tprm_id"), element.get("val_type")
+                        element.get("tprm_id"),
+                        element.get("val_type"),
+                        element.get("multiple"),
                     )
             if tprm_ids_to_invalid:
                 await self._tp_validity_service.invalid_by_tprm(
@@ -54,7 +57,6 @@ class InventoryChangesInteractor(object):
                 )
             if tmo_ids:
                 await self._tp_validity_service.invalid_by_tmo(list(tmo_ids))
-
             await self._uow.commit()
 
         except Exception as ex:
