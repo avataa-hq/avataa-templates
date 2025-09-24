@@ -13,6 +13,10 @@ from fastapi import (
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from application.exporter.exceptions import (
+    ObjectTemplateExportApplicationException,
+)
+from application.exporter.interactors import ObjectTemplateExportInteractor
 from application.template.read.exceptions import (
     TemplateReaderApplicationException,
 )
@@ -26,6 +30,7 @@ from exceptions import (
     TemplateNotFound,
 )
 from presentation.api.v1.endpoints.dto import (
+    TemplateExportRequest,
     TemplateRequest,
     TemplateResponse,
     TemplateResponseDate,
@@ -155,3 +160,28 @@ async def delete_template(
 
     await service.commit_changes()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/templates/export")
+@inject
+async def export_templates(
+    template_data: Annotated[TemplateExportRequest, Query()],
+    interactor: FromDishka[ObjectTemplateExportInteractor],
+    user_data: Annotated[UserData, Depends(security)],
+):
+    try:
+        result = await interactor(request=template_data.to_interactor_dto())
+        print(result)
+        # output = TemplateUpdateResponse.from_application_dto(result)
+        return []
+    except ValidationError as ex:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
+        )
+    except ObjectTemplateExportApplicationException as ex:
+        raise HTTPException(status_code=ex.status_code, detail=ex.detail)
+    except Exception as ex:
+        print(type(ex), ex)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
+        )

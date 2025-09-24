@@ -1,3 +1,5 @@
+from logging import getLogger
+
 from application.common.uow import SQLAlchemyUoW
 from domain.template_parameter.service import TemplateParameterValidityService
 from services.inventory_services.db_services.template_object_service import (
@@ -20,6 +22,7 @@ class InventoryChangesInteractor(object):
         self._tp_service = tp_service
         self._tp_validity_service = tp_validity_service
         self._uow = uow
+        self.logger = getLogger(self.__class__.__name__)
 
     async def __call__(self, messages: list[tuple[dict, str, str]]):
         try:
@@ -60,6 +63,6 @@ class InventoryChangesInteractor(object):
             await self._uow.commit()
 
         except Exception as ex:
-            print(f"Error processing inventory changes: {ex}")
+            self.logger.exception("Error processing inventory changes: %s", ex)
             await self._uow.rollback()
             return False

@@ -30,10 +30,10 @@ class TemplateParameterValidityService:
         self,
         t_reader: TemplateReader,
         t_updater: TemplateUpdater,
-        tp_reader: TemplateParameterReader,
-        tp_updater: TemplateParameterUpdater,
         to_reader: TemplateObjectReader,
         to_updater: TemplateObjectUpdater,
+        tp_reader: TemplateParameterReader,
+        tp_updater: TemplateParameterUpdater,
         uow: SQLAlchemyUoW,
     ) -> None:
         self._t_reader = t_reader
