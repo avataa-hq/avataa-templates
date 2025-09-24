@@ -2,6 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from application.exporter.dto import OTExportRequestDTO
 from application.template.read.dto import (
     TemplateRequestDTO,
     TemplateResponseDataDTO,
@@ -377,4 +378,13 @@ class TemplateUpdateResponse(BaseModel):
             owner=dto.owner,
             object_type_id=dto.object_type_id,
             valid=dto.valid,
+        )
+
+
+class TemplateExportRequest(BaseModel):
+    template_ids: list[int]
+
+    def to_interactor_dto(self) -> OTExportRequestDTO:
+        return OTExportRequestDTO(
+            template_ids=self.template_ids,
         )

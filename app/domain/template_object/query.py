@@ -43,3 +43,7 @@ class TemplateObjectReader(Protocol):
     async def get_validity_by_template_id(
         self, template_id: int
     ) -> list[bool]: ...
+
+    async def get_by_template_ids(
+        self, template_ids: list[int]
+    ) -> list[TemplateObjectAggregate]: ...

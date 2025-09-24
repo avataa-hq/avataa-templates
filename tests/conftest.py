@@ -118,6 +118,6 @@ async def async_client(
 ) -> AsyncIterator[AsyncClient]:
     async with AsyncClient(
         transport=ASGITransport(app=app),
-        base_url="http://test",
+        base_url="http://127.0.0.2",
     ) as client:
         yield client

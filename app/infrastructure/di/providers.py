@@ -5,6 +5,7 @@ from dishka import Provider, Scope, provide
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.common.uow import SQLAlchemyUoW
+from application.exporter.interactors import ObjectTemplateExportInteractor
 from application.inventory_changes.interactors import InventoryChangesInteractor
 from application.template.read.interactors import TemplateReaderInteractor
 from application.template.update.interactors import TemplateUpdaterInteractor
@@ -37,6 +38,8 @@ from application.tprm_validation.interactors import (
     ParameterValidationInteractor,
 )
 from database import get_session_factory
+from domain.shared.export_service import ObjectTemplateExportService
+from domain.shared.query import DataFormatter
 from domain.template.command import TemplateUpdater
 from domain.template.query import TemplateReader
 from domain.template_object.command import (
@@ -78,6 +81,7 @@ from infrastructure.db.template_parameter.read.gateway import (
 from infrastructure.db.template_parameter.update.gateway import (
     SQLTemplateParameterUpdaterRepository,
 )
+from infrastructure.formatter.export_gateway import ExcelDataFormatter
 from infrastructure.grpc.tmo.read.gateway import GrpcTMOReaderRepository
 from infrastructure.grpc.tprm.read.gateway import GrpcTPRMReaderRepository
 from services.inventory_services.db_services import (
@@ -114,6 +118,11 @@ class RepositoryProvider(Provider):
     @provide(scope=Scope.REQUEST)
     def get_tmo_inventory_repo(self) -> TMOReader:
         return GrpcTMOReaderRepository()
+
+    ## Formatter Repo
+    @provide(scope=Scope.REQUEST)
+    def get_formatter_repo(self) -> DataFormatter:
+        return ExcelDataFormatter()
 
     ## Template Repo
     @provide(scope=Scope.REQUEST)
@@ -172,6 +181,15 @@ class RepositoryProvider(Provider):
 
 
 class InteractorProvider(Provider):
+    ## Export Interactor
+    @provide(scope=Scope.REQUEST)
+    def get_ot_exporter(
+        self,
+        ot_exporter: ObjectTemplateExportService,
+        data_formatter: DataFormatter,
+    ) -> ObjectTemplateExportInteractor:
+        return ObjectTemplateExportInteractor(ot_exporter, data_formatter)
+
     ## ParameterValidator Interactor
     @provide(scope=Scope.REQUEST)
     def get_parameter_validator(
@@ -298,8 +316,8 @@ class InteractorProvider(Provider):
         uow: SQLAlchemyUoW,
     ) -> TemplateParameterUpdaterInteractor:
         return TemplateParameterUpdaterInteractor(
-            tp_reader=tp_reader,
             to_reader=to_reader,
+            tp_reader=tp_reader,
             tp_updater=tp_updater,
             tprm_validator=tprm_validator,
             tp_validity_service=tp_validity_service,
@@ -346,20 +364,33 @@ class InteractorProvider(Provider):
         self,
         t_reader: TemplateReader,
         t_updater: TemplateUpdater,
-        tp_reader: TemplateParameterReader,
-        tp_updater: TemplateParameterUpdater,
         to_reader: TemplateObjectReader,
         to_updater: TemplateObjectUpdater,
+        tp_reader: TemplateParameterReader,
+        tp_updater: TemplateParameterUpdater,
         uow: SQLAlchemyUoW,
     ) -> TemplateParameterValidityService:
         return TemplateParameterValidityService(
             t_reader=t_reader,
             t_updater=t_updater,
-            tp_reader=tp_reader,
-            tp_updater=tp_updater,
             to_reader=to_reader,
             to_updater=to_updater,
+            tp_reader=tp_reader,
+            tp_updater=tp_updater,
             uow=uow,
+        )
+
+    @provide(scope=Scope.REQUEST)
+    def get_ot_export_service(
+        self,
+        t_reader: TemplateReader,
+        to_reader: TemplateObjectReader,
+        tp_reader: TemplateParameterReader,
+    ) -> ObjectTemplateExportService:
+        return ObjectTemplateExportService(
+            t_reader=t_reader,
+            to_reader=to_reader,
+            tp_reader=tp_reader,
         )
 
 

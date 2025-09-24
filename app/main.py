@@ -23,12 +23,12 @@ from presentation.api.v1.endpoints import (
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(cur_app: FastAPI):
     init_grpc_services()
     conf_logging(setup_config().app)
     yield
     await cleanup_grpc_services()
-    await app.state.dishka_container.close()
+    await cur_app.state.dishka_container.close()
 
 
 app_title = setup_config().app.app_title

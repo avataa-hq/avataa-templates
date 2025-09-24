@@ -246,3 +246,17 @@ class SQLTemplateObjectReaderRepository(TemplateObjectReader):
             raise TemplateObjectReaderApplicationException(
                 status_code=422, detail=GATEWAY_ERROR
             )
+
+    async def get_by_template_ids(
+        self, template_ids: list[int]
+    ) -> list[TemplateObjectAggregate]:
+        query = select(TemplateObject)
+        query = query.where(TemplateObject.template_id.in_(template_ids))
+        try:
+            result = await self._session.scalars(query)
+            return [sql_to_domain(to) for to in result.all()]
+        except Exception as ex:
+            self.logger.exception(ex)
+            raise TemplateObjectReaderApplicationException(
+                status_code=422, detail=GATEWAY_ERROR
+            )
