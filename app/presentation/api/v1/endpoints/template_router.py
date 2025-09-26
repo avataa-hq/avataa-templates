@@ -164,10 +164,10 @@ async def delete_template(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.get("/templates/export")
+@router.post("/templates/export")
 @inject
 async def export_templates(
-    template_data: Annotated[TemplateExportRequest, Query()],
+    template_data: TemplateExportRequest,
     interactor: FromDishka[ObjectTemplateExportInteractor],
     user_data: Annotated[UserData, Depends(security)],
 ):
@@ -180,7 +180,6 @@ async def export_templates(
                 "Content-Disposition": f"attachment; filename={result.filename}"
             },
         )
-        return []
     except ValidationError as ex:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
