@@ -1,3 +1,4 @@
+from io import BytesIO
 from typing import Annotated, List, Optional
 
 from dishka.integrations.fastapi import FromDishka, inject
@@ -12,6 +13,7 @@ from fastapi import (
 )
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.responses import StreamingResponse
 
 from application.exporter.exceptions import (
     ObjectTemplateExportApplicationException,
@@ -171,8 +173,13 @@ async def export_templates(
 ):
     try:
         result = await interactor(request=template_data.to_interactor_dto())
-        print(result)
-        # output = TemplateUpdateResponse.from_application_dto(result)
+        return StreamingResponse(
+            BytesIO(result.excel_file.getvalue()),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition": f"attachment; filename={result.filename}"
+            },
+        )
         return []
     except ValidationError as ex:
         raise HTTPException(

@@ -38,8 +38,9 @@ from application.tprm_validation.interactors import (
     ParameterValidationInteractor,
 )
 from database import get_session_factory
-from domain.shared.export_service import ObjectTemplateExportService
-from domain.shared.query import DataFormatter
+from domain.exporter.enrich_service import OTEnrichService
+from domain.exporter.export_service import ObjectTemplateExportService
+from domain.exporter.query import DataFormatter
 from domain.template.command import TemplateUpdater
 from domain.template.query import TemplateReader
 from domain.template_object.command import (
@@ -181,14 +182,29 @@ class RepositoryProvider(Provider):
 
 
 class InteractorProvider(Provider):
+    ## Data Enricher
+    @provide(scope=Scope.REQUEST)
+    def get_enricher(
+        self,
+        tmo_repo: TMOReader,
+        tprm_reader: TPRMReader,
+    ) -> OTEnrichService:
+        return OTEnrichService(
+            tmo_repo,
+            tprm_reader,
+        )
+
     ## Export Interactor
     @provide(scope=Scope.REQUEST)
     def get_ot_exporter(
         self,
         ot_exporter: ObjectTemplateExportService,
         data_formatter: DataFormatter,
+        enricher: OTEnrichService,
     ) -> ObjectTemplateExportInteractor:
-        return ObjectTemplateExportInteractor(ot_exporter, data_formatter)
+        return ObjectTemplateExportInteractor(
+            ot_exporter, data_formatter, enricher
+        )
 
     ## ParameterValidator Interactor
     @provide(scope=Scope.REQUEST)

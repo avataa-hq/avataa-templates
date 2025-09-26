@@ -1,13 +1,15 @@
 from logging import getLogger
 
+from application.exporter.dto import TemplateExportResponseDTO
 from application.exporter.exceptions import (
     ObjectTemplateExportApplicationException,
 )
 from application.template_object.read.exceptions import (
     TemplateObjectReaderApplicationException,
 )
-from domain.shared.export_service import ObjectTemplateExportService
-from domain.shared.query import DataFormatter
+from domain.exporter.enrich_service import OTEnrichService
+from domain.exporter.export_service import ObjectTemplateExportService
+from domain.exporter.query import DataFormatter
 
 
 class ObjectTemplateExportInteractor(object):
@@ -15,22 +17,27 @@ class ObjectTemplateExportInteractor(object):
         self,
         ot_exporter: ObjectTemplateExportService,
         data_formatter: DataFormatter,
+        enricher: OTEnrichService,
     ):
         self._ot_exporter = ot_exporter
         self._data_formatter = data_formatter
+        self._enricher = enricher
         self.logger = getLogger(self.__class__.__name__)
 
     async def __call__(self, request):
         try:
             export_data = await self._ot_exporter.export(request.template_ids)
+            enriched_data = await self._enricher.enrich_to_export(export_data)
 
-            excel_buffer = self._data_formatter.format_to_excel(export_data)
-            print(excel_buffer)
+            excel_buffer = self._data_formatter.format_to_excel(enriched_data)
+
             filename = (
                 f"templates_export_{len(export_data.templates)}_items.xlsx"
             )
-            print(filename)
-            return []
+            return TemplateExportResponseDTO(
+                excel_file=excel_buffer,
+                filename=filename,
+            )
 
         except ObjectTemplateExportApplicationException as ex:
             self.logger.error(ex)
