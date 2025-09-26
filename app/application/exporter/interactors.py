@@ -31,9 +31,7 @@ class ObjectTemplateExportInteractor(object):
 
             excel_buffer = self._data_formatter.format_to_excel(enriched_data)
 
-            filename = (
-                f"templates_export_{len(export_data.templates)}_items.xlsx"
-            )
+            filename = f"object_template_export_{enriched_data.exported_at:%Y-%m-%d-%H-%M}.xlsx"
             return TemplateExportResponseDTO(
                 excel_file=excel_buffer,
                 filename=filename,
