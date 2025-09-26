@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
 from logging import getLogger
 
-from domain.shared.vo.export_data import CompleteOTExportData
+from domain.common.exceptions import DomainException
+from domain.exporter.vo.export_data import CompleteOTExportData
 from domain.template.query import TemplateReader
 from domain.template_object.aggregate import TemplateObjectAggregate
 from domain.template_object.query import TemplateObjectReader
@@ -21,11 +22,16 @@ class ObjectTemplateExportService(object):
         self._tp_reader = tp_reader
         self.logger = getLogger(self.__class__.__name__)
 
-    async def export(self, template_ids: list[int]):
+    async def export(self, template_ids: list[int]) -> CompleteOTExportData:
         to: list[TemplateObjectAggregate] = []
         tp: list[TemplateParameterAggregate] = []
         try:
             templates = await self._t_reader.get_by_ids(template_ids)
+            if len(template_ids) != len({t.name for t in templates}):
+                raise DomainException(
+                    status_code=422,
+                    detail="Duplicate names in templates. Export is not possible.",
+                )
             if templates:
                 to = await self._to_reader.get_by_template_ids(template_ids)
                 tp = await self._tp_reader.get_by_template_object_ids(
@@ -40,3 +46,4 @@ class ObjectTemplateExportService(object):
             )
         except Exception as ex:
             print(ex)
+            raise

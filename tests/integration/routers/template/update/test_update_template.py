@@ -100,8 +100,12 @@ async def test_update_template_with_change_tmo_id(
     owner_before = "Owner"
     owner_after = "Updated Owner"
     grpc_response = [
-        InventoryTMOAggregate(id=tmo_id_old, parent_id=None),
-        InventoryTMOAggregate(id=tmo_id_new, parent_id=None),
+        InventoryTMOAggregate(
+            id=tmo_id_old, parent_id=None, name="Template Name A"
+        ),
+        InventoryTMOAggregate(
+            id=tmo_id_new, parent_id=None, name="Template Name X"
+        ),
     ]
     get_all_tmo_data_from_inventory = mock_grpc_response
     get_all_tmo_data_from_inventory.return_value = grpc_response
@@ -182,8 +186,12 @@ async def test_update_template_with_change_tmo_id_error(
     owner_before = "Owner"
     owner_after = "Updated Owner"
     grpc_response = [
-        InventoryTMOAggregate(id=tmo_id_old, parent_id=None),
-        InventoryTMOAggregate(id=tmo_id_new + 1, parent_id=None),
+        InventoryTMOAggregate(
+            id=tmo_id_old, parent_id=None, name="Template Name A"
+        ),
+        InventoryTMOAggregate(
+            id=tmo_id_new + 1, parent_id=None, name="Template Name A"
+        ),
     ]
     get_all_tmo_data_from_inventory = mock_grpc_response
     get_all_tmo_data_from_inventory.return_value = grpc_response

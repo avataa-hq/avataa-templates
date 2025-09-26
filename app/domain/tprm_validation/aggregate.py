@@ -3,10 +3,11 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class InventoryTprmAggregate:
-    val_type: str
-    required: bool
-    multiple: bool
     id: int
+    multiple: bool
+    name: str
+    required: bool
+    val_type: str
 
     constraint: str | None = None
 
@@ -15,7 +16,6 @@ class InventoryTprmAggregate:
     # created_by: str
     # creation_date: datetime
     # modification_date: datetime
-    # name: str
     # tmo_id: int
     # version: int
     #
