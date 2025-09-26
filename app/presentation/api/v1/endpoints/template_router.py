@@ -164,7 +164,7 @@ async def delete_template(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.post("/templates/export")
+@router.post("/templates/export", status_code=status.HTTP_200_OK)
 @inject
 async def export_templates(
     template_data: TemplateExportRequest,
@@ -177,7 +177,8 @@ async def export_templates(
             BytesIO(result.excel_file.getvalue()),
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             headers={
-                "Content-Disposition": f"attachment; filename={result.filename}"
+                "Content-Disposition": f'attachment; filename="{result.filename}"',
+                "Access-Control-Expose-Headers": "Content-Disposition",
             },
         )
     except ValidationError as ex:
