@@ -6,9 +6,11 @@ from fastapi import (
     APIRouter,
     Body,
     Depends,
+    File,
     HTTPException,
     Query,
     Response,
+    UploadFile,
     status,
 )
 from pydantic import ValidationError
@@ -187,6 +189,26 @@ async def export_templates(
         )
     except ObjectTemplateExportApplicationException as ex:
         raise HTTPException(status_code=ex.status_code, detail=ex.detail)
+    except Exception as ex:
+        print(type(ex), ex)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
+        )
+
+
+@router.post("/templates/import", status_code=status.HTTP_201_CREATED)
+@inject
+async def import_templates(
+    file: Annotated[UploadFile, File],
+    user_data: Annotated[UserData, Depends(security)],
+):
+    try:
+        print(file.filename)
+        return []
+    except ValidationError as ex:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
+        )
     except Exception as ex:
         print(type(ex), ex)
         raise HTTPException(
