@@ -44,4 +44,4 @@ WORKDIR /home/worker/app
 EXPOSE 8000
 
 # run app
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["supervisord"]

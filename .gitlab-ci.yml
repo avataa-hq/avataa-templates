@@ -387,9 +387,9 @@ build_main:
   stage: build
   variables:
     DOCKER_HOST: ${DOCKER_HOST}
-  image: docker:${DOCKER_DIND_VERSION}
+  image: ${DOCKER_DIND_IMAGE}:${DOCKER_DIND_VERSION}
   services:
-    - docker:${DOCKER_DIND_VERSION}
+    - ${DOCKER_DIND_IMAGE}:${DOCKER_DIND_VERSION}
   before_script:
     - mkdir -p ~/.ssh
     - echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_ed25519
@@ -447,7 +447,7 @@ sign_main:
     COSIGN_PASSWORD: ${COSIGN_PASSWORD}
     COSIGN_PRIVATE_KEY: ${COSIGN_PRIVATE_KEY}
   image:
-    name: bitnami/cosign:${COSIGN_VERSION}
+    name: ${COSIGN_IMAGE}:${COSIGN_VERSION}
     entrypoint: [""]
   script:
     - IMAGE_DIGEST=$(cat ${BUILDS_CI_PATH}/${CI_PROJECT_NAME}_${IMAGE_DIGEST_FILENAME})
