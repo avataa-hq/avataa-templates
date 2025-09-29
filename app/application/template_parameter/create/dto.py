@@ -4,7 +4,7 @@ from domain.template_parameter.aggregate import TemplateParameterAggregate
 
 
 # From router
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class TemplateParameterDataCreateRequestDTO:
     parameter_type_id: int
     required: bool
@@ -13,14 +13,14 @@ class TemplateParameterDataCreateRequestDTO:
     constraint: str | None = None
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class TemplateParameterCreateRequestDTO:
     template_object_id: int
     data: list[TemplateParameterDataCreateRequestDTO]
 
 
 # From aggregate to router
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class TemplateParameterCreatedDTO:
     id: int
     template_object_id: int

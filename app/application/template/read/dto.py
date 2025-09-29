@@ -5,7 +5,7 @@ from domain.template.aggregate import TemplateAggregate
 
 
 # From router
-@dataclass
+@dataclass(frozen=True, slots=True, kw_only=True)
 class TemplateRequestDTO:
     limit: int
     offset: int
@@ -16,7 +16,7 @@ class TemplateRequestDTO:
 
 
 # From gateway
-@dataclass
+@dataclass(frozen=True, slots=True, kw_only=True)
 class TemplateGatewayResponseDTO:
     id: int
     name: str

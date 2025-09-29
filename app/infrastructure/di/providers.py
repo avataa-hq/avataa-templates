@@ -6,6 +6,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from application.common.uow import SQLAlchemyUoW
 from application.exporter.interactors import ObjectTemplateExportInteractor
+from application.importer.interactors import (
+    ObjectTemplateImportInteractor,
+    ObjectTemplateImportValidationInteractor,
+)
 from application.inventory_changes.interactors import InventoryChangesInteractor
 from application.template.read.interactors import TemplateReaderInteractor
 from application.template.update.interactors import TemplateUpdaterInteractor
@@ -205,6 +209,19 @@ class InteractorProvider(Provider):
         return ObjectTemplateExportInteractor(
             ot_exporter, data_formatter, enricher
         )
+
+    ## Import Interactor
+    @provide(scope=Scope.REQUEST)
+    def get_ot_importer(
+        self,
+    ) -> ObjectTemplateImportInteractor:
+        return ObjectTemplateImportInteractor()
+
+    @provide(scope=Scope.REQUEST)
+    def get_ot_validator(
+        self,
+    ) -> ObjectTemplateImportValidationInteractor:
+        return ObjectTemplateImportValidationInteractor()
 
     ## ParameterValidator Interactor
     @provide(scope=Scope.REQUEST)
