@@ -21,6 +21,14 @@ from application.exporter.exceptions import (
     ObjectTemplateExportApplicationException,
 )
 from application.exporter.interactors import ObjectTemplateExportInteractor
+from application.importer.dto import OTImportRequestDTO
+from application.importer.exceptions import (
+    ObjectTemplateImportApplicationException,
+)
+from application.importer.interactors import (
+    ObjectTemplateImportInteractor,
+    ObjectTemplateImportValidationInteractor,
+)
 from application.template.read.exceptions import (
     TemplateReaderApplicationException,
 )
@@ -196,19 +204,67 @@ async def export_templates(
         )
 
 
-@router.post("/templates/import", status_code=status.HTTP_201_CREATED)
+@router.post("/templates/validate", status_code=status.HTTP_201_CREATED)
 @inject
-async def import_templates(
+async def import_templates_validate(
     file: Annotated[UploadFile, File],
+    interactor: FromDishka[ObjectTemplateImportValidationInteractor],
     user_data: Annotated[UserData, Depends(security)],
 ):
     try:
-        print(file.filename)
+        if not file.filename.endswith(".xlsx"):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="File must be an Excel spreadsheet",
+            )
+        file_content = await file.read()
+
+        request = OTImportRequestDTO(
+            file_data=file_content, owner=user_data.name
+        )
+        result = await interactor(request=request)
+        print(result)
         return []
     except ValidationError as ex:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
         )
+    except ObjectTemplateImportApplicationException as ex:
+        raise HTTPException(status_code=ex.status_code, detail=ex.detail)
+    except Exception as ex:
+        print(type(ex), ex)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
+        )
+
+
+@router.post("/templates/import", status_code=status.HTTP_201_CREATED)
+@inject
+async def import_templates(
+    file: Annotated[UploadFile, File],
+    interactor: FromDishka[ObjectTemplateImportInteractor],
+    user_data: Annotated[UserData, Depends(security)],
+):
+    try:
+        if not file.filename.endswith(".xlsx"):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="File must be an Excel spreadsheet",
+            )
+        file_content = await file.read()
+
+        request = OTImportRequestDTO(
+            file_data=file_content, owner=user_data.name
+        )
+        result = await interactor(request=request)
+        print(result)
+        return []
+    except ValidationError as ex:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
+        )
+    except ObjectTemplateImportApplicationException as ex:
+        raise HTTPException(status_code=ex.status_code, detail=ex.detail)
     except Exception as ex:
         print(type(ex), ex)
         raise HTTPException(

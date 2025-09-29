@@ -3,7 +3,7 @@ from io import BytesIO
 
 
 # From router
-@dataclass
+@dataclass(frozen=True, slots=True, kw_only=True)
 class OTExportRequestDTO:
     template_ids: list[int]
 

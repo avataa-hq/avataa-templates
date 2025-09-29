@@ -1,11 +1,11 @@
 from logging import getLogger
 
-from application.exporter.dto import TemplateExportResponseDTO
+from application.exporter.dto import (
+    OTExportRequestDTO,
+    TemplateExportResponseDTO,
+)
 from application.exporter.exceptions import (
     ObjectTemplateExportApplicationException,
-)
-from application.template_object.read.exceptions import (
-    TemplateObjectReaderApplicationException,
 )
 from domain.exporter.enrich_service import OTEnrichService
 from domain.exporter.export_service import ObjectTemplateExportService
@@ -24,7 +24,9 @@ class ObjectTemplateExportInteractor(object):
         self._enricher = enricher
         self.logger = getLogger(self.__class__.__name__)
 
-    async def __call__(self, request):
+    async def __call__(
+        self, request: OTExportRequestDTO
+    ) -> TemplateExportResponseDTO:
         try:
             export_data = await self._ot_exporter.export(request.template_ids)
             enriched_data = await self._enricher.enrich_to_export(export_data)
@@ -36,12 +38,11 @@ class ObjectTemplateExportInteractor(object):
                 excel_file=excel_buffer,
                 filename=filename,
             )
-
         except ObjectTemplateExportApplicationException as ex:
             self.logger.error(ex)
             raise
         except Exception as ex:
             self.logger.error(ex)
-            raise TemplateObjectReaderApplicationException(
+            raise ObjectTemplateExportApplicationException(
                 status_code=422, detail="Application Error."
             )

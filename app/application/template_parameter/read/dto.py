@@ -6,13 +6,13 @@ from domain.template_parameter.aggregate import (
 
 
 # From router
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class TemplateParameterRequestDTO:
     template_object_id: int
 
 
 # From aggregate to router
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class TemplateParameterSearchDTO:
     id: int
     template_object_id: int
