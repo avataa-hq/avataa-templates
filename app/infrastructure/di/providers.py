@@ -45,6 +45,9 @@ from database import get_session_factory
 from domain.exporter.enrich_service import OTEnrichService
 from domain.exporter.export_service import ObjectTemplateExportService
 from domain.exporter.query import DataFormatter
+from domain.importer.validate_service import (
+    TemplateImportValidationService,
+)
 from domain.template.command import TemplateUpdater
 from domain.template.query import TemplateReader
 from domain.template_object.command import (
@@ -196,6 +199,16 @@ class InteractorProvider(Provider):
         return OTEnrichService(
             tmo_repo,
             tprm_reader,
+        )
+
+    ## Validate
+    @provide(scope=Scope.REQUEST)
+    def get_validate_service(
+        self,
+        t_reader: TemplateReader,
+    ) -> TemplateImportValidationService:
+        return TemplateImportValidationService(
+            t_reader,
         )
 
     ## Export Interactor

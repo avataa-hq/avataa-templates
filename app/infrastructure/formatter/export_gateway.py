@@ -17,10 +17,10 @@ class ExcelDataFormatter(DataFormatter):
         templates_data = [
             {
                 "name": t.aggregate.name,
-                "owner": t.aggregate.owner,
+                # "owner": t.aggregate.owner,
                 "object_type_name": t.object_type_name,
-                "creation_date": t.aggregate.creation_date,
-                "modification_date": t.aggregate.modification_date,
+                # "creation_date": t.aggregate.creation_date,
+                # "modification_date": t.aggregate.modification_date,
                 "valid": t.aggregate.valid,
                 "version": t.aggregate.version,
             }
