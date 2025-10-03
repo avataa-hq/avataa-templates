@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from domain.template_object.aggregate import TemplateObjectAggregate
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class ExportableTemplateObject:
     aggregate: TemplateObjectAggregate
 

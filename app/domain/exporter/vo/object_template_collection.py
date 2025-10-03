@@ -10,7 +10,7 @@ from domain.exporter.vo.exportable_template_parameter import (
 )
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, kw_only=True)
 class ExportableTemplatesCollection:
     templates: list[ExportableTemplate]
     template_objects: list[ExportableTemplateObject]
