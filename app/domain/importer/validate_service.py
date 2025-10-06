@@ -2,6 +2,9 @@ from logging import getLogger
 
 import pandas as pd
 
+from domain.common.exceptions import DomainException
+from domain.importer.vo.import_validation_result import ValidationResult
+from domain.importer.vo.validation_error import ValidationError
 from domain.template.query import TemplateReader
 
 
@@ -37,32 +40,52 @@ class TemplateImportValidationService(object):
         self.logger = getLogger(self.__class__.__name__)
 
     async def validate_excel_import(self, excel_data: bytes, owner: str):
+        result = ValidationResult()
         try:
-            sheets_data = await self._validate_excel_structure(excel_data)
-
-            await self._validate_sheets_content(sheets_data)
-
-            await self._validate_business_rules(sheets_data, owner)
-
-            await self._validate_external_dependencies(sheets_data)
-
+            sheets_data = self._validate_excel_structure(excel_data, result)
+            await self._validate_sheets_content(sheets_data, result)
         except Exception as ex:
             self.logger.error(f"Validation exception: {ex}")
 
-        return []
+        return result
 
-    async def _validate_excel_structure(self, excel_data: bytes):
+    def _validate_excel_structure(
+        self, excel_data: bytes, result: ValidationResult
+    ):
         self.logger.debug(excel_data)
-        return {}
+        try:
+            excel_file = pd.ExcelFile(excel_data)
+            sheets_data = {}
 
-    async def _validate_sheets_content(self, sheets_data: dict): ...
+            missing_sheets = set(self.REQUIRED_SHEETS) - set(
+                excel_file.sheet_names
+            )
+            if missing_sheets:
+                raise DomainException(
+                    status_code=422, detail=f"Missing sheets: {missing_sheets}"
+                )
+            for sheet_name in self.REQUIRED_SHEETS:
+                try:
+                    df = pd.read_excel(excel_file, sheet_name=sheet_name)
+                    if df.empty:
+                        result.add_error(
+                            ValidationError(
+                                sheet_name=sheet_name,
+                                message=f"Missing sheet: {sheet_name}",
+                            )
+                        )
+                    sheets_data[sheet_name] = df
+                except Exception as ex:
+                    result.add_error(
+                        ValidationError(message=str(ex), sheet_name=sheet_name)
+                    )
 
-    async def _validate_templates_sheet(self, df: pd.DataFrame): ...
+            return sheets_data
 
-    async def _validate_objects_sheet(self, df: pd.DataFrame): ...
+        except Exception as ex:
+            result.add_error(ValidationError(message=f"Read error: {ex}"))
+            return {}
 
-    async def _validate_parameters_sheet(self, df: pd.DataFrame): ...
-
-    async def _validate_business_rules(self, sheets_data: dict, owner: str): ...
-
-    async def _validate_external_dependencies(self, sheets_data: dict): ...
+    async def _validate_sheets_content(
+        self, sheets_data: dict, result: ValidationResult
+    ): ...

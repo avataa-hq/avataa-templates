@@ -13,7 +13,7 @@ dependencies = [
     "grpcio==1.75.1",
     "pandas==2.3.3",
     "protobuf==6.32.1",
-    "pydantic==2.11.9",
+    "pydantic==2.11.10",
     "pydantic-settings==2.11.0",
     "pyjwt==2.10.1",
     "python-keycloak==5.8.1",
