@@ -9,11 +9,12 @@ dependencies = [
     "asyncpg==0.30.0",
     "confluent-kafka[protobuf,schemaregistry]==2.11.1",
     "dishka==1.7.2",
-    "fastapi==0.118.0",
+    "fastapi==0.118.1",
     "grpcio==1.75.1",
+    "openpyxl==3.1.5",
     "pandas==2.3.3",
     "protobuf==6.32.1",
-    "pydantic==2.11.10",
+    "pydantic==2.12.0",
     "pydantic-settings==2.11.0",
     "pyjwt==2.10.1",
     "python-keycloak==5.8.1",
@@ -33,14 +34,14 @@ dev = [
     "types-cachetools==6.2.0.20250827",
 ]
 lint = [
-    "ruff==0.13.3",
+    "ruff==0.14.0",
 ]
 tests = [
     "httpx==0.28.1",
     "pytest==8.4.2",
     "pytest-asyncio==1.2.0",
     "pytest-cov==7.0.0",
-    "testcontainers==4.13.1",
+    "testcontainers==4.13.2",
 ]
 security = [
     "pip-audit==2.9.0",

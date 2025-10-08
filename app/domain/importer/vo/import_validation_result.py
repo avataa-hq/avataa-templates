@@ -12,7 +12,5 @@ class ValidationResult:
     def is_valid(self) -> bool:
         return not self.errors
 
-    def add_error(self, error: ValidationError) -> "ValidationResult":
-        return ValidationResult(
-            errors=self.errors | {error}, warnings=self.warnings
-        )
+    def add_error(self, error: ValidationError) -> None:
+        self.errors.add(error)

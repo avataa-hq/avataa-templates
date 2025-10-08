@@ -1,8 +1,8 @@
+from io import BytesIO
 from logging import getLogger
 
 import pandas as pd
 
-from domain.common.exceptions import DomainException
 from domain.importer.vo.import_validation_result import ValidationResult
 from domain.importer.vo.validation_error import ValidationError
 from domain.template.query import TemplateReader
@@ -52,18 +52,21 @@ class TemplateImportValidationService(object):
     def _validate_excel_structure(
         self, excel_data: bytes, result: ValidationResult
     ):
-        self.logger.debug(excel_data)
         try:
-            excel_file = pd.ExcelFile(excel_data)
+            excel_file = pd.ExcelFile(BytesIO(excel_data))
             sheets_data = {}
 
             missing_sheets = set(self.REQUIRED_SHEETS) - set(
                 excel_file.sheet_names
             )
             if missing_sheets:
-                raise DomainException(
-                    status_code=422, detail=f"Missing sheets: {missing_sheets}"
+                result.add_error(
+                    ValidationError(
+                        message=f"Missing sheets: {missing_sheets}",
+                        sheet_name=" ".join(missing_sheets),
+                    )
                 )
+                return {}
             for sheet_name in self.REQUIRED_SHEETS:
                 try:
                     df = pd.read_excel(excel_file, sheet_name=sheet_name)
@@ -82,8 +85,7 @@ class TemplateImportValidationService(object):
 
             return sheets_data
 
-        except Exception as ex:
-            result.add_error(ValidationError(message=f"Read error: {ex}"))
+        except Exception:
             return {}
 
     async def _validate_sheets_content(
