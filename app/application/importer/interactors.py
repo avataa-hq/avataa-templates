@@ -32,7 +32,6 @@ class ObjectTemplateImportValidationInteractor(object):
 
     async def __call__(self, request: OTImportRequestDTO):
         try:
-            self.logger.info(request)
             validation_result = (
                 await self._validation_service.validate_excel_import(
                     excel_data=request.file_data,

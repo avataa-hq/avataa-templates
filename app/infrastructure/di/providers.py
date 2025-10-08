@@ -233,8 +233,11 @@ class InteractorProvider(Provider):
     @provide(scope=Scope.REQUEST)
     def get_ot_validator(
         self,
+        validation_service: TemplateImportValidationService,
     ) -> ObjectTemplateImportValidationInteractor:
-        return ObjectTemplateImportValidationInteractor()
+        return ObjectTemplateImportValidationInteractor(
+            validation_service=validation_service,
+        )
 
     ## ParameterValidator Interactor
     @provide(scope=Scope.REQUEST)
