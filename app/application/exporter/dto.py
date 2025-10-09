@@ -11,5 +11,5 @@ class OTExportRequestDTO:
 # To router
 @dataclass(frozen=True, slots=True, kw_only=True)
 class TemplateExportResponseDTO:
-    excel_file: BytesIO
+    data_file: BytesIO
     filename: str

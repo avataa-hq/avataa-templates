@@ -45,5 +45,5 @@ class ObjectTemplateExportService(object):
                 exported_at=datetime.now(tz=timezone.utc),
             )
         except Exception as ex:
-            print(ex)
+            self.logger.error(ex)
             raise

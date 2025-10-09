@@ -184,7 +184,7 @@ async def export_templates(
     try:
         result = await interactor(request=template_data.to_interactor_dto())
         return StreamingResponse(
-            BytesIO(result.excel_file.getvalue()),
+            BytesIO(result.data_file.getvalue()),
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             headers={
                 "Content-Disposition": f'attachment; filename="{result.filename}"',
@@ -212,6 +212,11 @@ async def import_templates_validate(
     user_data: Annotated[UserData, Depends(security)],
 ):
     try:
+        if not file.filename:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="File must be added",
+            )
         if not file.filename.endswith(".xlsx"):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -223,8 +228,14 @@ async def import_templates_validate(
             file_data=file_content, owner=user_data.name
         )
         result = await interactor(request=request)
-        print(result)
-        return []
+        return StreamingResponse(
+            BytesIO(result.data_file),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition": f'attachment; filename="{result.filename}"',
+                "Access-Control-Expose-Headers": "Content-Disposition",
+            },
+        )
     except ValidationError as ex:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
@@ -246,6 +257,11 @@ async def import_templates(
     user_data: Annotated[UserData, Depends(security)],
 ):
     try:
+        if not file.filename:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="File must be added",
+            )
         if not file.filename.endswith(".xlsx"):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
