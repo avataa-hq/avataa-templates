@@ -1,16 +1,15 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from datetime import datetime
 
-from domain.importer.vo.validation_error import ValidationError
+import pandas as pd
+
+from domain.importer.vo.validation_result import ValidationResult
 
 
 @dataclass
-class ValidationResult:
-    errors: set[ValidationError] = field(default_factory=set)
-    warnings: set[ValidationError] = field(default_factory=set)
-
-    @property
-    def is_valid(self) -> bool:
-        return not self.errors
-
-    def add_error(self, error: ValidationError) -> None:
-        self.errors.add(error)
+class ImportValidationResult:
+    templates: pd.DataFrame
+    template_objects: pd.DataFrame
+    template_parameters: pd.DataFrame
+    validated_at: datetime
+    result: ValidationResult

@@ -45,6 +45,7 @@ from database import get_session_factory
 from domain.exporter.enrich_service import OTEnrichService
 from domain.exporter.export_service import ObjectTemplateExportService
 from domain.exporter.query import DataFormatter
+from domain.importer.enrich_service import OTEnrichErrorService
 from domain.importer.validate_service import (
     TemplateImportValidationService,
 )
@@ -201,14 +202,24 @@ class InteractorProvider(Provider):
             tprm_reader,
         )
 
+    @provide(scope=Scope.REQUEST)
+    def get_enricher_validation(
+        self,
+    ) -> OTEnrichErrorService:
+        return OTEnrichErrorService()
+
     ## Validate
     @provide(scope=Scope.REQUEST)
     def get_validate_service(
         self,
         t_reader: TemplateReader,
+        tmo_repo: TMOReader,
+        tprm_repo: TPRMReader,
     ) -> TemplateImportValidationService:
         return TemplateImportValidationService(
-            t_reader,
+            t_reader=t_reader,
+            tmo_reader=tmo_repo,
+            tprm_reader=tprm_repo,
         )
 
     ## Export Interactor
@@ -234,17 +245,21 @@ class InteractorProvider(Provider):
     def get_ot_validator(
         self,
         validation_service: TemplateImportValidationService,
+        data_formatter: DataFormatter,
+        enricher: OTEnrichErrorService,
     ) -> ObjectTemplateImportValidationInteractor:
         return ObjectTemplateImportValidationInteractor(
             validation_service=validation_service,
+            data_formatter=data_formatter,
+            enricher=enricher,
         )
 
     ## ParameterValidator Interactor
     @provide(scope=Scope.REQUEST)
     def get_parameter_validator(
-        self, grpc_repo: TPRMReader
+        self, tprm_repo: TPRMReader
     ) -> ParameterValidationInteractor:
-        return ParameterValidationInteractor(grpc_repo)
+        return ParameterValidationInteractor(tprm_repo=tprm_repo)
 
     @provide(scope=Scope.REQUEST)
     def get_tmo_validator(

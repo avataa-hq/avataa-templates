@@ -32,8 +32,7 @@ class OTEnrichService(object):
     async def enrich_to_export(
         self,
         request: CompleteOTExportData,
-    ):
-        self.logger.info("enrich_to_export")
+    ) -> CompleteOTEnrichedExportData:
         # Create maps
         tmo_ids_from_templates = {
             t.object_type_id.to_raw() for t in request.templates

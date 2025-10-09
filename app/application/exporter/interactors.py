@@ -35,7 +35,7 @@ class ObjectTemplateExportInteractor(object):
 
             filename = f"object_template_export_{enriched_data.exported_at:%Y-%m-%d-%H-%M}.xlsx"
             return TemplateExportResponseDTO(
-                excel_file=excel_buffer,
+                data_file=excel_buffer,
                 filename=filename,
             )
         except ObjectTemplateExportApplicationException as ex:

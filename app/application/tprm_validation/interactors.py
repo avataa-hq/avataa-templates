@@ -19,8 +19,8 @@ from utils.val_type_validators import validate_by_val_type
 
 
 class ParameterValidationInteractor(object):
-    def __init__(self, repository: TPRMReader):
-        self._repository = repository
+    def __init__(self, tprm_repo: TPRMReader):
+        self._tprm_repo = tprm_repo
         self.logger = getLogger(self.__class__.__name__)
 
     async def __call__(
@@ -29,7 +29,7 @@ class ParameterValidationInteractor(object):
         # Generate filters
         repo_filter = ParameterValidationFilter(tmo_id=request.object_type_id)
         # gRPC request
-        result = await self._repository.get_all_tprms_by_tmo_id(repo_filter)
+        result = await self._tprm_repo.get_all_tprms_by_tmo_id(repo_filter)
         # Check correct data
         request_list_of_parameters = [
             p.parameter_type_id for p in request.parameter_to_validate
