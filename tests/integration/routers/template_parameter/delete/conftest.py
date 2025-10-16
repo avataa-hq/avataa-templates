@@ -17,6 +17,7 @@ from di import get_async_session
 from domain.template_parameter.command import TemplateParameterDeleter
 from domain.template_parameter.query import TemplateParameterReader
 from domain.template_parameter.service import TemplateParameterValidityService
+from presentation.security.security_factory import security
 
 
 @pytest.fixture
@@ -122,6 +123,7 @@ async def container(mock_factory):
 async def http_client(app, container, mock_db, mock_grpc_response):
     # app.dependency_overrides[oauth2_scheme] = lambda: mock_auth
     app.dependency_overrides[get_async_session] = lambda: mock_db
+    app.dependency_overrides[security] = lambda: True
     setup_dishka(container, app)
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"

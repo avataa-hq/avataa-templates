@@ -19,6 +19,7 @@ from testcontainers.postgres import (
 from config import setup_config
 from di import get_async_session
 from models import Base
+from presentation.security.security_factory import security
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -116,6 +117,7 @@ async def app(test_session, mock_grpc_response, test_engine) -> FastAPI:
 async def async_client(
     app: FastAPI,
 ) -> AsyncIterator[AsyncClient]:
+    app.dependency_overrides[security] = lambda: True
     async with AsyncClient(
         transport=ASGITransport(app=app),
         base_url="http://127.0.0.2",

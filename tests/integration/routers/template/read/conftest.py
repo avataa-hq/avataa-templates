@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from application.template.read.interactors import TemplateReaderInteractor
 from config import setup_config
 from domain.template.query import TemplateReader
+from presentation.security.security_factory import security
 
 
 @pytest.fixture
@@ -73,8 +74,8 @@ async def container(mock_factory):
 
 @pytest.fixture
 async def http_client(app, container):
-    # app.dependency_overrides[oauth2_scheme] = lambda: mock_auth
     setup_dishka(container, app)
+    app.dependency_overrides[security] = lambda: True
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
     ) as ac:

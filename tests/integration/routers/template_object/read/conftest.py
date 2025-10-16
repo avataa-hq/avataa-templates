@@ -16,6 +16,7 @@ from application.template_object.read.interactors import (
 from config import setup_config
 from domain.template_object.query import TemplateObjectReader
 from domain.template_parameter.query import TemplateParameterReader
+from presentation.security.security_factory import security
 
 
 @pytest.fixture
@@ -101,6 +102,7 @@ async def container(mock_factory):
 @pytest.fixture
 async def http_client(app, container):
     # app.dependency_overrides[oauth2_scheme] = lambda: mock_auth
+    app.dependency_overrides[security] = lambda: True
     setup_dishka(container, app)
 
     async with AsyncClient(
