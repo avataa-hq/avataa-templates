@@ -35,18 +35,18 @@ class DatabaseSettings(BaseSettings):
         default="postgresql+asyncpg",
         alias="db_type",
     )
-    user: str = Field(default="templates_admin")
+    user: str = Field(default="object_templates_admin")
     db_pass: str = Field(default="password", alias="db_pass")
-    host: str = Field(default="localhost")
-    port: int = Field(default=5432)
-    name: str = Field(default="templates")
+    host: str = Field(default="pgbouncer")
+    port: int = Field(default=5432, ge=1, le=65_535)
+    name: str = Field(default="object_templates")
 
     model_config = SettingsConfigDict(env_prefix="db_")
 
 
 class InventorySettings(BaseSettings):
-    host: str = Field(default="localhost", min_length=1)
-    grpc_port: int = Field(default=50051, ge=0)
+    host: str = Field(default="inventory", min_length=1)
+    grpc_port: int = Field(default=50051, ge=1, le=65_535)
 
     @computed_field  # type: ignore[misc]
     @property
@@ -81,7 +81,7 @@ class TestsConfig(BaseSettings):
 
 class SecurityConfig(BaseSettings):
     admin_role: str = Field(default="__admin")
-    security_type: str = Field(default="DISABLE")
+    security_type: str = Field(default="KEYCLOAK-INFO")
 
     @field_validator("security_type", mode="before")
     @classmethod
@@ -92,11 +92,12 @@ class SecurityConfig(BaseSettings):
             return value
 
     keycloak_protocol: Literal["http", "https"] = Field(default="http")
+    keycloak_scope: str = Field(default="profile")
     keycloak_host: str = Field(
         default="localhost", min_length=1, validation_alias="keycloak_host"
     )
     keycloak_port: int | None = Field(
-        default=None, gt=0, validation_alias="keycloak_port"
+        default=8080, ge=1, le=65_535, validation_alias="keycloak_port"
     )
     keycloak_redirect_protocol_raw: Literal["http", "https", None] = Field(
         default=None, validation_alias="keycloak_redirect_protocol"
@@ -185,10 +186,14 @@ class SecurityConfig(BaseSettings):
         return f"/v1/data/{self.opa_policy}"
 
     security_middleware_protocol: Literal["http", "https"] | None = Field(
-        default=None, validation_alias="security_middleware_protocol"
+        default="http", validation_alias="security_middleware_protocol"
     )
-    security_middleware_host: str | None = Field(default=None, min_length=1)
-    security_middleware_port: int | None = Field(default=None, gt=0)
+    security_middleware_host: str | None = Field(
+        default="security-middleware", min_length=1
+    )
+    security_middleware_port: int | None = Field(
+        default="8000", ge=1, le=65_535
+    )
 
     @model_validator(mode="after")
     def set_defaults(self) -> "SecurityConfig":
@@ -221,8 +226,8 @@ class SecurityConfig(BaseSettings):
         )
 
 
-class Config(object):
-    app: ApplicationSettings = ApplicationSettings()
+class Config(BaseSettings):
+    app: ApplicationSettings = Field(default_factory=ApplicationSettings)
     db: DatabaseSettings = DatabaseSettings()
     inventory: InventorySettings = InventorySettings()
     tests: TestsConfig = TestsConfig()

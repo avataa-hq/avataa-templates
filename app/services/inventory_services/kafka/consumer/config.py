@@ -12,8 +12,8 @@ from pydantic_settings import (
 class KafkaConfig(BaseSettings):
     # Config example for correct work Kafka client
     # https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md
-    turn_on: bool = Field(default=False)
-    secured: bool = Field(default=False)
+    turn_on: bool = Field(default=True)
+    secured: bool = Field(default=False, validation_alias="kafka_with_keycloak")
     inventory_changes_topic: str = Field(default="inventory.changes")
     bootstrap_servers: str = Field(
         default="kafka:9092",
@@ -22,7 +22,7 @@ class KafkaConfig(BaseSettings):
         validation_alias="kafka_url",
     )
     group_id: str = Field(
-        default="object-templates",
+        default="Object_Templates",
         min_length=1,
         serialization_alias="group.id",
     )
@@ -60,22 +60,22 @@ class KafkaConfig(BaseSettings):
         validation_alias="keycloak_client_id",
     )
     keycloak_client_secret: str = Field(
-        default="secret",
+        ...,
         min_length=1,
         serialization_alias="sasl.oauthbearer.client.secret",
         validation_alias="keycloak_client_secret",
     )
     keycloak_protocol: Literal["http", "https"] = Field(
-        default="https", validation_alias="keycloak_protocol"
+        default="http", validation_alias="keycloak_protocol"
     )
     keycloak_host: str = Field(
-        default="localhost", min_length=1, validation_alias="keycloak_host"
+        default="keycloak", min_length=1, validation_alias="keycloak_host"
     )
     keycloak_port: int = Field(
-        default=443, gt=0, lt=65536, validation_alias="keycloak_port"
+        default=8080, ge=1, le=65_535, validation_alias="keycloak_port"
     )
     realm: str = Field(
-        default="example", min_length=1, validation_alias="keycloak_realm"
+        default="avataa", min_length=1, validation_alias="keycloak_realm"
     )
 
     @computed_field(alias="sasl.oauthbearer.token.endpoint.url")  # type: ignore

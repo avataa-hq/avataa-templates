@@ -17,6 +17,7 @@ from config import setup_config
 from domain.template_object.command import TemplateObjectUpdater
 from domain.template_object.query import TemplateObjectReader
 from domain.tmo_validation.query import TMOReader
+from presentation.security.security_factory import security
 
 
 @pytest.fixture
@@ -133,6 +134,7 @@ async def container(mock_factory):
 async def http_client(app, container, mock_db):
     # app.dependency_overrides[oauth2_scheme] = lambda: mock_auth
     # app.dependency_overrides[get_async_session] = lambda: mock_db
+    app.dependency_overrides[security] = lambda: True
     setup_dishka(container, app)
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"

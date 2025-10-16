@@ -21,6 +21,7 @@ from domain.template_parameter.command import TemplateParameterUpdater
 from domain.template_parameter.query import TemplateParameterReader
 from domain.template_parameter.service import TemplateParameterValidityService
 from domain.tprm_validation.query import TPRMReader
+from presentation.security.security_factory import security
 
 
 @pytest.fixture
@@ -158,6 +159,7 @@ async def container(mock_factory):
 @pytest.fixture
 async def http_client(app, container):
     # app.dependency_overrides[oauth2_scheme] = lambda: mock_auth
+    app.dependency_overrides[security] = lambda: True
     setup_dishka(container, app)
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test"
