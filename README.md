@@ -42,7 +42,7 @@ SECURITY_TYPE=<security_type>
 
 ### Compose
 
-- `REGISTRY_URL` - Docker registry URL, e.g. `harbor.avataa.dev`
+- `REGISTRY_URL` - Docker registry URL, e.g. `harbor.domain.com`
 - `PLATFORM_PROJECT_NAME` - Docker registry project Docker image can be downloaded from, e.g. `avataa`
 
 
