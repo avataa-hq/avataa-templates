@@ -16,7 +16,7 @@ pre:
     # docker login for pull
     - docker login -u ${REGISTRY_PULL_USER} -p ${REGISTRY_PULL_PASSWORD} ${REGISTRY_URL};
     # download jq
-    - | 
+    - |
       target_arch=$(arch);
       case ${target_arch} in
         "x86_64")  target_arch_alt=amd64   ;;
@@ -38,6 +38,7 @@ pre:
   tags:
     - coordinator
   interruptible: true
+
 
 start_ec2_amd64:
   stage: .pre
@@ -71,7 +72,7 @@ start_ec2_amd64:
     - |
       timeout=60;
       start_time=$(date +%s)
-      until 
+      until
           [ "$(aws ec2 describe-instances --instance-ids ${EC2_INSTANCE_ID_AMD64} --query 'Reservations[0].Instances[0].State.Name' --output text)" = "running" ]; do
         current_time=$(date +%s)
         elapsed_time=$((current_time - start_time));
@@ -127,7 +128,7 @@ start_ec2_arm64:
     - |
       timeout=60;
       start_time=$(date +%s)
-      until 
+      until
           [ "$(aws ec2 describe-instances --instance-ids ${EC2_INSTANCE_ID_ARM64} --query 'Reservations[0].Instances[0].State.Name' --output text)" = "running" ]; do
         current_time=$(date +%s)
         elapsed_time=$((current_time - start_time));
@@ -182,8 +183,8 @@ lint:
     - source .venv/bin/activate
     - ruff check ${APP_DIR} || ruff check --statistics ${APP_DIR}
     - ruff format --diff ${APP_DIR} || ruff format --check ${APP_DIR}
-    - if [ -d "${TESTS_DIR}" ]; then ruff check ${TESTS_DIR} || ruff check --statistics ${TESTS_DIR}; fi 
-    - if [ -d "${TESTS_DIR}" ]; then ruff format --diff ${TESTS_DIR} || ruff format --check ${TESTS_DIR}; fi 
+    - if [ -d "${TESTS_DIR}" ]; then ruff check ${TESTS_DIR} || ruff check --statistics ${TESTS_DIR}; fi
+    - if [ -d "${TESTS_DIR}" ]; then ruff format --diff ${TESTS_DIR} || ruff format --check ${TESTS_DIR}; fi
   rules:
     # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = main
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
@@ -326,7 +327,7 @@ generate_version:
   stage: build
   variables:
     GIT_STRATEGY: clone
-  image: 
+  image:
     name: ${REGISTRY_URL}/${PROJECT_NAME}/${GIT_IMAGE}:${GIT_VERSION}
     entrypoint: [""]
   before_script:
@@ -422,7 +423,10 @@ build_main:
     # build new version tag
     - docker buildx build
         --platform ${BUILD_ARCHS}
+        --tag ${REGISTRY_URL}/${PROJECT_NAME}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}:${LATEST_TAG}
         --tag ${REGISTRY_URL}/${PROJECT_NAME}/${REGISTRY_MS_PATH}/${CI_PROJECT_NAME}:${new_version}
+        --tag ${REGISTRY_URL}/${PROJECT_NAME}/${REGISTRY_MS_PATH}/${GITHUB_PROJECT_NAME}:${LATEST_TAG}
+        --tag ${REGISTRY_URL}/${PROJECT_NAME}/${REGISTRY_MS_PATH}/${GITHUB_PROJECT_NAME}:${new_version}
         --builder ${DOCKER_BUILDER_NAME}
         --provenance false
         --sbom false

@@ -1,12 +1,6 @@
 # builder
 FROM harbor.avataa.work/avataa/devops/python:3.11.13-slim-trixie-custom AS builder-image
 
-# USER root
-
-# RUN apt-get update && apt-get install --no-install-recommends -y libpq-dev gcc build-essential
-
-# USER worker
-
 # install requirements
 COPY pyproject.toml .
 RUN uv sync --no-cache
@@ -18,9 +12,7 @@ FROM python:3.11.13-slim-trixie AS runner-image
 # envs
 ENV PYTHONUNBUFFERED=1
 
-# RUN apt-get update && apt-get install --no-install-recommends -y supervisor && \
-# 	apt-get clean && rm -rf /var/lib/apt/lists/*
-
+# install packages
 RUN pip install --upgrade --no-cache-dir setuptools supervisor
 
 # add worker user
