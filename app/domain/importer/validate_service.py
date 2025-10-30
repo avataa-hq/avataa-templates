@@ -286,13 +286,15 @@ class TemplateImportValidationService(object):
             object_types_in_template = set(
                 template_objects["object_type_name"].dropna().astype(str)
             )
-            for idx, row in template_objects.iterrows():
+            for row_num_0, (idx, row) in enumerate(
+                template_objects.iterrows(), start=1
+            ):
                 parent_name = row["parent_object_name"]
                 if pd.isna(parent_name) or str(parent_name).strip() == "":
                     continue
                 parent_name = str(parent_name)
                 if parent_name not in object_types_in_template:
-                    row_num = idx + 1
+                    row_num = row_num_0 + 1
                     result.add_error(
                         ValidationErrorMessage(
                             message=f"Object references "

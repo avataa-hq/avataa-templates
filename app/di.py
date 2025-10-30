@@ -10,6 +10,7 @@ from database import get_session_factory
 # Common
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     session_factory = get_session_factory()
+
     async with session_factory() as session:
         try:
             yield session

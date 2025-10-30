@@ -45,14 +45,18 @@ class TemplateParameterAggregate:
 
     def set_value(self, new_value: str) -> None:
         if not new_value.strip():
-            raise EmptyValueError("Parameter value cannot be empty.")
+            raise EmptyValueError(
+                status_code=422, detail="Parameter value cannot be empty."
+            )
 
         self.valid = True
         self.value = new_value
 
     def set_required_flag(self, required: bool) -> None:
         if required and not self.value:
-            raise RequiredParameterError("Parameter value must not be empty.")
+            raise RequiredParameterError(
+                status_code=422, detail="Parameter value must not be empty."
+            )
         self.required = required
 
     def set_constraint(self, constraint: str) -> None:

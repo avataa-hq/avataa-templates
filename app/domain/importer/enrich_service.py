@@ -17,17 +17,19 @@ class OTEnrichErrorService(object):
         request.template_objects["error"] = pd.Series(dtype="string")
         request.template_parameters["error"] = pd.Series(dtype="string")
         for error in request.result.errors:
-            print(error)
+            self.logger.error(error)
             match error.sheet_name:
                 case "Templates":
                     request.templates.loc[error.row, "error"] = error.message
                 case "Objects":
-                    request.template_objects.loc[error.row - 1, "error"] = (
-                        error.message
-                    )
+                    if error.row:
+                        request.template_parameters.loc[
+                            error.row - 1, "error"
+                        ] = f"{error.message}: {error.column}"
                 case "Parameters":
-                    request.template_parameters.loc[error.row - 1, "error"] = (
-                        f"{error.message}: {error.column}"
-                    )
+                    if error.row:
+                        request.template_parameters.loc[
+                            error.row - 1, "error"
+                        ] = f"{error.message}: {error.column}"
 
         return request

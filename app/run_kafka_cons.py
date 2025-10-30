@@ -164,7 +164,7 @@ def on_revoke(consumer: Consumer, partitions: list[TopicPartition]) -> None:
     consumer.commit()
     cons_id = consumer.memberid()
     print(f"Consumer {cons_id} will be rebalanced.")
-    consumer.unassign(partitions)
+    consumer.unassign()
 
 
 def check_topic_existence(consumer: Consumer, topic: str) -> None:

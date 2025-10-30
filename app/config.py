@@ -91,13 +91,13 @@ class SecurityConfig(BaseSettings):
         else:
             return value
 
-    keycloak_protocol: Literal["http", "https"] = Field(default="http")
+    keycloak_protocol: Literal["http", "https"] = Field(default="https")
     keycloak_scope: str = Field(default="profile")
     keycloak_host: str = Field(
-        default="localhost", min_length=1, validation_alias="keycloak_host"
+        default="keycloak", min_length=1, validation_alias="keycloak_host"
     )
     keycloak_port: int | None = Field(
-        default=8080, ge=1, le=65_535, validation_alias="keycloak_port"
+        default=8_080, ge=1, le=65_535, validation_alias="keycloak_port"
     )
     keycloak_redirect_protocol_raw: Literal["http", "https", None] = Field(
         default=None, validation_alias="keycloak_redirect_protocol"
@@ -191,9 +191,7 @@ class SecurityConfig(BaseSettings):
     security_middleware_host: str | None = Field(
         default="security-middleware", min_length=1
     )
-    security_middleware_port: int | None = Field(
-        default="8000", ge=1, le=65_535
-    )
+    security_middleware_port: int | None = Field(default=8_000, ge=1, le=65_535)
 
     @model_validator(mode="after")
     def set_defaults(self) -> "SecurityConfig":

@@ -80,7 +80,8 @@ class TemplateObjectUpdaterInteractor(object):
                     )
             # Update Aggregate
             template_object.update_parent_object_id(request.parent_object_id)
-            template_object.update_required(request.required)
+            if request.required is not None:
+                template_object.update_required(request.required)
 
             # Update in DB
             await self._to_updater.update_template_object(

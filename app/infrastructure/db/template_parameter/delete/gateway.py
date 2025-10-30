@@ -1,6 +1,7 @@
 from logging import getLogger
+from typing import cast
 
-from sqlalchemy import delete
+from sqlalchemy import CursorResult, delete
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,6 +24,8 @@ class SQLTemplateParameterDeleterRepository(TemplateParameterDeleter):
         query = query.where(TemplateParameter.id == template_parameter_id)
         try:
             result = await self._session.execute(query)
+            # Bug https://docs.sqlalchemy.org/en/20/changelog/changelog_20.html#change-0651b868cdc88d28c57469affceaf05f
+            result = cast(CursorResult, result)
             self.logger.debug(f"Deleted rows: {result.rowcount}.")
         except SQLAlchemyError as ex:
             self.logger.exception(ex)
