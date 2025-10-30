@@ -57,22 +57,22 @@ class KafkaConfig(BaseSettings):
         default="kafka",
         min_length=1,
         serialization_alias="sasl.oauthbearer.client.id",
-        validation_alias="keycloak_client_id",
+        validation_alias="kafka_keycloak_client_id",
     )
     keycloak_client_secret: str = Field(
         ...,
         min_length=1,
         serialization_alias="sasl.oauthbearer.client.secret",
-        validation_alias="keycloak_client_secret",
+        validation_alias="kafka_keycloak_client_secret",
     )
     keycloak_protocol: Literal["http", "https"] = Field(
-        default="http", validation_alias="keycloak_protocol"
+        default="https", validation_alias="keycloak_protocol"
     )
     keycloak_host: str = Field(
         default="keycloak", min_length=1, validation_alias="keycloak_host"
     )
     keycloak_port: int = Field(
-        default=8080, ge=1, le=65_535, validation_alias="keycloak_port"
+        default=8_080, ge=1, le=65_535, validation_alias="keycloak_port"
     )
     realm: str = Field(
         default="avataa", min_length=1, validation_alias="keycloak_realm"
