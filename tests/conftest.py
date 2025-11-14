@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from main import v1_app as real_app
 import pytest_asyncio
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -74,6 +75,14 @@ async def test_session(
             raise
         finally:
             await session.close()
+            # Erase all data from db between tests
+            async with test_engine.begin() as conn:
+                for table in Base.metadata.sorted_tables:
+                    await conn.execute(
+                        text(
+                            f"TRUNCATE TABLE {table.name} RESTART IDENTITY CASCADE;"
+                        )
+                    )
 
 
 # only for pytest-asyncio 0.21/0.23
