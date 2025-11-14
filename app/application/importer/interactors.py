@@ -13,12 +13,39 @@ from domain.importer.vo.import_validation_result import ImportValidationResult
 
 
 class ObjectTemplateImportInteractor(object):
-    def __init__(self):
+    def __init__(
+        self,
+        validation_service: TemplateImportValidationService,
+        data_formatter: DataFormatter,
+        enricher: OTEnrichErrorService,
+    ):
+        self._validation_service = validation_service
+        self._data_formatter = data_formatter
+        self._enricher = enricher
         self.logger = getLogger(self.__class__.__name__)
 
     async def __call__(self, request: OTImportRequestDTO):
         try:
-            self.logger.info(request)
+            validation_data: ImportValidationResult = (
+                await self._validation_service.validate_excel_import(
+                    excel_data=request.file_data,
+                )
+            )
+            self.logger.info(
+                f"Validation completed: valid={validation_data.result.is_valid}, "
+                f"errors={len(validation_data.result.errors)}, "
+                f"errors={validation_data.result.errors}, "
+            )
+            if validation_data.result.is_valid:
+                # Create templates
+                # Create template objects
+                # Create template parameters
+                pass
+            else:
+                raise ObjectTemplateImportApplicationException(
+                    status_code=422,
+                    detail="Invalid data to import. Try to validate before import.",
+                )
             return []
         except ObjectTemplateImportApplicationException as ex:
             self.logger.error(ex)
