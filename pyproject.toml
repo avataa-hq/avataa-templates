@@ -5,7 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "alembic==1.17.1",
+    "alembic==1.17.2",
     "asyncpg==0.30.0",
     "confluent-kafka[protobuf,schemaregistry]==2.12.2",
     "dishka==1.7.2",
@@ -48,7 +48,7 @@ security = [
     "pip-audit==2.9.0",
 ]
 migrations = [
-    "alembic>=1.17.1",
+    "alembic>=1.17.2",
     "asyncpg==0.30.0",
     "pydantic-settings>=2.10.1",
     "sqlalchemy[asyncio]>=2.0.44",

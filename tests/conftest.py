@@ -26,13 +26,15 @@ from presentation.security.security_factory import security
 @pytest_asyncio.fixture(scope="session")
 def db_url():
     if setup_config().tests.run_container_postgres_local:
-        with PostgresContainer(
+        pg = PostgresContainer(
             username=setup_config().tests.user,
             password=setup_config().tests.db_pass,
             dbname="test_db",
             driver="asyncpg",
-        ) as postgres:
-            yield postgres.get_connection_url()
+        )
+        pg.with_bind_ports(5432, 55432)
+        with pg:
+            yield pg.get_connection_url()
     else:
         db_url = setup_config().test_database_url.unicode_string()
         yield db_url
