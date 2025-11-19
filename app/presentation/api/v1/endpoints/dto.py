@@ -11,6 +11,9 @@ from application.template.update.dto import (
     TemplateDataUpdateRequestDTO,
     TemplateUpdateResponseDTO,
 )
+from application.template_object.create.dto import (
+    TemplateObjectCreateRequestDTO,
+)
 from application.template_object.read.dto import (
     TemplateObjectByIdRequestDTO,
     TemplateObjectByObjectTypeRequestDTO,
@@ -388,3 +391,54 @@ class TemplateExportRequest(BaseModel):
         return OTExportRequestDTO(
             template_ids=self.template_ids,
         )
+
+
+class TemplateObjectData(BaseModel):
+    object_type_id: int = Field(ge=1)
+    required: bool
+    parameters: list[TemplateParameterData]
+    children: list["TemplateObjectData"] = Field(default_factory=list)
+
+
+class TemplateObjectRequest(BaseModel):
+    data: list[TemplateObjectData]
+    template_id: int
+    parent_id: int | None = None
+
+    def to_interactor_dto(self) -> list[TemplateObjectCreateRequestDTO]:
+        return [
+            TemplateObjectCreateRequestDTO(
+                template_id=self.template_id,
+                parent_id=self.parent_id,
+                object_type_id=el.object_type_id,
+                required=el.required,
+                parameters=[
+                    TemplateParameterDataCreateRequestDTO(
+                        parameter_type_id=p.parameter_type_id,
+                        required=p.required,
+                        value=p.value,
+                        constraint=p.constraint,
+                    )
+                    for p in el.parameters
+                ],
+                children=[
+                    TemplateObjectCreateRequestDTO(
+                        template_id=self.template_id,
+                        parent_id=self.parent_id,
+                        object_type_id=child.object_type_id,
+                        required=child.required,
+                        parameters=[
+                            TemplateParameterDataCreateRequestDTO(
+                                parameter_type_id=p.parameter_type_id,
+                                required=p.required,
+                                value=p.value,
+                                constraint=p.constraint,
+                            )
+                            for p in child.parameters
+                        ],
+                    )
+                    for child in el.children
+                ],
+            )
+            for el in self.data
+        ]

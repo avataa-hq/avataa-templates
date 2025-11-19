@@ -9,7 +9,7 @@ dependencies = [
     "asyncpg==0.30.0",
     "confluent-kafka[protobuf,schemaregistry]==2.12.2",
     "dishka==1.7.2",
-    "fastapi==0.121.2",
+    "fastapi==0.121.3",
     "grpcio==1.76.0",
     "grpcio-tools==1.76.0",
     "openpyxl==3.1.5",

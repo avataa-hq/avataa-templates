@@ -13,6 +13,9 @@ from application.importer.interactors import (
 from application.inventory_changes.interactors import InventoryChangesInteractor
 from application.template.read.interactors import TemplateReaderInteractor
 from application.template.update.interactors import TemplateUpdaterInteractor
+from application.template_object.create.interactors import (
+    TemplateObjectCreatorInteractor,
+)
 from application.template_object.delete.interactors import (
     TemplateObjectDeleterInteractor,
 )
@@ -290,6 +293,15 @@ class InteractorProvider(Provider):
         )
 
     ## Template Object Interactor
+    @provide(scope=Scope.REQUEST)
+    def get_template_object_creator(
+        self,
+        uow: SQLAlchemyUoW,
+    ) -> TemplateObjectCreatorInteractor:
+        return TemplateObjectCreatorInteractor(
+            uow=uow,
+        )
+
     @provide(scope=Scope.REQUEST)
     def get_template_object_reader(
         self,
