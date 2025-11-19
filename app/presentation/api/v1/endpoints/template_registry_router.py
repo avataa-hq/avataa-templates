@@ -1,4 +1,4 @@
-from typing import Annotated, List, Optional
+from typing import Annotated
 
 from dishka import FromDishka
 from dishka.integrations.fastapi import inject
@@ -6,6 +6,9 @@ from fastapi import APIRouter, Body, Depends, HTTPException, status
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from application.template_object.create.interactors import (
+    TemplateObjectCreatorInteractor,
+)
 from application.template_parameter.create.dto import (
     TemplateParameterCreateRequestDTO,
 )
@@ -27,6 +30,8 @@ from exceptions import (
     ValueConstraintException,
 )
 from presentation.api.v1.endpoints.dto import (
+    TemplateObjectData,
+    TemplateObjectRequest,
     TemplateParameterCreateResponse,
     TemplateParameterData,
 )
@@ -137,7 +142,7 @@ async def create_template(
 async def add_objects(
     template_id: int,
     objects_data: Annotated[
-        List[TemplateObjectInput],
+        list[TemplateObjectInput],
         Body(
             examples=[
                 [
@@ -165,8 +170,8 @@ async def add_objects(
     ],
     db: Annotated[AsyncSession, Depends(get_async_session)],
     user_data: Annotated[UserData, Depends(security)],
-    parent_id: Optional[int] = None,
-) -> List[TemplateObjectOutput]:
+    parent_id: int | None = None,
+) -> list[TemplateObjectOutput]:
     service = TemplateRegistryService(db)
 
     try:
@@ -232,6 +237,63 @@ async def add_objects(
         raise HTTPException(status_code=422, detail=str(e))
     await service.commit_changes()
     return objects
+
+
+@router.post("/add-objects_new/{template_id}")
+@inject
+async def add_objects_new(
+    template_id: int,
+    objects_data: Annotated[
+        list[TemplateObjectData],
+        Body(
+            examples=[
+                [
+                    {
+                        "object_type_id": 46181,
+                        "required": True,
+                        "parameters": [
+                            {
+                                "parameter_type_id": 135296,
+                                "value": "Value 1",
+                                "constraint": "Value 1",
+                                "required": True,
+                            },
+                        ],
+                    },
+                    {
+                        "object_type_id": 3,
+                        "required": False,
+                        "parameters": [],
+                        "children": [],
+                    },
+                ]
+            ]
+        ),
+    ],
+    interactor: FromDishka[TemplateObjectCreatorInteractor],
+    user_data: Annotated[UserData, Depends(security)],
+    parent_id: int | None = None,
+) -> list[TemplateObjectOutput]:
+    try:
+        req = TemplateObjectRequest(
+            template_id=template_id,
+            parent_id=parent_id,
+            data=objects_data,
+        )
+        print(req.to_interactor_dto())
+        result = await interactor(request="q")
+        return result
+    except ValidationError as ex:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=ex.errors()
+        )
+    except TemplateParameterCreatorApplicationException as ex:
+        raise HTTPException(status_code=ex.status_code, detail=ex.detail)
+    except Exception as ex:
+        print(type(ex), ex)
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(ex)
+        )
 
 
 @router.post(
