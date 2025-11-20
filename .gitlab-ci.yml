@@ -25,13 +25,6 @@ pre:
         "https://github.com/jqlang/jq/releases/download/jq-${JQ_VERSION}/jq-linux-${target_arch_alt}" \
         -o /usr/local/bin/jq
     - chmod +x /usr/local/bin/jq;
-    - |
-      curl -s -S -L -O -X 'GET' --max-time 10 \
-        https://github.com/hetznercloud/cli/releases/download/${HETZNER_CLI_VERSION}/hcloud-linux-${target_arch_alt}.tar.gz
-    - tar -zxf hcloud-linux-${target_arch_alt}.tar.gz
-    - mv hcloud /usr/local/bin/hcloud
-    - chmod +x /usr/local/bin/hcloud;
-    - rm hcloud-linux-${target_arch_alt}.tar.gz
   rules:
     # if event = merge request creation && source = /^feature\/A[DV]-\d+$/ && target = main
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event' &&
