@@ -280,8 +280,7 @@ async def add_objects_new(
             parent_id=parent_id,
             data=objects_data,
         )
-        print(req.to_interactor_dto())
-        result = await interactor(request="q")
+        result = await interactor(request=req.to_interactor_dto())
         return result
     except ValidationError as ex:
         raise HTTPException(
