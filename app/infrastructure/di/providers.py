@@ -55,6 +55,7 @@ from domain.importer.validate_service import (
 from domain.template.command import TemplateUpdater
 from domain.template.query import TemplateReader
 from domain.template_object.command import (
+    TemplateObjectCreator,
     TemplateObjectDeleter,
     TemplateObjectUpdater,
 )
@@ -71,6 +72,9 @@ from domain.tprm_validation.query import TPRMReader
 from infrastructure.db.template.read.gateway import SQLTemplateReaderRepository
 from infrastructure.db.template.update.gateway import (
     SQLTemplateUpdaterRepository,
+)
+from infrastructure.db.template_object.create.gateway import (
+    SQLTemplateObjectCreatorRepository,
 )
 from infrastructure.db.template_object.delete.gateway import (
     SQLTemplateObjectDeleterRepository,
@@ -148,6 +152,12 @@ class RepositoryProvider(Provider):
         return SQLTemplateUpdaterRepository(session)
 
     ## Template object Repo
+    @provide(scope=Scope.REQUEST)
+    def get_template_object_creator_repo(
+        self, session: AsyncSession
+    ) -> TemplateObjectCreator:
+        return SQLTemplateObjectCreatorRepository(session)
+
     @provide(scope=Scope.REQUEST)
     def get_template_object_reader_repo(
         self, session: AsyncSession
@@ -296,9 +306,11 @@ class InteractorProvider(Provider):
     @provide(scope=Scope.REQUEST)
     def get_template_object_creator(
         self,
+        to_creator: TemplateObjectCreator,
         uow: SQLAlchemyUoW,
     ) -> TemplateObjectCreatorInteractor:
         return TemplateObjectCreatorInteractor(
+            to_creator=to_creator,
             uow=uow,
         )
 
