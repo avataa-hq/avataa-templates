@@ -91,7 +91,7 @@ class SecurityConfig(BaseSettings):
         else:
             return value
 
-    keycloak_protocol: Literal["http", "https"] = Field(default="https")
+    keycloak_protocol: Literal["http", "https"] = Field(default="http")
     keycloak_scope: str = Field(default="profile")
     keycloak_host: str = Field(
         default="keycloak", min_length=1, validation_alias="keycloak_host"
@@ -109,7 +109,7 @@ class SecurityConfig(BaseSettings):
         default=None, gt=0, validation_alias="keycloak_redirect_port"
     )
     realm: str = Field(
-        default="master", min_length=1, validation_alias="keycloak_realm"
+        default="avataa", min_length=1, validation_alias="keycloak_realm"
     )
 
     @computed_field  # type: ignore

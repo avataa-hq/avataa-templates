@@ -58,13 +58,17 @@ class Keycloak(OAuth2AuthorizationCodeBearer, SecurityInterface):
                         detail=self.EXCEPTION_ERROR,
                     )
                 data = resp.json()
-        except ConnectError:
+        except ConnectError as ex:
+            logging.warning("Connect Error:", ex)
             raise HTTPException(status_code=503, detail=self.EXCEPTION_ERROR)
-        except asyncio.TimeoutError:
+        except asyncio.TimeoutError as ex:
+            logging.warning("Timeout Error:", ex)
             raise HTTPException(status_code=503, detail=self.EXCEPTION_ERROR)
-        except ResponseNotRead:
+        except ResponseNotRead as ex:
+            logging.warning("Response Not Read:", ex)
             raise HTTPException(status_code=503, detail=self.EXCEPTION_ERROR)
-        except InvalidURL:
+        except InvalidURL as ex:
+            logging.warning("Invalid URL:", self.keycloak_public_url, ex)
             raise HTTPException(status_code=503, detail=self.EXCEPTION_ERROR)
 
         public_key = (
